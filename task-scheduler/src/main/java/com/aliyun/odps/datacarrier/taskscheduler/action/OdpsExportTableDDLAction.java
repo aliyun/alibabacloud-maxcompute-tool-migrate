@@ -52,7 +52,7 @@ public class OdpsExportTableDDLAction extends OdpsSqlAction {
         ossConfig.getOssEndpoint(),
         ossConfig.getOssBucket(),
         ossConfig.getOssRoleArn(),
-        OdpsSqlUtils.getOssTablePath(ossConfig.getOssEndpoint(), ossConfig.getOssBucket(), location));
+        OdpsSqlUtils.getOssTablePath(ossConfig, location));
     String statement = OdpsSqlUtils.getCreateTableStatementWithoutDatabaseName(
         tableMetaModel, ossExternalTableConfig);
     LOG.info("Action {}, Task {}, export table {}.{}, statement {}",
