@@ -344,17 +344,25 @@ public class OdpsSqlUtils {
    * @param ossFilePath relative path from bucket, such as a/b/
    * @return
    */
-  public static String getOssTablePath(String ossEndpoint,
-                                       String ossBucket,
+  public static String getOssTablePath(MmaConfig.OssConfig ossConfig,
                                        String ossFilePath) {
-    if (StringUtils.isNullOrEmpty(ossEndpoint)
-        || StringUtils.isNullOrEmpty(ossBucket)) {
+    // aliyun doc : https://help.aliyun.com/document_detail/72776.html?spm=5176.10695662.1996646101.searchclickresult.3f543a59Eh6owJ
+    // if use sts, Location format is:
+    //    LOCATION 'oss://${endpoint}/${bucket}/${userfilePath}/'
+    // else, Location format is:
+    //    LOCATION 'oss://${accessKeyId}:${accessKeySecret}@${endpoint}/${bucket}/${userPath}/'
+    if (StringUtils.isNullOrEmpty(ossConfig.getOssEndpoint())
+        || StringUtils.isNullOrEmpty(ossConfig.getOssBucket())) {
       throw new IllegalArgumentException("Undefined OSS endpoint or OSS bucket");
     }
-    StringBuilder locationBuilder = new StringBuilder();
-    if (!ossEndpoint.startsWith("oss://")) {
-      locationBuilder.append("oss://");
+    String ossPrefix = "oss://";
+    StringBuilder locationBuilder = new StringBuilder(ossPrefix);
+    if (StringUtils.isNullOrEmpty(ossConfig.getOssRoleArn())) {
+      locationBuilder.append(ossConfig.getOssAccessId()).append(":").append(ossConfig.getOssAccessKey()).append("@");
     }
+    String ossEndpoint = ossConfig.getOssEndpoint().startsWith(ossPrefix) ?
+        ossConfig.getOssEndpoint().substring(ossPrefix.length()) : ossConfig.getOssEndpoint();
+    String ossBucket = ossConfig.getOssBucket();
     locationBuilder.append(ossEndpoint);
     if (!ossEndpoint.endsWith("/")) {
       locationBuilder.append("/");

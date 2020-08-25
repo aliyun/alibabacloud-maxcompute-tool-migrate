@@ -242,7 +242,7 @@ public class TaskProvider {
           if (ExternalTableStorage.OSS.equals(storage)) {
             MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
             String ossFolder = tableMetaModel.odpsProjectName + ".db/" + tableMetaModel.odpsTableName + "/";
-            location = OdpsSqlUtils.getOssTablePath(ossConfig.getOssEndpoint(), ossConfig.getOssBucket(), ossFolder);
+            location = OdpsSqlUtils.getOssTablePath(ossConfig, ossFolder);
           }
           ExternalTableConfig externalTableConfig = new ExternalTableConfig(storage, location);
           dag = getOdpsNonPartitionedTableMigrationActionDag(taskId, true, externalTableConfig);
@@ -300,7 +300,7 @@ public class TaskProvider {
             if (ExternalTableStorage.OSS.equals(storage)) {
               MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
               String ossFolder = tableMetaModel.odpsProjectName + ".db/" + tableMetaModel.odpsTableName + "/";
-              location = OdpsSqlUtils.getOssTablePath(ossConfig.getOssEndpoint(), ossConfig.getOssBucket(), ossFolder);
+              location = OdpsSqlUtils.getOssTablePath(ossConfig, ossFolder);
             }
             ExternalTableConfig externalTableConfig = new ExternalTableConfig(storage, location);
             dag = getOdpsPartitionedTableMigrationActionDag(taskId, true, externalTableConfig);
@@ -333,7 +333,7 @@ public class TaskProvider {
         Constants.EXPORT_TABLE_DATA_FOLDER);
     MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
     ExternalTableConfig externalTableConfig = new ExternalTableConfig(ExternalTableStorage.OSS,
-        OdpsSqlUtils.getOssTablePath(ossConfig.getOssEndpoint(), ossConfig.getOssBucket(), location));
+        OdpsSqlUtils.getOssTablePath(ossConfig, location));
     List<Task> tasks = new ArrayList<>();
     AtomicInteger lineageTasksCounter = new AtomicInteger(0);
     for (int index = 0; index < splitResult.size(); index++) {
