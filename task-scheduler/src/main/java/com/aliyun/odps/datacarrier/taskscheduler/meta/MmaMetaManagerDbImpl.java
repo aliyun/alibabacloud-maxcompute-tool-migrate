@@ -193,7 +193,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
 
   @Override
   public void addObjectRestoreJob(MmaConfig.ObjectRestoreConfig config) throws MmaException {
-    String db = config.getDestinationDatabaseName().toLowerCase();
+    String db = config.getOriginDatabaseName().toLowerCase();
     String object = config.getObjectName().toLowerCase();
     LOG.info("Add restore job, from {} to {}, object: {}, type: {}",
         config.getOriginDatabaseName(), config.getDestinationDatabaseName(), object, config.getObjectType().name());
