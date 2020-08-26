@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.utils.StringUtils;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -261,12 +262,23 @@ public class MmaClientMain {
             objectExportConfig.getDatabaseName(),
             objectExportConfig.getObjectName()));
       } else if (MmaConfig.JobType.RESTORE.equals(config.getJobType())) {
-        MmaConfig.ObjectRestoreConfig objectRestoreConfig =
-            MmaConfig.ObjectRestoreConfig.fromJson(config.getDescription());
-        System.err.println(String.format("[Restore] %s: %s.%s",
-            objectRestoreConfig.getObjectType(),
-            objectRestoreConfig.getDestinationDatabaseName(),
-            objectRestoreConfig.getObjectName()));
+        if (StringUtils.isNullOrEmpty(config.getName())) {
+          MmaConfig.DatabaseRestoreConfig databaseRestoreConfig =
+              MmaConfig.DatabaseRestoreConfig.fromJson(config.getDescription());
+          System.err.println(String.format("[Restore] DATABASE: %s to %s, task %s",
+              databaseRestoreConfig.getOriginDatabaseName(),
+              databaseRestoreConfig.getDestinationDatabaseName(),
+              databaseRestoreConfig.getTaskName()));
+        } else {
+          MmaConfig.ObjectRestoreConfig objectRestoreConfig =
+              MmaConfig.ObjectRestoreConfig.fromJson(config.getDescription());
+          System.err.println(String.format("[Restore] %s: %s from %s to %s, task %s",
+              objectRestoreConfig.getObjectType(),
+              objectRestoreConfig.getObjectName(),
+              objectRestoreConfig.getOriginDatabaseName(),
+              objectRestoreConfig.getDestinationDatabaseName(),
+              objectRestoreConfig.getTaskName()));
+        }
       }
     }
 
