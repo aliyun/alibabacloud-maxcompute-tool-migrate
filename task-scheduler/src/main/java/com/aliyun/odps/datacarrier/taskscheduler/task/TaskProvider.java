@@ -448,7 +448,7 @@ public class TaskProvider {
     String temporaryTableName = generateRestoredTemporaryTableName(restoreConfig);
     String taskId = getUniqueMigrationTaskName(tableMetaModel.odpsProjectName, tableMetaModel.tableName);
     try {
-      DropRestoredTemporaryTableWorkItem item = new DropRestoredTemporaryTableWorkItem(
+      DropRestoredTemporaryTableWorkItem dropRestoredTemporaryTableWorkItem = new DropRestoredTemporaryTableWorkItem(
           taskId + ".DropRestoredTemporaryTable",
           restoreConfig.getDestinationDatabaseName(),
           temporaryTableName,
@@ -502,7 +502,7 @@ public class TaskProvider {
         AddBackgroundWorkItemAction addBackgroundWorkItemAction = new AddBackgroundWorkItemAction(
             taskId + ".AddBackgroundWorkItem",
             backgroundLoopManager,
-            item);
+            dropRestoredTemporaryTableWorkItem);
 
         dag.addVertex(restorePartitionAction);
         dag.addVertex(addMigrationJobAction);
@@ -515,7 +515,7 @@ public class TaskProvider {
         task = new OdpsRestoreTablePrepareTask(taskId, tableMetaModel, dag, mmaMetaManager);
       } else {
         LOG.info("Migration temporary table job already exist for {}", MmaConfig.ObjectRestoreConfig.toJson(restoreConfig));
-        backgroundLoopManager.addWorkItem(item);
+        backgroundLoopManager.addWorkItem(dropRestoredTemporaryTableWorkItem);
       }
     } catch (Exception e) {
       LOG.error("Exception when generate partitioned table restore task {}",
@@ -554,8 +554,7 @@ public class TaskProvider {
         taskId + ".ResetTableMetaModel",
         tableMetaModel.odpsProjectName,
         temporaryTableName,
-        restoreConfig.getDestinationDatabaseName(),
-        restoreConfig.getObjectName());
+        restoreConfig);
     dag.addVertex(resetTableMetaModelAction);
     dag.addEdge(restoreTableAction, resetTableMetaModelAction);
     OdpsCreateTableAction createTableAction = new OdpsCreateTableAction(taskId + ".CreateTable");
@@ -854,7 +853,7 @@ public class TaskProvider {
       TableMetaModel tableMetaModel,
       MmaConfig.AdditionalTableConfig config) {
 
-    if (tableMetaModel.partitionColumns.isEmpty()) {
+    if (tableMetaModel.partitionColumns.isEmpty() || tableMetaModel.partitions.size() == 0) {
       // Splitting non-partitioned tables not supported
       return Collections.singletonList(tableMetaModel);
     }

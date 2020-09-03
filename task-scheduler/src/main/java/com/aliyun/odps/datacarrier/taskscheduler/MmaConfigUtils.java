@@ -50,7 +50,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.tools.ant.filters.StringInputStream;
 

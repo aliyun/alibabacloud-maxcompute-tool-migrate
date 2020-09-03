@@ -339,8 +339,7 @@ public class OdpsSqlUtils {
 
   /**
    * Get oss folder to store external table data
-   * @param ossEndpoint
-   * @param ossBucket
+   * @param ossConfig oss config
    * @param ossFilePath relative path from bucket, such as a/b/
    * @return
    */
@@ -409,7 +408,7 @@ public class OdpsSqlUtils {
     StringBuilder sb = new StringBuilder();
 
     // Return if this is not a partitioned table
-    if (tableMetaModel.partitionColumns.size() == 0) {
+    if (tableMetaModel.partitionColumns.size() == 0 || tableMetaModel.partitions.size() == 0) {
       return sb.toString();
     }
 

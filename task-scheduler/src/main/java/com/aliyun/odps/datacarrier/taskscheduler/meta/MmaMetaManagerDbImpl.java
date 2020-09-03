@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.aliyun.odps.datacarrier.taskscheduler.ExternalTableStorage;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -968,6 +969,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         } else if (MmaConfig.JobType.BACKUP.equals(jobInfo.getJobConfig().getJobType())) {
           MmaConfig.ObjectExportConfig objectExportConfig =
               MmaConfig.ObjectExportConfig.fromJson(jobInfo.getJobConfig().getDescription());
+          objectExportConfig.setDestTableStorage(ExternalTableStorage.OSS.name());
           objectExportConfig.apply(tableMetaModel);
           tableMetaModel.odpsProjectName = objectExportConfig.getDatabaseName();
           tableMetaModel.odpsTableName = objectExportConfig.getObjectName() + "_" + objectExportConfig.getTaskName();

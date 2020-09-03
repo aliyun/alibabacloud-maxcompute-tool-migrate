@@ -21,11 +21,16 @@ package com.aliyun.odps.datacarrier.taskscheduler;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.Map;
 
 // TDOO: move to constants
 public class GsonUtils {
+  public static final Type STRING_TO_STRING_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+
   private static final Gson FULL_CONFIG_GSON = new GsonBuilder().
       excludeFieldsWithModifiers(Modifier.STATIC, Modifier.VOLATILE).
       disableHtmlEscaping().setPrettyPrinting().create();
