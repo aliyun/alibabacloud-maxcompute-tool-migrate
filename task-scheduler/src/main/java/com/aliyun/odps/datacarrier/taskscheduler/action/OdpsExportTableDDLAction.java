@@ -1,6 +1,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
 import com.aliyun.odps.datacarrier.taskscheduler.Constants;
+import com.aliyun.odps.datacarrier.taskscheduler.GsonUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
@@ -10,9 +11,11 @@ import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_COLUMN_TYPE_FILE_NAME;
 import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_META_FILE_NAME;
 import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_PARTITION_SPEC_FILE_NAME;
 import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_TABLE_FOLDER;
@@ -63,7 +66,28 @@ public class OdpsExportTableDDLAction extends OdpsSqlAction {
         tableMetaModel.tableName,
         EXPORT_META_FILE_NAME);
     OssUtils.createFile(ossFileName, statement);
-    if (!tableMetaModel.partitionColumns.isEmpty()) {
+
+    // we must transfer column type to TIMESTAME if corresponding internal table column type is DATETIME
+    // so origin column types should be recorded for restore task
+    Map<String, String> columnTypes = new HashMap<>();
+    for (int i = 0; i < tableMetaModel.columns.size(); i++) {
+      MetaSource.ColumnMetaModel columnMetaModel = tableMetaModel.columns.get(i);
+      columnTypes.put(columnMetaModel.odpsColumnName, columnMetaModel.type);
+    }
+    for (int i = 0; i < tableMetaModel.partitionColumns.size(); i++) {
+      MetaSource.ColumnMetaModel columnMetaModel = tableMetaModel.partitionColumns.get(i);
+      columnTypes.put(columnMetaModel.odpsColumnName, columnMetaModel.type);
+    }
+    String columnTypesContent = GsonUtils.toJson(columnTypes);
+    LOG.info("Origin column types {}", columnTypesContent);
+    ossFileName = OssUtils.getOssPathToExportObject(taskName,
+        EXPORT_TABLE_FOLDER,
+        tableMetaModel.databaseName,
+        tableMetaModel.tableName,
+        EXPORT_COLUMN_TYPE_FILE_NAME);
+    OssUtils.createFile(ossFileName, columnTypesContent);
+
+    if (!tableMetaModel.partitionColumns.isEmpty() && !tableMetaModel.partitions.isEmpty()) {
       String addPartitionStatement = OdpsSqlUtils.getAddPartitionStatementWithoutDatabaseName(tableMetaModel);
       ossFileName = OssUtils.getOssPathToExportObject(taskName,
           EXPORT_TABLE_FOLDER,
