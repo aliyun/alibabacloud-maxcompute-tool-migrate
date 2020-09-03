@@ -1,6 +1,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler.action.executor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,7 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
       try {
         odpsSqlActionInfo.setLogView(odps.logview().generateLogView(i, 72));
+        LOG.info("LogView {}", odpsSqlActionInfo.getLogView());
       } catch (OdpsException ignore) {
       }
 

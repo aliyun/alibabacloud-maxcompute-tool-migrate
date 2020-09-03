@@ -140,6 +140,7 @@ public class Constants {
   public static final String EXPORT_TABLE_DATA_FOLDER = "data/";
   public static final String EXPORT_VIEW_FOLDER = "views/";
   public static final String EXPORT_META_FILE_NAME = "meta";
+  public static final String EXPORT_COLUMN_TYPE_FILE_NAME = "column_type";
   public static final String EXPORT_PARTITION_SPEC_FILE_NAME = "partition_spec";
   public static final String EXPORT_OBJECT_FILE_NAME = "object";
 }
