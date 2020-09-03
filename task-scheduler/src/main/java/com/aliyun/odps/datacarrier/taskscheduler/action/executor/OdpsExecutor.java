@@ -59,6 +59,7 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
       try {
         odpsSqlActionInfo.setLogView(odps.logview().generateLogView(i, 72));
+        LOG.info("LogView {}", odpsSqlActionInfo.getLogView());
       } catch (OdpsException ignore) {
       }
 

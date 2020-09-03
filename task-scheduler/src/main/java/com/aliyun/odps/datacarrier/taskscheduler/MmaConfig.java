@@ -19,6 +19,7 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,21 +35,36 @@ public class MmaConfig {
     boolean validate();
   }
 
-  public static class SQLSettingConfig {
-    Map<String, String> ddlSettings;
-    Map<String, String> migrationSettings;
-    Map<String, String> verifySettings;
+  public static class OdpsSQLSettingConfig {
+    Map<String, String> ddlSettings = new HashMap<>();
+    Map<String, String> migrationSettings = new HashMap<>();
+    Map<String, String> verifySettings = new HashMap<>();
+
+    transient boolean initialized = false;
 
     public Map<String, String> getDDLSettings() {
-      return ddlSettings == null ? MapUtils.EMPTY_MAP : ddlSettings;
+      return ddlSettings;
     }
 
     public Map<String, String> getMigrationSettings() {
-      return migrationSettings == null ? MapUtils.EMPTY_MAP : migrationSettings;
+      return migrationSettings;
     }
 
     public Map<String, String> getVerifySettings() {
-      return verifySettings == null ? MapUtils.EMPTY_MAP : verifySettings;
+      return verifySettings;
+    }
+
+    public void initialize(Map<String, String> globalSettings) {
+      for(Map.Entry<String, String> entry : globalSettings.entrySet()) {
+        ddlSettings.putIfAbsent(entry.getKey(), entry.getValue());
+        migrationSettings.putIfAbsent(entry.getKey(), entry.getValue());
+        migrationSettings.putIfAbsent(entry.getKey(), entry.getValue());
+      }
+      initialized = true;
+    }
+
+    public boolean isInitialized() {
+      return this.initialized;
     }
 
     @Override
@@ -231,8 +247,8 @@ public class MmaConfig {
     private String projectName;
     private String tunnelEndpoint;
     private Map<String, String> globalSettings;
-    private SQLSettingConfig sourceTableSettings;
-    private SQLSettingConfig destinationTableSettings;
+    private OdpsSQLSettingConfig sourceTableSettings;
+    private OdpsSQLSettingConfig destinationTableSettings;
 
     public OdpsConfig(String accessId,
                       String accessKey,
@@ -271,12 +287,24 @@ public class MmaConfig {
       return globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings;
     }
 
-    public SQLSettingConfig getSourceTableSettings() {
-      return sourceTableSettings == null ? new SQLSettingConfig() : sourceTableSettings;
+    public OdpsSQLSettingConfig getSourceTableSettings() {
+      if (sourceTableSettings == null) {
+        sourceTableSettings = new OdpsSQLSettingConfig();
+      }
+      if (!sourceTableSettings.isInitialized()) {
+        sourceTableSettings.initialize(globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+      }
+      return sourceTableSettings;
     }
 
-    public SQLSettingConfig getDestinationTableSettings() {
-      return destinationTableSettings == null ? new SQLSettingConfig() : destinationTableSettings;
+    public OdpsSQLSettingConfig getDestinationTableSettings() {
+      if (destinationTableSettings == null) {
+        destinationTableSettings = new OdpsSQLSettingConfig();
+      }
+      if (!destinationTableSettings.isInitialized()) {
+        destinationTableSettings.initialize(globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+      }
+      return destinationTableSettings;
     }
 
     @Override
@@ -530,6 +558,10 @@ public class MmaConfig {
       return destTableStorage;
     }
 
+    public void setDestTableStorage(String storage) {
+      this.destTableStorage = storage;
+    }
+
     public List<List<String>> getPartitionValuesList() {
       return partitionValuesList;
     }
@@ -562,24 +594,18 @@ public class MmaConfig {
       DataSource dataSource = MmaServerConfig.getInstance().getDataSource();
       if (DataSource.Hive.equals(dataSource)) {
         typeTransformer = new HiveTypeTransformer();
+      } else if (DataSource.ODPS.equals(dataSource)) {
+        typeTransformer = new OdpsTypeTransformer(!StringUtils.isNullOrEmpty(destTableStorage));
       }
 
       for (MetaSource.ColumnMetaModel c : tableMetaModel.columns) {
         c.odpsColumnName = c.columnName;
-        if (DataSource.ODPS.equals(dataSource)) {
-          c.odpsType = c.type.toUpperCase().trim();
-        } else {
-          c.odpsType = typeTransformer.toOdpsTypeV2(c.type).getTransformedType();
-        }
+        c.odpsType = typeTransformer.toOdpsTypeV2(c.type).getTransformedType();
       }
 
       for (MetaSource.ColumnMetaModel pc : tableMetaModel.partitionColumns) {
         pc.odpsColumnName = pc.columnName;
-        if (DataSource.ODPS.equals(dataSource)) {
-          pc.odpsType = pc.type.toUpperCase().trim();
-        } else {
-          pc.odpsType = typeTransformer.toOdpsTypeV2(pc.type).getTransformedType();
-        }
+        pc.odpsType = typeTransformer.toOdpsTypeV2(pc.type).getTransformedType();
       }
 
       // TODO: make it a general config
