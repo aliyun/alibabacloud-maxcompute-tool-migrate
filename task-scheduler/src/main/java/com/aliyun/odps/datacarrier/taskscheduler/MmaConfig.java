@@ -58,7 +58,7 @@ public class MmaConfig {
       for(Map.Entry<String, String> entry : globalSettings.entrySet()) {
         ddlSettings.putIfAbsent(entry.getKey(), entry.getValue());
         migrationSettings.putIfAbsent(entry.getKey(), entry.getValue());
-        migrationSettings.putIfAbsent(entry.getKey(), entry.getValue());
+        verifySettings.putIfAbsent(entry.getKey(), entry.getValue());
       }
       initialized = true;
     }
