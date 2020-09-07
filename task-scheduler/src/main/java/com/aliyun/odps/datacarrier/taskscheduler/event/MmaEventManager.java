@@ -39,7 +39,7 @@ public class MmaEventManager {
     }
   }
 
-  public static MmaEventManager getInstance() {
+  public synchronized static MmaEventManager getInstance() {
     if (instance == null) {
       instance = new MmaEventManager();
     }

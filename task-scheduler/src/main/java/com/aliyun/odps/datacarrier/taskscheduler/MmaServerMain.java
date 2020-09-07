@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -19,6 +21,8 @@ import com.aliyun.odps.datacarrier.taskscheduler.MmaEventConfig.MmaEventSenderCo
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventManager;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventSenderFactory;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventType;
+import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
+import com.aliyun.odps.datacarrier.taskscheduler.resource.ResourceAllocator;
 
 
 public class MmaServerMain {
@@ -105,6 +109,14 @@ public class MmaServerMain {
       if (blacklist != null) {
         blacklist.forEach(eventType -> MmaEventManager.getInstance().blacklist(eventType));
       }
+    }
+
+    // Setup MmaResourceAllocator singleton
+    Map<String, String> resourceConfig = MmaServerConfig.getInstance().getResourceConfig();
+    for (Entry<String, String> entry : resourceConfig.entrySet()) {
+      Resource resource = Resource.valueOf(entry.getKey().trim().toUpperCase());
+      Integer number = Integer.valueOf(entry.getValue());
+      ResourceAllocator.getInstance().update(resource, number);
     }
 
     MmaServer mmaServer = new MmaServer();

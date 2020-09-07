@@ -511,7 +511,6 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
             Constants.MMA_OBJ_RESTORE_COL_UNIQUE_ID,
             uniqueId);
         try (Statement stmt = conn.createStatement()) {
-          LOG.info("Executing DML: {}", query);
           stmt.execute(query);
           conn.commit();
         }
@@ -705,7 +704,6 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
               }
               jobPtInfo.setAttemptTimes(attemptTimes);
               jobPtInfo.setLastModifiedTime(Constants.MMA_PT_MEAT_NA_LAST_MODIFIED_TIME);
-              LOG.info(GsonUtils.getFullConfigGson().toJson(jobPtInfo));
               break;
             }
             case RUNNING:

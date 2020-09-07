@@ -1,6 +1,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
@@ -8,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.datacarrier.taskscheduler.HiveSqlUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 
 public class HiveSourceVerificationAction extends HiveSqlAction {
 
@@ -20,6 +22,15 @@ public class HiveSourceVerificationAction extends HiveSqlAction {
   @Override
   String getSql() {
     return HiveSqlUtils.getVerifySql(actionExecutionContext.getTableMetaModel());
+  }
+
+  @Override
+  Map<String, String> getSettings() {
+    return MmaServerConfig
+        .getInstance()
+        .getHiveConfig()
+        .getSourceTableSettings()
+        .getVerifySettings();
   }
 
   @Override
