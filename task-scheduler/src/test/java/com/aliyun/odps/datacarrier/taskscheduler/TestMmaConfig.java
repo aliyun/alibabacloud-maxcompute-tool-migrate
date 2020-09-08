@@ -222,7 +222,7 @@ public class TestMmaConfig {
     assertNull(hiveConfig.getKeyTab());
     assertNull(hiveConfig.getKrbPrincipal());
     assertNull(hiveConfig.getKrbSystemProperties());
-    assertEquals(7, hiveConfig.getHiveJdbcExtraSettings().size());
+    assertEquals(9, hiveConfig.getSourceTableSettings().getMigrationSettings().size());
   }
 
   private void checkOdpsConfig(MmaConfig.OdpsConfig odpsConfig) {

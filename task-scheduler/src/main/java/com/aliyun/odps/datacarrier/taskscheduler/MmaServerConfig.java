@@ -21,6 +21,7 @@ package com.aliyun.odps.datacarrier.taskscheduler;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,17 +36,20 @@ public class MmaServerConfig {
   private MmaConfig.HiveConfig hiveConfig;
   private MmaConfig.OdpsConfig odpsConfig;
   private MmaEventConfig eventConfig;
+  private Map<String, String> resourceConfig;
 
   MmaServerConfig(DataSource dataSource,
                   MmaConfig.OssConfig ossConfig,
                   MmaConfig.HiveConfig hiveConfig,
                   MmaConfig.OdpsConfig odpsConfig,
-                  MmaEventConfig eventConfig) {
+                  MmaEventConfig eventConfig,
+                  Map<String, String> resourceConfig) {
     this.dataSource = dataSource;
     this.ossConfig = ossConfig;
     this.hiveConfig = hiveConfig;
     this.odpsConfig = odpsConfig;
     this.eventConfig = eventConfig;
+    this.resourceConfig = resourceConfig;
   }
 
   public DataSource getDataSource() {
@@ -66,6 +70,10 @@ public class MmaServerConfig {
 
   public MmaEventConfig getEventConfig() {
     return eventConfig;
+  }
+
+  public Map<String, String> getResourceConfig() {
+    return resourceConfig;
   }
 
   public String toJson() {
@@ -102,7 +110,7 @@ public class MmaServerConfig {
     return valid;
   }
 
-  public static void init(Path path) throws IOException {
+  public synchronized static void init(Path path) throws IOException {
     if (!path.toFile().exists()) {
       throw new IllegalArgumentException("File not found: " + path);
     }

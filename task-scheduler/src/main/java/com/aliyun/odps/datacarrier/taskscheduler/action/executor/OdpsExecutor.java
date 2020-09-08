@@ -24,7 +24,7 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
   private static final Logger LOG = LogManager.getLogger(OdpsExecutor.class);
 
-  private static class OdpsSqlCallable implements Callable {
+  private static class OdpsSqlCallable implements Callable<Object> {
     private Odps odps;
     private String sql;
     private Map<String, String> settings;
