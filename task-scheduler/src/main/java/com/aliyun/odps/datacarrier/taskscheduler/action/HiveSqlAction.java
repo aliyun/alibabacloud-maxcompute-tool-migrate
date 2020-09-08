@@ -1,6 +1,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -28,7 +29,7 @@ abstract class HiveSqlAction extends AbstractAction {
 
     this.future = ActionExecutorFactory
         .getHiveSqlExecutor()
-        .execute(getSql(), id, (HiveSqlActionInfo) actionInfo);
+        .execute(getSql(), getSettings(), id, (HiveSqlActionInfo) actionInfo);
   }
 
   @Override
@@ -65,5 +66,5 @@ abstract class HiveSqlAction extends AbstractAction {
 
   abstract String getSql();
 
-  // TODO: should have an abstract method getSettings
+  abstract Map<String, String> getSettings();
 }

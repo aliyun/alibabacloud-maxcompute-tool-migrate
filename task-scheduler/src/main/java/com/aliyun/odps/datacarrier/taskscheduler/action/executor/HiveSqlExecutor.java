@@ -7,6 +7,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -38,7 +40,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
     private String password;
     private String sql;
     // TODO: Map<String, String> could be better
-    private List<String> settings;
+    private Map<String, String> settings;
     private String actionId;
     private HiveSqlActionInfo hiveSqlActionInfo;
 
@@ -47,7 +49,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
         String user,
         String password,
         String sql,
-        List<String> settings,
+        Map<String, String> settings,
         String actionId,
         HiveSqlActionInfo hiveSqlActionInfo) {
       this.hiveJdbcUrl = Objects.requireNonNull(hiveJdbcUrl);
@@ -65,8 +67,8 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
         try (HiveStatement stmt = (HiveStatement) conn.createStatement()) {
-          for (String setting : settings) {
-            stmt.execute("SET " + setting);
+          for (Entry<String, String> entry : settings.entrySet()) {
+            stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());
           }
 
           Runnable logging = () -> {
@@ -111,6 +113,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
   public Future<List<List<String>>> execute(
       String sql,
+      Map<String, String> settings,
       String actionId,
       HiveSqlActionInfo hiveSqlActionInfo) {
 
@@ -122,7 +125,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
         MmaServerConfig.getInstance().getHiveConfig().getUser(),
         MmaServerConfig.getInstance().getHiveConfig().getPassword(),
         sql,
-        MmaServerConfig.getInstance().getHiveConfig().getHiveJdbcExtraSettings(),
+        settings,
         actionId,
         hiveSqlActionInfo);
 

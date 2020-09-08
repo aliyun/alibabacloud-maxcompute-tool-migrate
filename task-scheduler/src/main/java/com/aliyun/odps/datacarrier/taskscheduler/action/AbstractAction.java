@@ -1,5 +1,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Future;
 
@@ -9,6 +11,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.action.info.AbstractActionInfo;
+import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
+import com.aliyun.odps.datacarrier.taskscheduler.resource.ResourceAllocator;
 import com.aliyun.odps.datacarrier.taskscheduler.task.AbstractTask.ActionProgressListener;
 import com.aliyun.odps.datacarrier.taskscheduler.task.ActionExecutionContext;
 
@@ -19,6 +23,7 @@ public abstract class AbstractAction implements Action {
   private ActionProgress progress;
   private ActionProgressListener actionProgressListener;
 
+  protected Map<Resource, Integer> resourceMap;
   protected Future<Object> future;
 
   /**
@@ -31,6 +36,7 @@ public abstract class AbstractAction implements Action {
   public AbstractAction(String id) {
     this.id = Objects.requireNonNull(id);
     this.progress = ActionProgress.PENDING;
+    this.resourceMap = new HashMap<>();
   }
 
   @Override
@@ -46,6 +52,23 @@ public abstract class AbstractAction implements Action {
   @Override
   public AbstractActionInfo getActionInfo() {
     return actionInfo;
+  }
+
+  @Override
+  public boolean tryAllocateResource() {
+    Map<Resource, Integer> finalResourceMap =
+        ResourceAllocator.getInstance().allocate(id, resourceMap);
+    if (finalResourceMap != null) {
+      resourceMap = finalResourceMap;
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public void releaseResource() {
+    ResourceAllocator.getInstance().release(id, resourceMap);
   }
 
   @Override

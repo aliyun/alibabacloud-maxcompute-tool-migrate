@@ -132,11 +132,11 @@ public class TaskScheduler {
             for (Task task : tasks) {
               List<Action> executableActions = task.getExecutableActions();
               for (Action action : executableActions) {
-                // TODO: do we need beforeExecution ?
-                // TODO: allocate resource
                 // TODO: fatal errors -> stop the scheduler; other errors -> handlers
-                action.execute();
-                executingActions.add(action);
+                if (action.tryAllocateResource()) {
+                  action.execute();
+                  executingActions.add(action);
+                }
               }
             }
           }
@@ -179,9 +179,10 @@ public class TaskScheduler {
               } catch (MmaException e) {
                 // TODO: fatal errors -> stop the scheduler; other errors -> handlers
                 LOG.error("Exception in after execution", e);
+              } finally {
+                action.releaseResource();
               }
               finishedActions.add(action);
-              // TODO: release resource
             }
           }
         }

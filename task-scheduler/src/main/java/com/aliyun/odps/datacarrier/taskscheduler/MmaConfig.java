@@ -24,10 +24,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-// TODO: Split this class into several classes
+import org.apache.commons.collections.MapUtils;
+
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.utils.StringUtils;
-import org.apache.commons.collections.MapUtils;
+
+// TODO: Split this class into several classes
 
 public class MmaConfig {
   
@@ -35,12 +37,29 @@ public class MmaConfig {
     boolean validate();
   }
 
-  public static class OdpsSQLSettingConfig {
+  public static class SQLSettingConfig {
     Map<String, String> ddlSettings = new HashMap<>();
     Map<String, String> migrationSettings = new HashMap<>();
     Map<String, String> verifySettings = new HashMap<>();
 
     transient boolean initialized = false;
+
+    public SQLSettingConfig() {}
+
+    public SQLSettingConfig(
+        Map<String, String> ddlSettings,
+        Map<String, String> migrationSettings,
+        Map<String, String> verifySettings) {
+      if (ddlSettings != null) {
+        this.ddlSettings.putAll(ddlSettings);
+      }
+      if (migrationSettings != null) {
+        this.migrationSettings.putAll(migrationSettings);
+      }
+      if (verifySettings != null) {
+        this.verifySettings.putAll(verifySettings);
+      }
+    }
 
     public Map<String, String> getDDLSettings() {
       return ddlSettings;
@@ -103,7 +122,7 @@ public class MmaConfig {
           StringUtils.isNullOrEmpty(ossBucket)) {
         return false;
       }
-      // arn、accessId and accessKey should not both empty
+      // arn, accessId and accessKey should not be empty at the same time
       if (StringUtils.isNullOrEmpty(ossRoleArn) &&
           StringUtils.isNullOrEmpty(ossAccessId) &&
           StringUtils.isNullOrEmpty(ossAccessKey)) {
@@ -159,7 +178,8 @@ public class MmaConfig {
     private String krbPrincipal;
     private String keyTab;
     private List<String> krbSystemProperties;
-    private List<String> hiveJdbcExtraSettings;
+    private Map<String, String> globalSettings;
+    private SQLSettingConfig sourceTableSettings;
 
     public HiveConfig(String jdbcConnectionUrl,
                       String user,
@@ -168,7 +188,8 @@ public class MmaConfig {
                       String krbPrincipal,
                       String keyTab,
                       List<String> krbSystemProperties,
-                      List<String> hiveJdbcExtraSettings) {
+                      Map<String, String> globalSettings,
+                      SQLSettingConfig sourceTableSettings) {
       this.jdbcConnectionUrl = jdbcConnectionUrl;
       this.user = user;
       this.password = password;
@@ -176,18 +197,12 @@ public class MmaConfig {
       this.krbPrincipal = krbPrincipal;
       this.keyTab = keyTab;
       this.krbSystemProperties = krbSystemProperties;
-      this.hiveJdbcExtraSettings = hiveJdbcExtraSettings;
+      this.globalSettings = globalSettings;
+      this.sourceTableSettings = sourceTableSettings;
     }
 
     @Override
     public boolean validate() {
-      if (hiveJdbcExtraSettings != null) {
-        for (String setting : hiveJdbcExtraSettings) {
-          if (StringUtils.isNullOrEmpty(setting)) {
-            return false;
-          }
-        }
-      }
       return (!StringUtils.isNullOrEmpty(jdbcConnectionUrl) &&
               !StringUtils.isNullOrEmpty(hmsThriftAddr) &&
               user != null &&
@@ -222,8 +237,15 @@ public class MmaConfig {
       return krbSystemProperties;
     }
 
-    public List<String> getHiveJdbcExtraSettings() {
-      return hiveJdbcExtraSettings;
+    public SQLSettingConfig getSourceTableSettings() {
+      if (sourceTableSettings == null) {
+        sourceTableSettings = new SQLSettingConfig();
+      }
+      if (!sourceTableSettings.isInitialized()) {
+        sourceTableSettings.initialize(
+            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+      }
+      return sourceTableSettings;
     }
 
     @Override
@@ -234,7 +256,7 @@ public class MmaConfig {
       sb.append(", krbPrincipal='").append(krbPrincipal).append('\'');
       sb.append(", keyTab='").append(keyTab).append('\'');
       sb.append(", krbSystemProperties=").append(String.join(", ", krbSystemProperties));
-      sb.append(", hiveJdbcExtraSettings=").append(String.join(",", hiveJdbcExtraSettings));
+      sb.append(", hiveJdbcExtraSettings=").append(sourceTableSettings);
       sb.append('}');
       return sb.toString();
     }
@@ -247,8 +269,8 @@ public class MmaConfig {
     private String projectName;
     private String tunnelEndpoint;
     private Map<String, String> globalSettings;
-    private OdpsSQLSettingConfig sourceTableSettings;
-    private OdpsSQLSettingConfig destinationTableSettings;
+    private SQLSettingConfig sourceTableSettings;
+    private SQLSettingConfig destinationTableSettings;
 
     public OdpsConfig(String accessId,
                       String accessKey,
@@ -287,22 +309,24 @@ public class MmaConfig {
       return globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings;
     }
 
-    public OdpsSQLSettingConfig getSourceTableSettings() {
+    public SQLSettingConfig getSourceTableSettings() {
       if (sourceTableSettings == null) {
-        sourceTableSettings = new OdpsSQLSettingConfig();
+        sourceTableSettings = new SQLSettingConfig();
       }
       if (!sourceTableSettings.isInitialized()) {
-        sourceTableSettings.initialize(globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+        sourceTableSettings.initialize(
+            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
       }
       return sourceTableSettings;
     }
 
-    public OdpsSQLSettingConfig getDestinationTableSettings() {
+    public SQLSettingConfig getDestinationTableSettings() {
       if (destinationTableSettings == null) {
-        destinationTableSettings = new OdpsSQLSettingConfig();
+        destinationTableSettings = new SQLSettingConfig();
       }
       if (!destinationTableSettings.isInitialized()) {
-        destinationTableSettings.initialize(globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+        destinationTableSettings.initialize(
+            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
       }
       return destinationTableSettings;
     }

@@ -31,9 +31,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,22 +56,29 @@ import org.apache.tools.ant.filters.StringInputStream;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.AdditionalTableConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.HiveConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.OdpsConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.SQLSettingConfig;
 import com.aliyun.odps.utils.StringUtils;
 import com.csvreader.CsvReader;
 
 public class MmaConfigUtils {
 
-  public static final List<String> HIVE_JDBC_EXTRA_SETTINGS = new ArrayList<String>() {
-    {
-      add("hive.fetch.task.conversion=none");
-      add("hive.execution.engine=mr");
-      add("mapreduce.job.name=data-carrier");
-      add("mapreduce.max.split.size=512000000");
-      add("mapreduce.task.timeout=3600000");
-      add("mapreduce.map.maxattempts=0");
-      add("mapred.map.tasks.speculative.execution=false");
-    }
-  };
+  public static final Map<String, String> HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS = new HashMap<>();
+  static {
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.fetch.task.conversion", "none");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.execution.engine", "mr");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.job.name", "data-carrier");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapred.map.tasks.speculative.execution", "false");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "2048");
+  }
+
+
+  public static final SQLSettingConfig HIVE_SOURCE_TABLE_DEFAULT_CONFIG =
+      new SQLSettingConfig(null, HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS, null);
+
 
   public static final AdditionalTableConfig DEFAULT_ADDITIONAL_TABLE_CONFIG =
       new AdditionalTableConfig(1000, 1);
@@ -84,7 +91,8 @@ public class MmaConfigUtils {
                      null,
                      null,
                      null,
-                     HIVE_JDBC_EXTRA_SETTINGS);
+                     Collections.emptyMap(),
+                     HIVE_SOURCE_TABLE_DEFAULT_CONFIG);
 
   public static final OdpsConfig SAMPLE_ODPS_CONFIG =
       new OdpsConfig("access ID",
@@ -118,7 +126,8 @@ public class MmaConfigUtils {
                           null,
                           null,
                           null,
-                          HIVE_JDBC_EXTRA_SETTINGS);
+                          Collections.emptyMap(),
+                          HIVE_SOURCE_TABLE_DEFAULT_CONFIG);
   }
 
   public static OdpsConfig parseOdpsConfig(Path odpsConfigPath) throws IOException {
@@ -239,7 +248,8 @@ public class MmaConfigUtils {
                                       null,
                                       parseHiveConfig(hiveConfigPath),
                                       parseOdpsConfig(odpsConfigPath),
-                                      null).toJson();
+                                      null,
+                                      Collections.emptyMap()).toJson();
     DirUtils.writeFile(Paths.get(prefix + "mma_server_config.json"), json);
   }
 
@@ -256,7 +266,8 @@ public class MmaConfigUtils {
                                                           null,
                                                           SAMPLE_HIVE_CONFIG,
                                                           SAMPLE_ODPS_CONFIG,
-                                                          null);
+                                                          null,
+                                                          Collections.emptyMap());
 
     MmaConfig.TableMigrationConfig tableMigrationConfig =
         new MmaConfig.TableMigrationConfig("source DB",
