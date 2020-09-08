@@ -24,10 +24,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-// TODO: Split this class into several classes
+import org.apache.commons.collections.MapUtils;
+
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.utils.StringUtils;
-import org.apache.commons.collections.MapUtils;
+
+// TODO: Split this class into several classes
 
 public class MmaConfig {
   
@@ -42,28 +44,33 @@ public class MmaConfig {
 
     transient boolean initialized = false;
 
-    public Map<String, String> getDDLSettings() {
-      return ddlSettings;
+    public SQLSettingConfig() {}
+
+    public SQLSettingConfig(
+        Map<String, String> ddlSettings,
+        Map<String, String> migrationSettings,
+        Map<String, String> verifySettings) {
+      if (ddlSettings != null) {
+        this.ddlSettings.putAll(ddlSettings);
+      }
+      if (migrationSettings != null) {
+        this.migrationSettings.putAll(migrationSettings);
+      }
+      if (verifySettings != null) {
+        this.verifySettings.putAll(verifySettings);
+      }
     }
 
-    public void setDdlSettings(Map<String, String> ddlSettings) {
-      this.ddlSettings = ddlSettings;
+    public Map<String, String> getDDLSettings() {
+      return ddlSettings;
     }
 
     public Map<String, String> getMigrationSettings() {
       return migrationSettings;
     }
 
-    public void setMigrationSettings(Map<String, String> migrationSettings) {
-      this.migrationSettings = migrationSettings;
-    }
-
     public Map<String, String> getVerifySettings() {
       return verifySettings;
-    }
-
-    public void setVerifySettings(Map<String, String> verifySettings) {
-      this.verifySettings = verifySettings;
     }
 
     public void initialize(Map<String, String> globalSettings) {
@@ -171,6 +178,7 @@ public class MmaConfig {
     private String krbPrincipal;
     private String keyTab;
     private List<String> krbSystemProperties;
+    private Map<String, String> globalSettings;
     private SQLSettingConfig sourceTableSettings;
 
     public HiveConfig(String jdbcConnectionUrl,
@@ -180,6 +188,7 @@ public class MmaConfig {
                       String krbPrincipal,
                       String keyTab,
                       List<String> krbSystemProperties,
+                      Map<String, String> globalSettings,
                       SQLSettingConfig sourceTableSettings) {
       this.jdbcConnectionUrl = jdbcConnectionUrl;
       this.user = user;
@@ -188,6 +197,7 @@ public class MmaConfig {
       this.krbPrincipal = krbPrincipal;
       this.keyTab = keyTab;
       this.krbSystemProperties = krbSystemProperties;
+      this.globalSettings = globalSettings;
       this.sourceTableSettings = sourceTableSettings;
     }
 
@@ -230,6 +240,10 @@ public class MmaConfig {
     public SQLSettingConfig getSourceTableSettings() {
       if (sourceTableSettings == null) {
         sourceTableSettings = new SQLSettingConfig();
+      }
+      if (!sourceTableSettings.isInitialized()) {
+        sourceTableSettings.initialize(
+            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
       }
       return sourceTableSettings;
     }

@@ -62,20 +62,23 @@ import com.csvreader.CsvReader;
 
 public class MmaConfigUtils {
 
-  public static final SQLSettingConfig HIVE_SOURCE_TABLE_DEFAULT_CONFIG = new SQLSettingConfig();
+  public static final Map<String, String> HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS = new HashMap<>();
   static {
-    Map<String, String> migrationSettings = new HashMap<>();
-    migrationSettings.put("hive.fetch.task.conversion", "none");
-    migrationSettings.put("hive.execution.engine", "mr");
-    migrationSettings.put("mapreduce.job.name", "data-carrier");
-    migrationSettings.put("mapreduce.max.split.size", "512000000");
-    migrationSettings.put("mapreduce.task.timeout", "3600000");
-    migrationSettings.put("mapreduce.map.maxattempts", "0");
-    migrationSettings.put("mapred.map.tasks.speculative.execution", "false");
-    migrationSettings.put("mapreduce.map.cpu.vcores", "1");
-    migrationSettings.put("mapreduce.map.memory.mb", "2048");
-    HIVE_SOURCE_TABLE_DEFAULT_CONFIG.setMigrationSettings(migrationSettings);
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.fetch.task.conversion", "none");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.execution.engine", "mr");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.job.name", "data-carrier");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapred.map.tasks.speculative.execution", "false");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "2048");
   }
+
+
+  public static final SQLSettingConfig HIVE_SOURCE_TABLE_DEFAULT_CONFIG =
+      new SQLSettingConfig(null, HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS, null);
+
 
   public static final AdditionalTableConfig DEFAULT_ADDITIONAL_TABLE_CONFIG =
       new AdditionalTableConfig(1000, 1);
@@ -88,6 +91,7 @@ public class MmaConfigUtils {
                      null,
                      null,
                      null,
+                     Collections.emptyMap(),
                      HIVE_SOURCE_TABLE_DEFAULT_CONFIG);
 
   public static final OdpsConfig SAMPLE_ODPS_CONFIG =
@@ -122,6 +126,7 @@ public class MmaConfigUtils {
                           null,
                           null,
                           null,
+                          Collections.emptyMap(),
                           HIVE_SOURCE_TABLE_DEFAULT_CONFIG);
   }
 
