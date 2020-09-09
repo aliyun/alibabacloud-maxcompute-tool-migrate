@@ -15,7 +15,9 @@ deploy:
   file_glob: false
   file:
     - mma-hive-1.x-release.tar.gz
+    - mma-hive-1.x-release.tar.gz.md5sum
     - mma-hive-2.x-release.tar.gz
+    - mma-hive-2.x-release.tar.gz.md5sum
   skip_cleanup: true
   on:
     tags: true
