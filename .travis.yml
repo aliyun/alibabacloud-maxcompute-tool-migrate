@@ -2,7 +2,9 @@ language: java
 dist: trusty
 jdk:
   - oraclejdk8
-install: skip
+install: 
+  - git fetch origin release/hive-1.x
+  - git fetch origin release/hive-2.x
 script:
   - ./release.sh
 deploy:
