@@ -3,6 +3,7 @@ set -e
 
 echo "Build starts"
 
+# using double brackets may lead to build break
 if [ -d mma ]
 then
   echo "Directory mma exists, remove it"
@@ -44,6 +45,9 @@ cp -r build/res mma/res
 echo "  Done"
 echo "  Package"
 tar cpfz mma.tar.gz mma
+echo "  Done"
+echo "  Generate MD5"
+md5sum mma.tar.gz > mma.tar.gz.md5sum
 echo "  Done"
 echo "Done"
 
