@@ -3,7 +3,7 @@ set -e
 
 echo "Build starts"
 
-if [[ -d mma ]]
+if [ -d mma ]
 then
   echo "Directory mma exists, remove it"
   rm -rf mma
