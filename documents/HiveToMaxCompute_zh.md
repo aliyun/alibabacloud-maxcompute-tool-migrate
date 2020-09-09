@@ -51,6 +51,10 @@ $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 
 即表示该节点可以访问MaxCompute。
 
+### 3. MaxCompute配置
+
+使用MMA前，需要确认MaxCompute project已经按照[文档](https://help.aliyun.com/document_detail/159541.html?spm=a2c4g.11186623.6.639.7336134dNbODrx)配置了2.0数据类型版本
+
 ## 配置
 首先解压MMA安装包。之后执行以下命令，运行配置引导脚本，完成配置：
 ```$xslt
