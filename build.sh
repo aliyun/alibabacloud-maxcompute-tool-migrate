@@ -1,6 +1,19 @@
 #!/bin/bash
 set -e
 
+function md5sum()
+{
+    if [ $(uname) = "Linux" ]
+    then
+        md5sum $1 | awk '{ print $1 }' > mma.tar.gz.md5sum
+    elif [ $(uname) = "Darwin" ]
+    then
+        openssl md5 $1 |  awk '{ print $2 }' > mma.tar.gz.md5sum
+    else
+        echo "Unsupported OS" > mma.tar.gz.md5sum
+    fi
+}
+
 echo "Build starts"
 
 # using double brackets may lead to build break
@@ -47,7 +60,7 @@ echo "  Package"
 tar cpfz mma.tar.gz mma
 echo "  Done"
 echo "  Generate MD5"
-md5sum mma.tar.gz > mma.tar.gz.md5sum
+md5sum mma.tar.gz
 echo "  Done"
 echo "Done"
 
