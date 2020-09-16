@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-function md5sum()
+md5sum()
 {
     if [ $(uname) = "Linux" ]
     then
