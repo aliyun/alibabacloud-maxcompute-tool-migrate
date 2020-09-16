@@ -132,10 +132,12 @@ public class MmaServerMain {
 
     // Setup MmaResourceAllocator singleton
     Map<String, String> resourceConfig = MmaServerConfig.getInstance().getResourceConfig();
-    for (Entry<String, String> entry : resourceConfig.entrySet()) {
-      Resource resource = Resource.valueOf(entry.getKey().trim().toUpperCase());
-      Integer number = Integer.valueOf(entry.getValue());
-      ResourceAllocator.getInstance().update(resource, number);
+    if (resourceConfig != null) {
+      for (Entry<String, String> entry : resourceConfig.entrySet()) {
+        Resource resource = Resource.valueOf(entry.getKey().trim().toUpperCase());
+        Integer number = Integer.valueOf(entry.getValue());
+        ResourceAllocator.getInstance().update(resource, number);
+      }
     }
 
     MmaServer mmaServer = new MmaServer();
