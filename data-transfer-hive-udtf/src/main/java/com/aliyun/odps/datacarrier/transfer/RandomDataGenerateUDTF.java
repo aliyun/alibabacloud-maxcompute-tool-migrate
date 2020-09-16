@@ -157,7 +157,9 @@ public class RandomDataGenerateUDTF extends GenericUDTF {
       ret[4] = random.nextFloat();
       ret[5] = random.nextDouble();
       ret[6] = HiveDecimal.create(random.nextDecimal(10, 0));
-      ret[7] = random.nextTimestamp();
+      Timestamp timestamp = random.nextTimestamp();
+      ret[7] = org.apache.hadoop.hive.common.type.Timestamp.ofEpochMilli(timestamp.getTime());
+      ((org.apache.hadoop.hive.common.type.Timestamp) ret[7]).setNanos(timestamp.getNanos());
       ret[8] = random.nextString(255);
       ret[9] = new HiveVarchar(random.nextString(255), 255);
       ret[10] = new HiveChar(random.nextString(255), 255);
