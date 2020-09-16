@@ -14,7 +14,29 @@ function md5sum()
     fi
 }
 
+POSITIONAL=()
+TEST="False"
+
+while [[ $# -gt 0 ]]
+do
+  key=${1}
+
+  case ${key} in
+      -t|--test)
+      TEST="True"
+      shift
+      ;;
+      *)
+      POSITIONAL+=(${1})
+      shift
+      ;;
+  esac
+done
+set -- "${POSITIONAL[@]}"
+
 echo "Build starts"
+
+echo "${TEST}"
 
 # using double brackets may lead to build break
 if [ -d mma ]
@@ -56,6 +78,18 @@ echo "  Done"
 echo "  Copy resources"
 cp -r build/res mma/res
 echo "  Done"
+if [ ${TEST} == "True" ];
+then
+  echo "  Copy test"
+  cp -r test mma/
+  echo "  Done"
+  echo "  Prepare test dependencies"
+  wget https://github.com/aliyun/aliyun-odps-console/releases/latest/download/odpscmd_public.zip
+  mv odpscmd_public.zip mma/res/
+  unzip mma/res/odpscmd_public.zip
+  rm mma/res/odpscmd_public.zip
+  echo "  Done"
+fi
 echo "  Package"
 tar cpfz mma.tar.gz mma
 echo "  Done"
