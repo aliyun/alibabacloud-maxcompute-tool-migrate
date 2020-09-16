@@ -405,7 +405,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         if (jobInfo == null) {
           return;
         } else {
-          if (MigrationStatus.PENDING.equals(jobInfo.getStatus())) {
+          if (MigrationStatus.RUNNING.equals(getStatusInternal(db, tbl))) {
             // Restart running job is not allowed
             MmaException e = MmaExceptionFactory.getRunningMigrationJobExistsException(db, tbl);
             LOG.error(e);
@@ -530,8 +530,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
 
     try (Connection conn = ds.getConnection()) {
       try {
-        List<JobInfo> jobInfos =
-            selectFromMmaTableMeta(conn, status, limit);
+        List<JobInfo> jobInfos = selectFromMmaTableMeta(conn, status, limit);
         List<MmaConfig.JobConfig> migrationConfigs = new LinkedList<>();
 
         for (JobInfo jobInfo : jobInfos) {
@@ -716,8 +715,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         mergeIntoMmaPartitionMeta(conn, db, tbl, newJobPtInfos);
 
         // Update the table level status
-        MigrationStatus newStatus =
-            inferPartitionedTableStatus(conn, db, tbl);
+        MigrationStatus newStatus = inferPartitionedTableStatus(conn, db, tbl);
         if (!jobInfo.getStatus().equals(newStatus)) {
           updateStatusInternal(db, tbl, newStatus);
         }
@@ -754,6 +752,10 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
     db = db.toLowerCase();
     tbl = tbl.toLowerCase();
 
+    return getStatusInternal(db, tbl);
+  }
+
+  private MigrationStatus getStatusInternal(String db, String tbl) throws MmaException {
     try (Connection conn = ds.getConnection()) {
       try {
         JobInfo jobInfo = selectFromMmaTableMeta(conn, db, tbl);
@@ -762,9 +764,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         }
 
         if (jobInfo.isPartitioned()) {
-          return inferPartitionedTableStatus(conn,
-                                                                       jobInfo.getDb(),
-                                                                       jobInfo.getTbl());
+          return inferPartitionedTableStatus(conn, jobInfo.getDb(), jobInfo.getTbl());
         } else {
           return jobInfo.getStatus();
         }
