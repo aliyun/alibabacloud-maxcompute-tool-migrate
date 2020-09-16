@@ -1,19 +1,6 @@
 #!/bin/bash
 set -e
 
-md5sum()
-{
-    if [ $(uname) = "Linux" ]
-    then
-        md5sum $1 | awk '{ print $1 }' > mma.tar.gz.md5sum
-    elif [ $(uname) = "Darwin" ]
-    then
-        openssl md5 $1 |  awk '{ print $2 }' > mma.tar.gz.md5sum
-    else
-        echo "Unsupported OS" > mma.tar.gz.md5sum
-    fi
-}
-
 POSITIONAL=()
 TEST="False"
 
@@ -92,9 +79,6 @@ then
 fi
 echo "  Package"
 tar cpfz mma.tar.gz mma
-echo "  Done"
-echo "  Generate MD5"
-md5sum mma.tar.gz
 echo "  Done"
 echo "Done"
 
