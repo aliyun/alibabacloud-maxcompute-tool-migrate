@@ -42,7 +42,7 @@ import com.aliyun.odps.utils.StringUtils;
 
 public class HiveSqlExecutor extends AbstractActionExecutor {
 
-  private static final Logger LOG = LogManager.getLogger(HiveSqlExecutor.class);
+  private static final Logger LOG = LogManager.getLogger("RunnerLogger");
 
   public HiveSqlExecutor() {
     try {
@@ -82,10 +82,11 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
     @Override
     public List<List<String>> call() throws SQLException {
-      LOG.info("Executing sql: {}", sql);
+      LOG.info("ActionId: {}, Executing sql: {}", actionId, sql);
 
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
         try (HiveStatement stmt = (HiveStatement) conn.createStatement()) {
+          settings.put("mapreduce.job.name", actionId);
           for (Entry<String, String> entry : settings.entrySet()) {
             stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());
           }
@@ -94,7 +95,6 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
             while (stmt.hasMoreLogs()) {
               try {
                 for (String line : stmt.getQueryLog()) {
-                  LOG.info("Hive >>> {}", line);
                   parseLogAndSetExecutionInfo(line, actionId, hiveSqlActionInfo);
                 }
               } catch (SQLException e) {
@@ -115,9 +115,11 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
                 record.add(rs.getString(i));
               }
 
+              LOG.debug("ActionId: {}, result: {}", actionId, record);
               ret.add(record);
             }
           }
+          LOG.info("ActionId: {}, result set size: {}", actionId, ret.size());
 
           try {
             loggingThread.join();
@@ -166,6 +168,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
     String trackingUrl = log.split("=")[2];
     hiveSqlActionInfo.setJobId(jobId);
     hiveSqlActionInfo.setTrackingUrl(trackingUrl);
-    LOG.info("JobId: {}, actionId: {}", jobId, actionId);
+    LOG.info("ActionId: {}, jobId: {}", actionId, jobId);
+    LOG.info("ActionId: {}, tracking url: {}", actionId, trackingUrl);
   }
 }
