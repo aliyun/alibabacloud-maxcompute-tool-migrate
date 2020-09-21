@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
@@ -68,6 +69,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   private List<String> odpsColumnNames;
   private List<String> odpsPartitionColumnNames;
   private TableSchema schema;
+  private MapredContext mapredContext;
 
   /**
    * Changes with different partition
@@ -91,6 +93,11 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   private Object[] forwardObj = new Object[1];
 
   @Override
+  public void configure(MapredContext mapredContext) {
+    this.mapredContext = mapredContext;
+  }
+
+  @Override
   public StructObjectInspector initialize(ObjectInspector[] args) throws UDFArgumentException {
     objectInspectors = args;
     List<String> fieldNames = new ArrayList<>();
@@ -105,8 +112,10 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   public void process(Object[] args) throws HiveException {
     try {
       if(odps == null) {
-        OdpsConfig odpsConfig = new OdpsConfig( "hdfs:///tmp/odps_config.ini");
-        AliyunAccount account = new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
+        OdpsConfig odpsConfig =
+            new OdpsConfig(mapredContext.getJobConf(), "hdfs:///tmp/odps_config.ini");
+        AliyunAccount account =
+            new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
         odps = new Odps(account);
         odps.setEndpoint(odpsConfig.getOdpsEndpoint());
         tunnel = new TableTunnel(odps);
