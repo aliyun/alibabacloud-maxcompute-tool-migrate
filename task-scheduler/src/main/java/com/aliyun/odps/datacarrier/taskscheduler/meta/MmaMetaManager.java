@@ -20,6 +20,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
 import java.util.List;
+import java.util.Map;
 
 import com.aliyun.odps.datacarrier.taskscheduler.GsonUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
@@ -138,6 +139,12 @@ public interface MmaMetaManager {
   List<RestoreTaskInfo> listRestoreJobs(String condition, int limit) throws MmaException;
 
   void removeRestoreJob(String uniqueId) throws MmaException;
+
+  Map<String, List<String>> listTemporaryTables(String condition, int limit) throws MmaException;
+
+  void mergeTableInfoIntoTemporaryTableDB(String uniqueId, String db, String tbl);
+
+  void removeTemporaryTableMeta(String uniqueId, String db, String tbl) throws MmaException;
 
   /**
    * Update the status of a migration job. If the new status is FAILED, but the failed times

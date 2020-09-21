@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -193,6 +194,28 @@ public class TaskProvider {
         mmaMetaManager.mergeJobInfoIntoRestoreDB(taskInfo);
         ret.add(task);
       }
+    }
+    return ret;
+  }
+
+  public synchronized List<Task> getTasksFromTemporaryTableDB(String uniqueId) {
+    List<Task> ret = new LinkedList<>();
+    String condition = uniqueId == null ? null :
+        " WHERE " + Constants.MMA_OBJ_TEMPORARY_COL_UNIQUE_ID + "='" + uniqueId + "'";
+    try {
+      Map<String, List<String>> temporaryTables = mmaMetaManager.listTemporaryTables(condition, 100);
+      if (temporaryTables.isEmpty()) {
+        LOG.info("No pending temporary table found.");
+        return ret;
+      }
+      for (String project : temporaryTables.keySet()) {
+        for (String table : temporaryTables.get(project)) {
+          Task task = generateDropTemporaryTableTask(project, table);
+          ret.add(task);
+        }
+      }
+    } catch (MmaException e) {
+      LOG.error("Get tasks from temporary table db failed, uniqueId {}", uniqueId, e);
     }
     return ret;
   }
@@ -448,6 +471,7 @@ public class TaskProvider {
     String temporaryTableName = generateRestoredTemporaryTableName(restoreConfig);
     String taskId = getUniqueMigrationTaskName(tableMetaModel.odpsProjectName, tableMetaModel.tableName);
     try {
+      mmaMetaManager.mergeTableInfoIntoTemporaryTableDB(taskId, restoreConfig.getDestinationDatabaseName(), temporaryTableName);
       DropRestoredTemporaryTableWorkItem dropRestoredTemporaryTableWorkItem = new DropRestoredTemporaryTableWorkItem(
           taskId + ".DropRestoredTemporaryTable",
           restoreConfig.getDestinationDatabaseName(),
@@ -525,7 +549,7 @@ public class TaskProvider {
   }
 
   private String generateRestoredTemporaryTableName(MmaConfig.ObjectRestoreConfig restoreConfig) {
-    return "temporary_table_to_restore_" + restoreConfig.getObjectName() + "_in_task_" + restoreConfig.getTaskName();
+    return Constants.MMA_TEMPORARY_TABLE_PREFIX + restoreConfig.getObjectName() + "_in_restore_task_" + restoreConfig.getTaskName();
   }
 
   private Task generateNonPartitionedTableRestoreTask(MmaConfig.ObjectRestoreConfig restoreConfig,
@@ -534,7 +558,11 @@ public class TaskProvider {
     DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
     String taskName = restoreConfig.getTaskName();
     ObjectType type = restoreConfig.getObjectType();
-    String temporaryTableName = tableMetaModel.tableName + "_restore_task_" + taskName + "_" + System.currentTimeMillis();
+    String temporaryTableName = generateRestoredTemporaryTableName(restoreConfig);
+    mmaMetaManager.mergeTableInfoIntoTemporaryTableDB(taskId,
+        tableMetaModel.odpsProjectName,
+        temporaryTableName);
+
     OdpsRestoreTableAction restoreTableAction = new OdpsRestoreTableAction(
         taskId + ".Restore" + type.name(),
         taskName,
@@ -669,6 +697,14 @@ public class TaskProvider {
     OdpsRestoreResourceAction action = new OdpsRestoreResourceAction(taskId + ".RestoreFunction", restoreConfig);
     dag.addVertex(action);
     return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+  }
+
+  private Task generateDropTemporaryTableTask(String db, String tbl) {
+    String taskId = getUniqueMigrationTaskName(db, tbl);
+    DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
+    OdpsDropTableAction action = new OdpsDropTableAction(taskId + ".DropTemporaryTable", db, tbl, false);
+    dag.addVertex(action);
+    return new DropTemporaryTableTask(taskId, dag, mmaMetaManager, db, tbl);
   }
 
   private DirectedAcyclicGraph<Action, DefaultEdge> getHiveNonPartitionedTableMigrationActionDag(String taskId) {

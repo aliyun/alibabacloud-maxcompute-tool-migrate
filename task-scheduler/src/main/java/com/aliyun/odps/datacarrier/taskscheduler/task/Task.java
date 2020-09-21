@@ -12,5 +12,7 @@ public interface Task {
 
   String getId();
 
+  String getOriginId();
+
   void stop();
 }

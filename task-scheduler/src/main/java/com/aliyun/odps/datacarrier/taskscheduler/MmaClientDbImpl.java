@@ -263,7 +263,7 @@ public class MmaClientDbImpl implements MmaClient {
           List<String> tables = odpsMetaSource.listTables(database);
           Set<String> views = new HashSet<>(odpsMetaSource.listViews(database));
           for (String tableName : tables) {
-            if (views.contains(tableName)) {
+            if (views.contains(tableName) || tableName.startsWith(Constants.MMA_TEMPORARY_TABLE_PREFIX)) {
               continue;
             }
             mmaMetaManager.addBackupJob(
