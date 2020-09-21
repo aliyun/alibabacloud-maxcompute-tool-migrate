@@ -22,7 +22,7 @@ import com.aliyun.odps.task.SQLTask;
 
 public class OdpsExecutor extends AbstractActionExecutor {
 
-  private static final Logger LOG = LogManager.getLogger(OdpsExecutor.class);
+  private static final Logger LOG = LogManager.getLogger("RunnerLogger");
 
   private static class OdpsSqlCallable implements Callable<Object> {
     private Odps odps;
@@ -46,7 +46,7 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
     @Override
     public Object call() throws Exception {
-      LOG.info("Executing sql: {}, settings {}", sql, settings);
+      LOG.info("ActionId: {}, Executing sql: {}, settings {}", actionId, sql, settings);
 
       if (sql.isEmpty()) {
         return null;
@@ -55,11 +55,11 @@ public class OdpsExecutor extends AbstractActionExecutor {
       Instance i = SQLTask.run(odps, odps.getDefaultProject(), sql, settings, null);
 
       odpsSqlActionInfo.setInstanceId(i.getId());
-      LOG.info("InstanceId: {}, actionId: {}", i.getId(), actionId);
+      LOG.info("ActionId: {}, InstanceId: {}", actionId, i.getId());
 
       try {
         odpsSqlActionInfo.setLogView(odps.logview().generateLogView(i, 72));
-        LOG.info("LogView {}", odpsSqlActionInfo.getLogView());
+        LOG.info("ActionId: {}, LogView {}", actionId, odpsSqlActionInfo.getLogView());
       } catch (OdpsException ignore) {
       }
 
@@ -92,7 +92,10 @@ public class OdpsExecutor extends AbstractActionExecutor {
           row.add(r.get(i).toString());
         }
         ret.add(row);
+        LOG.debug("ActionId: {}, result: {}", actionId, row);
       }
+
+      LOG.info("ActionId: {}, result set size: {}", actionId, ret.size());
 
       return ret;
     }

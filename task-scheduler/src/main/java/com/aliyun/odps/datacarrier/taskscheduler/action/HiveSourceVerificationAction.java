@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,6 +38,13 @@ public class HiveSourceVerificationAction extends HiveSqlAction {
   public void afterExecution() throws MmaException {
     try {
       List<List<String>> rows = future.get();
+
+      if (Level.DEBUG.equals(LOG.getLevel())) {
+        for (List<String> row : rows) {
+          LOG.debug("Source verification result: {}", row);
+        }
+      }
+
       actionExecutionContext.setSourceVerificationResult(rows);
       setProgress(ActionProgress.SUCCEEDED);
     } catch (Exception e) {

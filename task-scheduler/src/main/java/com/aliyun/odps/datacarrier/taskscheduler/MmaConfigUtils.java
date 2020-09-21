@@ -66,7 +66,6 @@ public class MmaConfigUtils {
   static {
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.fetch.task.conversion", "none");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.execution.engine", "mr");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.job.name", "data-carrier");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
@@ -81,7 +80,7 @@ public class MmaConfigUtils {
 
 
   public static final AdditionalTableConfig DEFAULT_ADDITIONAL_TABLE_CONFIG =
-      new AdditionalTableConfig(1000, 1);
+      new AdditionalTableConfig(200, 1);
 
   public static final HiveConfig SAMPLE_HIVE_CONFIG =
       new HiveConfig("jdbc:hive2://127.0.0.1:10000/default",

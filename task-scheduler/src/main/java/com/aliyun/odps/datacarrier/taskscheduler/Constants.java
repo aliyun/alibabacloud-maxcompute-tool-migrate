@@ -32,7 +32,7 @@ public class Constants {
   public static final String END_POINT = "end_point";
   public static final String TUNNEL_ENDPOINT = "tunnel_endpoint";
 
-  public static final int DEFAULT_PARTITION_BATCH_SIZE = 1000;
+  public static final int MAX_PARTITION_BATCH_SIZE = 200;
 
   /*
     Constants of MmaMetaManagerDbImpl

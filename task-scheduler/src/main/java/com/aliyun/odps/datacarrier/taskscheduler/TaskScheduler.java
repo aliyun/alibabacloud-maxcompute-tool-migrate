@@ -44,14 +44,6 @@ public class TaskScheduler {
   private static final int GET_PENDING_TASK_INTERVAL_MS = 8000;
   private static final int DEFAULT_SCHEDULING_INTERVAL_MS = 4000;
   private static final int DEFAULT_FINISHED_ACTION_HANDLING_INTERVAL_MS = 2000;
-  private static final int DROP_TABLE_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int CREATE_TABLE_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int CREATE_EXTERNAL_TABLE_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int DROP_PARTITION_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int ADD_PARTITION_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int ADD_EXTERNAL_TABLE_PARTITION_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int LOAD_DATA_CONCURRENCY_THRESHOLD_DEFAULT = 10;
-  private static final int VALIDATE_CONCURRENCY_THRESHOLD_DEFAULT = 10;
 
   private volatile boolean keepRunning;
 
