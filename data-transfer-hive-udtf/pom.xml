@@ -21,6 +21,11 @@
       <groupId>com.aliyun.odps</groupId>
       <artifactId>odps-sdk-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-mapreduce-client-core</artifactId>
+      <version>2.7.2</version>
+    </dependency>
   </dependencies>
 
   <build>
