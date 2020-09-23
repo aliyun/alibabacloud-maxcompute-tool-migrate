@@ -113,7 +113,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
     try {
       if(odps == null) {
         OdpsConfig odpsConfig =
-            new OdpsConfig(mapredContext.getJobConf(), "hdfs:///tmp/odps_config.ini");
+            new OdpsConfig(mapredContext, "hdfs:///tmp/odps_config.ini");
         AliyunAccount account =
             new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
         odps = new Odps(account);

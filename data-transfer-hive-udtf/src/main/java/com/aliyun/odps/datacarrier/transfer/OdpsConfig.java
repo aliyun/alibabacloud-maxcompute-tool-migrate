@@ -27,6 +27,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.mapred.JobConf;
 
 /**
@@ -42,12 +43,12 @@ public class OdpsConfig {
 
   private Properties properties;
 
-  public OdpsConfig(JobConf jobConf, String filename) throws IOException {
+  public OdpsConfig(MapredContext context, String filename) throws IOException {
     Path path = new Path(filename);
     FileSystem fs;
-    if (jobConf != null) {
+    if (context != null) {
       System.out.println("[data-carrier] init fs with job conf");
-      fs = FileSystem.get(jobConf);
+      fs = FileSystem.get(context.getJobConf());
     } else {
       System.out.println("[data-carrier] init fs with new configuration");
       fs = path.getFileSystem(new Configuration());
