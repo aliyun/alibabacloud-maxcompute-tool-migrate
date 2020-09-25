@@ -865,7 +865,7 @@ public class TaskProvider {
     if (config != null && config.getPartitionGroupSize() > 0) {
       partitionGroupSize = config.getPartitionGroupSize();
     } else {
-      partitionGroupSize = Math.min(tableMetaModel.partitions.size(), Constants.DEFAULT_PARTITION_BATCH_SIZE);
+      partitionGroupSize = Math.min(tableMetaModel.partitions.size(), Constants.MAX_PARTITION_BATCH_SIZE);
     }
 
     int startIdx = 0;

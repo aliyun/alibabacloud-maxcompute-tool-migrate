@@ -155,9 +155,9 @@ public class OdpsSqlUtils {
       throw new IllegalArgumentException("Not a partitioned table");
     }
 
-    if (tableMetaModel.partitions.size() > Constants.DEFAULT_PARTITION_BATCH_SIZE) {
+    if (tableMetaModel.partitions.size() > Constants.MAX_PARTITION_BATCH_SIZE) {
       throw new IllegalArgumentException(
-          "Partition batch size exceeds upper bound: " + Constants.DEFAULT_PARTITION_BATCH_SIZE);
+          "Partition batch size exceeds upper bound: " + Constants.MAX_PARTITION_BATCH_SIZE);
     }
 
     StringBuilder sb = new StringBuilder();
@@ -195,9 +195,9 @@ public class OdpsSqlUtils {
       throw new IllegalArgumentException("Not a partitioned table");
     }
 
-    if (tableMetaModel.partitions.size() > Constants.DEFAULT_PARTITION_BATCH_SIZE) {
+    if (tableMetaModel.partitions.size() > Constants.MAX_PARTITION_BATCH_SIZE) {
       throw new IllegalArgumentException(
-          "Partition batch size exceeds upper bound: " + Constants.DEFAULT_PARTITION_BATCH_SIZE);
+          "Partition batch size exceeds upper bound: " + Constants.MAX_PARTITION_BATCH_SIZE);
     }
 
     StringBuilder sb = new StringBuilder();
