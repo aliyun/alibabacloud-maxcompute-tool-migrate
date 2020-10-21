@@ -58,9 +58,11 @@ public class MmaClientDbImpl implements MmaClient {
 
   @Override
   public void createMigrationJobs(MmaMigrationConfig mmaMigrationConfig) throws MmaException {
-    // TODO: prevent user from creating too many migration jobs
     MmaConfig.AdditionalTableConfig globalAdditionalTableConfig =
         mmaMigrationConfig.getGlobalAdditionalTableConfig();
+    if (globalAdditionalTableConfig == null) {
+      globalAdditionalTableConfig = MmaConfigUtils.DEFAULT_ADDITIONAL_TABLE_CONFIG;
+    }
 
     if (mmaMigrationConfig.getServiceMigrationConfig() != null) {
       ServiceMigrationConfig serviceMigrationConfig =
