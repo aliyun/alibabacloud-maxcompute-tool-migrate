@@ -69,7 +69,8 @@ public class TaskScheduler {
   }
 
   public void run() {
-
+    // remove temporary tables created by restarted server
+    tasks.addAll(taskProvider.getTasksFromTemporaryTableDB(null));
     while (keepRunning) {
       List<Task> tasksToRemove = new LinkedList<>();
       synchronized (tasks) {
@@ -86,6 +87,9 @@ public class TaskScheduler {
                  task.getId(),
                  task.getProgress());
         tasks.remove(task);
+        if (TaskProgress.FAILED.equals(task.getProgress())) {
+          tasks.addAll(taskProvider.getTasksFromTemporaryTableDB(task.getOriginId()));
+        }
       }
 
       try {
