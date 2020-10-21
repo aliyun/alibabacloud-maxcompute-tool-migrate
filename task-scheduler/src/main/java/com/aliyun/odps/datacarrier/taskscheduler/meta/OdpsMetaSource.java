@@ -51,6 +51,7 @@ public class OdpsMetaSource implements MetaSource {
                         String defaultProject) {
     Account account = new AliyunAccount(accessId, accessKey);
     odps = new Odps(account);
+    odps.setUserAgent("MMA");
     odps.setEndpoint(endpoint);
     odps.setDefaultProject(defaultProject);
   }

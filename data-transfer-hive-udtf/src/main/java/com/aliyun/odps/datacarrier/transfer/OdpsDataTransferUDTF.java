@@ -118,6 +118,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
             new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
         odps = new Odps(account);
         odps.setEndpoint(odpsConfig.getOdpsEndpoint());
+        odps.setUserAgent("MMA");
         tunnel = new TableTunnel(odps);
         if (!StringUtils.isNullOrEmpty(odpsConfig.getTunnelEndpoint())) {
           if (!StringUtils.isNullOrEmpty(odpsConfig.getTunnelEndpoint2())) {
