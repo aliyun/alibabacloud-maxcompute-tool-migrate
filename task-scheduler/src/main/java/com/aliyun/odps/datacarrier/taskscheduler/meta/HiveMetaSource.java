@@ -157,7 +157,7 @@ public class HiveMetaSource implements MetaSource {
       List<Partition> partitions = hmsClient.listPartitions(databaseName, tableName, (short) -1);
       for (Partition partition : partitions) {
         PartitionMetaModel partitionMetaModel = new PartitionMetaModel();
-        partitionMetaModel.createTime = (long)partition.getCreateTime();
+        partitionMetaModel.createTime = (long) partition.getCreateTime();
         partitionMetaModel.location = partition.getSd().getLocation();
         partitionMetaModel.partitionValues = partition.getValues();
         tableMetaModel.partitions.add(partitionMetaModel);

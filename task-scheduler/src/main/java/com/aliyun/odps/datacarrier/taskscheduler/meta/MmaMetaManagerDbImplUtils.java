@@ -202,11 +202,11 @@ public class MmaMetaManagerDbImplUtils {
     public MigrationJobPtInfo(List<String> partitionValues,
                               MigrationStatus status,
                               int attemptTimes,
-                              long lastSuccTimestamp) {
+                              long lastModifiedTime) {
       this.partitionValues = Objects.requireNonNull(partitionValues);
       this.status = Objects.requireNonNull(status);
       this.attemptTimes = attemptTimes;
-      this.lastModifiedTime = lastSuccTimestamp;
+      this.lastModifiedTime = lastModifiedTime;
     }
 
     public List<String> getPartitionValues() {
