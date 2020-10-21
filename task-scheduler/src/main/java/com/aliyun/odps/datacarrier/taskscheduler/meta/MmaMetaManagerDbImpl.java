@@ -743,10 +743,6 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         if (jobInfo == null) {
           throw MmaExceptionFactory.getMigrationJobNotExistedException(db, tbl);
         }
-        int retryTimesLimit = jobInfo
-            .getJobConfig()
-            .getAdditionalTableConfig()
-            .getRetryTimesLimit();
 
         List<MigrationJobPtInfo> newJobPtInfos = new LinkedList<>();
         for (List<String> partitionValues : partitionValuesList) {
@@ -766,6 +762,10 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
             }
             case FAILED: {
               int attemptTimes = jobPtInfo.getAttemptTimes() + 1;
+              int retryTimesLimit = jobInfo
+                  .getJobConfig()
+                  .getAdditionalTableConfig()
+                  .getRetryTimesLimit();
               jobPtInfo.setStatus(status);
               if (attemptTimes <= retryTimesLimit) {
                 jobPtInfo.setStatus(MigrationStatus.PENDING);
