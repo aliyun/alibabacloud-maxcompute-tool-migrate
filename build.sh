@@ -71,7 +71,7 @@ then
   cp -r test mma/
   echo "  Done"
   echo "  Prepare test dependencies"
-  wget https://github.com/aliyun/aliyun-odps-console/releases/latest/download/odpscmd_public.zip
+  wget https://odps-repo.oss-cn-hangzhou.aliyuncs.com/odpscmd/latest/odpscmd_public.zip
   mv odpscmd_public.zip mma/res/
   unzip mma/res/odpscmd_public.zip
   rm mma/res/odpscmd_public.zip
