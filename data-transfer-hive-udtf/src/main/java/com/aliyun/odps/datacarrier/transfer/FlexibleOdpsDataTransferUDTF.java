@@ -68,6 +68,7 @@ public class FlexibleOdpsDataTransferUDTF extends OdpsDataTransferUDTF {
       this.odps = new Odps(account);
       this.odps.setDefaultProject(projectName);
       this.odps.setEndpoint(endpoint);
+      this.odps.setUserAgent("MMA");
       this.tunnel = new TableTunnel(odps);
       if (!tunnelEndpoint.isEmpty()) {
         this.tunnel.setEndpoint(tunnelEndpoint);

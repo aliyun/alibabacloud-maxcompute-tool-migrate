@@ -27,6 +27,7 @@ public class OdpsUtils {
     odps = new Odps(new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey()));
     odps.setEndpoint(odpsConfig.getEndpoint());
     odps.setDefaultProject(odpsConfig.getProjectName());
+    odps.setUserAgent("MMA");
   }
 
   public static Odps getInstance() {
