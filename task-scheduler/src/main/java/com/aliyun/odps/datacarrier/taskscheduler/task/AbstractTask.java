@@ -153,6 +153,12 @@ public abstract class AbstractTask implements Task {
     return id;
   }
 
+  @Override
+  public String getOriginId() {
+    int index = id.indexOf(".part#");
+    return index == -1 ? id : id.substring(0, index);
+  }
+
   /**
    * Return a simple description of this task
    * @return Description of this task
