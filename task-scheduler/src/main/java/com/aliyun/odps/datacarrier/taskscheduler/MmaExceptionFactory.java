@@ -27,8 +27,8 @@ public class MmaExceptionFactory {
     return new MmaException("Failed to create connection", e);
   }
 
-  public static MmaException getRunningMigrationJobExistsException(String db, String tbl) {
-    String errorMsg = String.format("Running migration job exists, db: %s, tbl: %s", db, tbl);
+  public static MmaException getRunningJobExistsException(String db, String object) {
+    String errorMsg = String.format("Running job exists, db: %s, object: %s", db, object);
     return new MmaException(errorMsg);
   }
 
