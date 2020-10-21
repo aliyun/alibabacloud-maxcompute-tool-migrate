@@ -11,7 +11,7 @@
                 <OnStartupTriggeringPolicy />
                 <SizeBasedTriggeringPolicy size="100 MB" />
             </Policies>
-            <DefaultRolloverStrategy fileIndex="min" max="10000"/>
+            <DefaultRolloverStrategy fileIndex="min" max="10"/>
         </RollingFile>
         <Async name="ServerLoggerAppender" bufferSize="100000" blocking="false" includeLocation="true">
             <AppenderRef ref="ServerLogFile"/>
@@ -20,13 +20,13 @@
                      filePattern="${env:MMA_HOME}/log/task_runner.LOG.%i.gz">
             <PatternLayout>
                 <!-- Only print the original message. -->
-                <Pattern>%m%n</Pattern>
+                <Pattern>%d{DEFAULT} [%t] %m%n</Pattern>
             </PatternLayout>
             <Policies>
                 <OnStartupTriggeringPolicy />
                 <SizeBasedTriggeringPolicy size="100 MB" />
             </Policies>
-            <DefaultRolloverStrategy fileIndex="min" max="10000"/>
+            <DefaultRolloverStrategy fileIndex="min" max="10"/>
         </RollingFile>
         <Async name="RunnerLoggerAppender" bufferSize="100000" blocking="false" includeLocation="false">
             <AppenderRef ref="RunnerLogFile"/>
