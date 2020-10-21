@@ -25,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -267,6 +268,18 @@ public class MmaMetaManagerDbImplUtils {
     return sb.toString();
   }
 
+  public static String getCreateTemporaryTableDdl() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("CREATE TABLE IF NOT EXISTS ").append(Constants.MMA_OBJ_TEMPORARY_TBL_NAME).append(" (\n");
+    for (Map.Entry<String, String> entry : Constants.MMA_OBJ_TEMPORARY_TBL_COL_TO_TYPE.entrySet()) {
+      sb.append("    ").append(entry.getKey()).append(" ").append(entry.getValue()).append(",\n");
+    }
+    sb.append("    PRIMARY KEY (").append(Constants.MMA_OBJ_TEMPORARY_COL_UNIQUE_ID).append(", ");
+    sb.append(Constants.MMA_OBJ_TEMPORARY_COL_PROJECT).append(", ");
+    sb.append(Constants.MMA_OBJ_TEMPORARY_COL_TABLE).append("))\n");
+    return sb.toString();
+  }
+
   public static String getCreateMmaPartitionMetaDdl(String db, String tbl) {
     StringBuilder sb = new StringBuilder();
     sb
@@ -294,6 +307,14 @@ public class MmaMetaManagerDbImplUtils {
   public static void createMmaRestoreTable(Connection conn) throws SQLException {
     try (Statement stmt = conn.createStatement()) {
       String ddl = getCreateMmaRestoreTableDdl();
+      LOG.debug("Executing create table ddl: {}", ddl);
+      stmt.execute(ddl);
+    }
+  }
+
+  public static void createMmaTemporaryTable(Connection conn) throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      String ddl = getCreateTemporaryTableDdl();
       LOG.debug("Executing create table ddl: {}", ddl);
       stmt.execute(ddl);
     }
@@ -373,6 +394,18 @@ public class MmaMetaManagerDbImplUtils {
                dml,
                GsonUtils.getFullConfigGson().toJson(taskInfo));
 
+      preparedStatement.execute();
+    }
+  }
+
+  public static void mergeIntoTemporaryTableMeta(Connection conn, String uniqueId, String db, String tbl)
+      throws SQLException {
+    String dml = "MERGE INTO " + Constants.MMA_OBJ_TEMPORARY_TBL_NAME + " VALUES (?, ?, ?)";
+    try (PreparedStatement preparedStatement = conn.prepareStatement(dml)) {
+      preparedStatement.setString(1, uniqueId);
+      preparedStatement.setString(2, db);
+      preparedStatement.setString(3, tbl);
+      LOG.info("Executing DML: {}, arguments: ({}, {}, {})", dml, uniqueId, db, tbl);
       preparedStatement.execute();
     }
   }
@@ -498,6 +531,34 @@ public class MmaMetaManagerDbImplUtils {
               rs.getInt(7),
               rs.getLong(8));
           ret.add(taskInfo);
+        }
+        return ret;
+      }
+    }
+  }
+
+  public static Map<String, List<String>> selectFromTemporaryTableMeta(Connection conn,
+                                                                       String condition,
+                                                                       int limit) throws SQLException {
+    StringBuilder sb = new StringBuilder();
+    sb.append(String.format("SELECT * FROM %s\n", Constants.MMA_OBJ_TEMPORARY_TBL_NAME));
+    if (!Strings.isNullOrEmpty(condition)) {
+      sb.append(condition).append("\n");
+    }
+    if (limit > 0) {
+      sb.append("LIMIT ").append(limit);
+    }
+    sb.append(";");
+
+    try (Statement stmt = conn.createStatement()) {
+      LOG.info("Executing SQL: {}", sb.toString());
+      try (ResultSet rs = stmt.executeQuery(sb.toString())) {
+        Map<String, List<String>> ret = new HashMap<>();
+        while (rs.next()) {
+          String project = rs.getString(2);
+          String table = rs.getString(3);
+          List<String> tables = ret.computeIfAbsent(project, k -> new ArrayList<>());
+          tables.add(table);
         }
         return ret;
       }

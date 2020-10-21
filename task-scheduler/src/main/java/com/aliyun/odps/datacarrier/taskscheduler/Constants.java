@@ -34,6 +34,8 @@ public class Constants {
 
   public static final int MAX_PARTITION_BATCH_SIZE = 200;
 
+  public static final String MMA_TEMPORARY_TABLE_PREFIX = "_temporary_table_generated_by_mma_";
+
   /*
     Constants of MmaMetaManagerDbImpl
    */
@@ -124,6 +126,21 @@ public class Constants {
     temp.put(MMA_PT_META_COL_ATTEMPT_TIMES, INT);
     temp.put(MMA_PT_META_COL_LAST_MODIFIED_TIME, BIGINT);
     MMA_PT_META_COL_TO_TYPE = Collections.unmodifiableMap(temp);
+  }
+
+  // table to record temporary tables created by mma, which should be dropped after mma server restart
+  public static final String MMA_OBJ_TEMPORARY_TBL_NAME = "MMA_DATABASE_TEMPORARY_TABLE";
+  public static final String MMA_OBJ_TEMPORARY_COL_UNIQUE_ID = "unique_id";
+  public static final String MMA_OBJ_TEMPORARY_COL_PROJECT = "db";
+  public static final String MMA_OBJ_TEMPORARY_COL_TABLE = "tbl";
+
+  public static final Map<String, String> MMA_OBJ_TEMPORARY_TBL_COL_TO_TYPE;
+  static {
+    Map<String, String> temp = new LinkedHashMap<>();
+    temp.put(MMA_OBJ_TEMPORARY_COL_UNIQUE_ID, VARCHAR_255);
+    temp.put(MMA_OBJ_TEMPORARY_COL_PROJECT, VARCHAR_255);
+    temp.put(MMA_OBJ_TEMPORARY_COL_TABLE, VARCHAR_255);
+    MMA_OBJ_TEMPORARY_TBL_COL_TO_TYPE = Collections.unmodifiableMap(temp);
   }
 
   /**

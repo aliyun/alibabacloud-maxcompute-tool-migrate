@@ -98,6 +98,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
       createMmaTableMeta(conn);
       createMmaRestoreTable(conn);
       removeActiveTasksFromRestoreTable(conn);
+      createMmaTemporaryTable(conn);
       conn.commit();
     } catch (Throwable e) {
       throw new MmaException("Setting up database failed", e);
@@ -575,8 +576,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
   public synchronized void removeRestoreJob(String uniqueId)
       throws MmaException {
     try (Connection conn = ds.getConnection()) {
+      String query = null;
       try {
-        String query = String.format("DELETE FROM %s WHERE %s='%s'",
+        query = String.format("DELETE FROM %s WHERE %s='%s'",
             Constants.MMA_OBJ_RESTORE_TBL_NAME,
             Constants.MMA_OBJ_RESTORE_COL_UNIQUE_ID,
             uniqueId);
@@ -586,7 +588,74 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         }
       } catch (Throwable e) {
         LOG.error(e);
+        throw new MmaException("Failed to remove restore job: " + query, e);
+      }
+    } catch (SQLException e) {
+      throw MmaExceptionFactory.getFailedToCreateConnectionException(e);
+    }
+  }
+
+  @Override
+  public synchronized Map<String, List<String>> listTemporaryTables(String condition, int limit) throws MmaException {
+     try (Connection conn = ds.getConnection()) {
+      try {
+        Map<String, List<String>> result = selectFromTemporaryTableMeta(conn, condition, limit);
+        LOG.info("Temporary tables to be dropped: {}", GsonUtils.toJson(result));
+        return result;
+      } catch (Throwable e) {
+        LOG.error(e);
         throw new MmaException("Failed to list restore jobs", e);
+      }
+    } catch (SQLException e) {
+      throw MmaExceptionFactory.getFailedToCreateConnectionException(e);
+    }
+  }
+
+  @Override
+  public void mergeTableInfoIntoTemporaryTableDB(String uniqueId, String db, String tbl) {
+    try (Connection conn = ds.getConnection()) {
+      try {
+        mergeIntoTemporaryTableMeta(conn, uniqueId, db, tbl);
+        conn.commit();
+      } catch (Throwable e) {
+        // Rollback
+        if (conn != null) {
+          try {
+            conn.rollback();
+          } catch (Throwable e2) {
+            LOG.error("Add temporary table job rollback failed, db {}, tbl {}", db, tbl);
+          }
+        }
+        LOG.error("Merge into temporary table failed, uniqueId: {}, db: {}, tbl: {}",
+            uniqueId, db, tbl, e);
+      }
+    } catch (SQLException e) {
+      LOG.error("Merge into temporary table failed, uniqueId: {}, db: {}, tbl: {}",
+            uniqueId, db, tbl, e);
+    }
+  }
+
+  @Override
+  public synchronized void removeTemporaryTableMeta(String uniqueId, String db, String tbl) throws MmaException {
+    try (Connection conn = ds.getConnection()) {
+      String query = null;
+      try {
+        query = String.format("DELETE FROM %s WHERE %s='%s' AND %s='%s' AND %s='%s';\n",
+            Constants.MMA_OBJ_TEMPORARY_TBL_NAME,
+            Constants.MMA_OBJ_TEMPORARY_COL_UNIQUE_ID,
+            uniqueId,
+            Constants.MMA_OBJ_TEMPORARY_COL_PROJECT,
+            db,
+            Constants.MMA_OBJ_TEMPORARY_COL_TABLE,
+            tbl);
+        LOG.info("Execute query: {}", query);
+        try (Statement stmt = conn.createStatement()) {
+          stmt.execute(query);
+          conn.commit();
+        }
+      } catch (Throwable e) {
+        LOG.error(e);
+        throw new MmaException("Failed to remove temporary table: " + query, e);
       }
     } catch (SQLException e) {
       throw MmaExceptionFactory.getFailedToCreateConnectionException(e);
@@ -1036,7 +1105,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
           objectExportConfig.setDestTableStorage(ExternalTableStorage.OSS.name());
           objectExportConfig.apply(tableMetaModel);
           tableMetaModel.odpsProjectName = objectExportConfig.getDatabaseName();
-          tableMetaModel.odpsTableName = objectExportConfig.getObjectName() + "_" + objectExportConfig.getTaskName();
+          tableMetaModel.odpsTableName = Constants.MMA_TEMPORARY_TABLE_PREFIX
+              + objectExportConfig.getObjectName() + "_"
+              + objectExportConfig.getTaskName();
         }
         ret.add(tableMetaModel);
       }
