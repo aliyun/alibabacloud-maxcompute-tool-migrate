@@ -71,10 +71,9 @@ then
   cp -r test mma/
   echo "  Done"
   echo "  Prepare test dependencies"
-  wget https://odps-repo.oss-cn-hangzhou.aliyuncs.com/odpscmd/latest/odpscmd_public.zip
-  mv odpscmd_public.zip mma/res/
-  unzip mma/res/odpscmd_public.zip
-  rm mma/res/odpscmd_public.zip
+  wget -q https://odps-repo.oss-cn-hangzhou.aliyuncs.com/odpscmd/latest/odpscmd_public.zip
+  unzip -q -o odpscmd_public.zip -d mma/res/odpscmd
+  rm odpscmd_public.zip
   echo "  Done"
 fi
 echo "  Package"
