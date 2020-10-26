@@ -18,14 +18,14 @@ import random
 import string
 import time
 import traceback
-
 import mma_test.utils as utils
 
 from concurrent.futures import ThreadPoolExecutor
 
 
 def init_database():
-    _, _ = utils.execute_command("hive -f %s" % os.path.join(utils.test_dir, "setup.sql"))
+    _, _ = utils.execute_command(
+        "hive -f %s" % os.path.join(utils.get_test_dir(), "setup.sql"))
 
 
 def prepare_data():
@@ -45,14 +45,18 @@ def prepare_data():
                                                    partition_value_1: str,
                                                    partition_value_2: int,
                                                    number_records: int):
-        template = ("insert overwrite table MMA_TEST.%s partition(p1='%s', p2=%d)"
-                    "select extend_table(%d) from MMA_TEST.DUMMY")
+        template = (
+          "insert overwrite table MMA_TEST.%s partition(p1='%s', p2=%d)"
+          "select extend_table(%d) from MMA_TEST.DUMMY")
         return template % (table, partition_value_1, partition_value_2, number_records)
 
-    local_udtf_path = os.path.join(utils.odps_data_carrier_dir,
-                                   "lib",
-                                   "data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar")
-    hdfs_udtf_path = "hdfs:///mma/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar"
+    local_udtf_path = os.path.join(
+        utils.get_mma_home(),
+        "lib",
+        "data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar")
+    hdfs_udtf_path = (
+      "hdfs:///mma/"
+      "data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar")
     class_name = "com.aliyun.odps.datacarrier.transfer.RandomDataGenerateUDTF"
 
     setup_commands = [
