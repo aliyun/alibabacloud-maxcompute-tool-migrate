@@ -16,28 +16,25 @@ import argparse
 import os
 import unittest
 import mma_test.utils as utils
+import shutil
+import time
 
-from mma_test.test_regular_migration import TestRegularMigration
-
-
-def setup():
-    tmp_path = os.path.join(utils.test_dir, "tmp")
-    os.makedirs(tmp_path, exist_ok=True)
-    # setup test env
-    os.chdir(tmp_path)
-    # generate configs
-    utils.generate_mma_server_config()
-    utils.generate_mma_client_config()
+from typing import Dict
+from mma_test.test_hive import TestHive
 
 
-def regular_migration_test_suite():
-    return unittest.defaultTestLoader.loadTestsFromTestCase(TestRegularMigration)
+def get_test_suites_map() -> Dict[str, unittest.TestSuite]:
+    test_suites = {}
+    test_suites[TestHive.__name__] = (
+        unittest.defaultTestLoader.loadTestsFromTestCase(TestHive))
+
+    return test_suites
 
 
 if __name__ == '__main__':
-    suites = {"test_regular_migration": regular_migration_test_suite()}
+    suites = get_test_suites_map()
 
-    parser = argparse.ArgumentParser(description='Run odps-data-carrier tests')
+    parser = argparse.ArgumentParser(description='MMA FT runner')
     parser.add_argument(
         "--list_test_suites",
         required=False,
@@ -49,7 +46,7 @@ if __name__ == '__main__':
         "--list_test_cases",
         required=False,
         type=str,
-        help="list available test cases for specified test suite")
+        help="list test cases of specified test suite")
     parser.add_argument(
         "--run_test_suite",
         required=False,
@@ -57,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--run_test_case",
         required=False,
-        help="run specified test case, should be in format test_suite.test_case")
+        help="run specified test case, should be in format suite.case")
     parser.add_argument(
         "--fail_fast",
         required=False,
@@ -74,20 +71,26 @@ if __name__ == '__main__':
         exit(0)
 
     if args.list_test_cases is not None:
-        if args.list_test_cases in suites:
-            suite = suites[args.list_test_cases]
+        suite_name = args.list_test_cases
+        if suite_name in suites:
+            suite = suites[suite_name]
             for test in suite._tests:
                 print(test.id().split(".")[-1])
             exit(0)
         else:
-            raise Exception("Invalid test suite")
+            raise Exception("Test suite not found: %s" % suite_name)
 
     if args.run_test_suite is not None and args.run_test_case is not None:
-        raise Exception("--run_test_suite and --run_test_case cannot present at the same time")
+        err_msg = ("--run_test_suite and "
+                   "--run_test_case cannot present at the same time")
+        raise Exception(err_msg)
 
-    setup()
+    os.makedirs(utils.get_test_temp_dir(), exist_ok=True)
+    print("Start MMA server")
+    mma_server_sp = utils.start_mma_server()
+    print("MMA server pid: %s" % str(mma_server_sp.pid))
+    time.sleep(10)
 
-    # TODO: start mma-server if not exists automatically
     try:
         s = unittest.TestSuite()
         if args.run_test_suite is not None:
@@ -105,10 +108,12 @@ if __name__ == '__main__':
         else:
             s.addTests(suites.values())
 
-        runner = unittest.TextTestRunner(verbosity=3, failfast=args.fail_fast, buffer=True)
+        runner = unittest.TextTestRunner(
+            verbosity=3, failfast=args.fail_fast, buffer=True)
         runner.run(s)
     finally:
-        # TODO: kill mma-server
-        pass
+        print("Stop MMA server")
+        utils.stop_mma_server(mma_server_sp)
+        shutil.rmtree(utils.get_test_temp_dir())
 
 
