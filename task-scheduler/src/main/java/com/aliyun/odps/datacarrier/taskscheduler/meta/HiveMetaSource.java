@@ -26,6 +26,8 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.IMetaStoreClient;
+import org.apache.hadoop.hive.metastore.RetryingMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -40,7 +42,7 @@ public class HiveMetaSource implements MetaSource {
 
   private static final Logger LOG = LogManager.getLogger(HiveMetaSource.class);
 
-  private HiveMetaStoreClient hmsClient;
+  private IMetaStoreClient hmsClient;
 
   public HiveMetaSource(String hmsAddr,
                         String principal,
@@ -91,12 +93,12 @@ public class HiveMetaSource implements MetaSource {
       }
     }
 
-    this.hmsClient = new HiveMetaStoreClient(hiveConf);
+    this.hmsClient = RetryingMetaStoreClient.getProxy(
+        hiveConf, tbl -> null, HiveMetaStoreClient.class.getName());
   }
 
   @Override
   public TableMetaModel getTableMeta(String databaseName, String tableName) throws Exception {
-    // Get metadata from hive HMS, ODPS related metadata are not set here
     return getTableMetaInternal(databaseName, tableName, false);
   }
 
@@ -109,7 +111,6 @@ public class HiveMetaSource implements MetaSource {
   private TableMetaModel getTableMetaInternal(String databaseName,
                                               String tableName,
                                               boolean withoutPartitionMeta) throws Exception {
-    // Get metadata from hive HMS, notice that ODPS related metadata are not set here
     Table table = hmsClient.getTable(databaseName, tableName);
 
     TableMetaModel tableMetaModel = new TableMetaModel();
