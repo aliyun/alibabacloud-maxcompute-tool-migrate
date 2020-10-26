@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Alibaba Group Holding Ltd.
+# Copyright 1999-2020 Alibaba Group Holding Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,35 +13,61 @@
 # limitations under the License.
 
 
+import configparser
 import os
+import signal
 import subprocess
 import time
 import traceback
-import configparser
 
 from concurrent.futures import ThreadPoolExecutor
 
-test_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-mma_server_config_path = os.path.join(test_dir, "tmp", "mma_server_config.json")
-mma_client_config_path = os.path.join(test_dir, "tmp", "mma_client_config.json")
 
-odps_data_carrier_dir = os.path.dirname(test_dir)
+def get_mma_home():
+    return os.path.dirname(get_test_dir())
 
-conf_dir = os.path.join(odps_data_carrier_dir, "conf")
-hive_config_path = os.path.join(conf_dir, "hive_config.ini")
-odps_config_path = os.path.join(conf_dir, "odps_config.ini")
 
-bin_dir = os.path.join(odps_data_carrier_dir, "bin")
-generate_config_path = os.path.join(bin_dir, "generate-config")
-mma_server_path = os.path.join(bin_dir, "mma-server")
-mma_client_path = os.path.join(bin_dir, "mma-client")
+def get_test_dir():
+    return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-odpscmd_path = os.path.join(odps_data_carrier_dir, "res", "console", "bin", "odpscmd")
 
-parser = configparser.ConfigParser()
-with open(odps_config_path) as fd:
-    parser.read_string("[dummy section]\n" + fd.read())
-odps_config = parser["dummy section"]
+def get_test_temp_dir():
+    return os.path.join(get_test_dir(), "temp")
+
+
+def get_conf_dir():
+    return os.path.join(get_mma_home(), "conf")
+
+
+def get_mc_config_path():
+    return os.path.join(get_conf_dir(), "odps_config.ini")
+
+
+def get_hive_config_path():
+    return os.path.join(get_conf_dir(), "hive_config.ini")
+
+
+def get_odpscmd_path():
+    return os.path.join(get_mma_home(), "res", "odpscmd", "bin", "odpscmd")
+
+
+def get_mma_server_path():
+    return os.path.join(get_mma_home(), "bin", "mma-server")
+
+
+def get_mma_client_path():
+    return os.path.join(get_mma_home(), "bin", "mma-client")
+
+
+def get_generate_config_path():
+    return os.path.join(get_mma_home(), "bin", "generate-config")
+
+
+def get_mc_config():
+    parser = configparser.ConfigParser()
+    with open(get_mc_config_path()) as fd:
+        parser.read_string("[dummy section]\n" + fd.read())
+    return parser["dummy section"]
 
 
 def execute_command(cmd):
@@ -69,70 +95,70 @@ def execute_command(cmd):
 def execute_command_non_blocking(cmd) -> subprocess.Popen:
     try:
         print("Executing: %s" % cmd)
-
         return subprocess.Popen(cmd,
                                 shell=True,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
+                                preexec_fn=os.setsid,
                                 encoding='utf-8')
     except Exception as e:
         raise Exception(traceback.format_exc())
 
 
 def start_mma_server() -> subprocess.Popen:
-    cmd = "sh %s --config %s" % (mma_server_path, mma_server_config_path)
-    return execute_command_non_blocking(cmd)
+    cmd = "sh %s" % (get_mma_server_path())
+    return subprocess.Popen(cmd,
+                            shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            preexec_fn=os.setsid,
+                            encoding='utf-8')
+
+
+def stop_mma_server(popen: subprocess.Popen):
+    os.killpg(os.getpgid(popen.pid), signal.SIGKILL)
 
 
 def generate_migration_config(mapping: dict) -> str:
     cur_time = int(time.time())
-    table_mapping_path = os.path.join(test_dir, "tmp", "temp_table_mapping_%s.txt" % str(cur_time))
+    table_mapping_path = os.path.join(
+        get_test_temp_dir(), "temp_table_mapping_%s.txt" % str(cur_time))
 
     with open(table_mapping_path, 'w') as fd:
         for key in mapping.keys():
-            hive_db, hive_tbl = key
-            mc_db, mc_tbl = mapping[key]
-            fd.write("%s.%s:%s.%s" % (hive_db, hive_tbl, mc_db, mc_tbl))
+            hive_db, hive_table = key
+            mc_db, mc_table = mapping[key]
+            fd.write("%s.%s:%s.%s" % (hive_db, hive_table, mc_db, mc_table))
 
-    cmd = "sh %s --table_mapping %s -m -p %s_" % (generate_config_path,
-                                                  table_mapping_path,
-                                                  str(cur_time))
+    cmd = "sh %s --table_mapping %s -m -p %s_" % (
+        get_generate_config_path(), table_mapping_path, str(cur_time))
     execute_command(cmd)
-    return os.path.join(test_dir, "tmp", "%s_mma_migration_config.json" % str(cur_time))
+    return os.path.join(
+        get_test_temp_dir(), "%s_mma_migration_config.json" % str(cur_time))
 
 
-def generate_mma_server_config() -> None:
-    cmd = "sh %s --hive_config %s --odps_config %s -s" % (generate_config_path,
-                                                          hive_config_path,
-                                                          odps_config_path)
-    execute_command(cmd)
+def migrate(hive_db, hive_table, mc_project, mc_table):
+    pwd = os.curdir
+    os.chdir(get_test_temp_dir())
 
+    try:
+        migration_config_path = generate_migration_config(
+            {(hive_db, hive_table): (mc_project, mc_table)})
 
-def generate_mma_client_config() -> None:
-    cmd = "sh %s --hive_config %s -c" % (generate_config_path,
-                                         hive_config_path)
-    execute_command(cmd)
-
-
-def migrate(hive_db, hive_tbl, mc_pjt, mc_tbl):
-    migration_config_path = generate_migration_config(
-        {(hive_db, hive_tbl): (mc_pjt, mc_tbl)})
-
-    start_command = "sh %s --config %s --start %s" % (mma_client_path,
-                                                      mma_client_config_path,
-                                                      migration_config_path)
-    wait_command = "sh %s --config %s --wait %s.%s" % (mma_client_path,
-                                                       mma_client_config_path,
-                                                       hive_db,
-                                                       hive_tbl)
-    _, _ = execute_command(start_command)
-    _, _ = execute_command(wait_command)
+        start_command = "sh %s --start %s" % (
+            get_mma_client_path(), migration_config_path)
+        wait_command = "sh %s --wait %s.%s" % (
+            get_mma_client_path(), hive_db, hive_table)
+        _, _ = execute_command(start_command)
+        _, _ = execute_command(wait_command)
+    finally:
+        os.chdir(pwd)
 
 
 def verify(hive_db,
-           hive_tbl,
+           hive_table,
            mc_project,
-           mc_tbl,
+           mc_table,
            hive_where_condition=None,
            mc_where_condition=None):
 
@@ -147,17 +173,18 @@ def verify(hive_db,
     sql = "SELECT AVG(t_smallint) FROM %s.%s %s;"
 
     if hive_where_condition is None:
-        hive_sql = sql % (hive_db, hive_tbl, "")
+        hive_sql = sql % (hive_db, hive_table, "")
     else:
-        hive_sql = sql % (hive_db, hive_tbl, "WHERE " + hive_where_condition)
+        hive_sql = sql % (hive_db, hive_table, "WHERE " + hive_where_condition)
     hive_command = "hive -e '%s'" % hive_sql
 
     if mc_where_condition is None:
-        odps_sql = sql % (mc_project, mc_tbl, "")
+        odps_sql = sql % (mc_project, mc_table, "")
     else:
-        odps_sql = sql % (mc_project, mc_tbl, "WHERE " + mc_where_condition)
+        odps_sql = sql % (mc_project, mc_table, "WHERE " + mc_where_condition)
     odps_sql = "set odps.sql.allow.fullscan=true; " + odps_sql
-    odps_command = "%s --config=%s -M -e '%s'" % (odpscmd_path, odps_config_path, odps_sql)
+    odps_command = "%s --config=%s -M -e '%s'" % (
+        get_odpscmd_path(), get_mc_config_path(), odps_sql)
 
     hive_future = executor.submit(execute_command, hive_command)
     odps_future = executor.submit(execute_command, odps_command)
@@ -165,3 +192,31 @@ def verify(hive_db,
     odps_stdout, _ = odps_future.result()
 
     return parse_hive_stdout(hive_stdout), parse_odps_stdout(odps_stdout)
+
+
+def drop_mc_table(mc_project, mc_table):
+    ddl = "DROP TABLE IF EXISTS %s.%s" % (mc_project, mc_table)
+    command = "%s --config=%s -M -e '%s'" % (
+        get_odpscmd_path(), get_mc_config_path(), ddl)
+    execute_command(command)
+
+
+def drop_mc_partition(mc_project, mc_table, mc_partition_spec):
+    dml = "ALTER TABLE %s.%s DROP IF EXISTS PARTITION(%s)" % (
+        mc_project, mc_table, mc_partition_spec)
+    command = "%s --config=%s -M -e '%s'" % (
+        get_odpscmd_path(), get_mc_config_path(), dml)
+    execute_command(command)
+
+
+def drop_hive_table(hive_db, hive_table):
+    ddl = "DROP TABLE IF EXISTS %s.%s" % (hive_db, hive_table)
+    command = hive_command = "hive -e '%s'" % ddl
+    execute_command(command)
+
+
+def drop_hive_partition(hive_db, hive_table, hive_partition_spec):
+    dml = "ALTER TABLE %s.%s DROP IF EXISTS PARTITION(%s)" % (
+        hive_db, hive_table, hive_partition_spec)
+    command = hive_command = "hive -e '%s'" % dml
+    execute_command(command)
