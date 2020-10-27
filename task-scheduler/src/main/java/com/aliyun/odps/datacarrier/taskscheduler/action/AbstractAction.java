@@ -18,7 +18,7 @@ import com.aliyun.odps.datacarrier.taskscheduler.task.ActionExecutionContext;
 
 public abstract class AbstractAction implements Action {
 
-  private static final Logger LOG = LogManager.getLogger(AbstractAction.class);
+  static final Logger LOG = LogManager.getLogger(AbstractAction.class);
 
   private ActionProgress progress;
   private ActionProgressListener actionProgressListener;

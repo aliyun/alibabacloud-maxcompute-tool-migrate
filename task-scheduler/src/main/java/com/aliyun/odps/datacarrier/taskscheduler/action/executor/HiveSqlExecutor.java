@@ -23,7 +23,7 @@ import com.aliyun.odps.utils.StringUtils;
 
 public class HiveSqlExecutor extends AbstractActionExecutor {
 
-  private static final Logger LOG = LogManager.getLogger("RunnerLogger");
+  private static final Logger LOG = LogManager.getLogger("ExecutorLogger");
 
   public HiveSqlExecutor() {
     try {

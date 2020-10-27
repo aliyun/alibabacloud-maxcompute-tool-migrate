@@ -13,8 +13,6 @@ import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 
 public class VerificationAction extends AbstractAction {
 
-  private static final Logger LOG = LogManager.getLogger(VerificationAction.class);
-
   public VerificationAction(String id) {
     super(id);
     actionInfo = new VerificationActionInfo();
@@ -22,6 +20,8 @@ public class VerificationAction extends AbstractAction {
 
   @Override
   public void execute() throws MmaException {
+    setProgress(ActionProgress.RUNNING);
+
     List<List<String>> sourceVerificationResult =
         actionExecutionContext.getSourceVerificationResult();
     List<List<String>> destVerificationResult =
@@ -40,9 +40,13 @@ public class VerificationAction extends AbstractAction {
         assert destVerificationResult.size() == 1;
         assert sourceVerificationResult.get(0).size() == 1;
 
-        Long sourceRecordCount = Long.valueOf(sourceVerificationResult.get(0).get(0));
-        Long destRecordCount = Long.valueOf(destVerificationResult.get(0).get(0));
-        passed = sourceRecordCount.equals(destRecordCount);
+        Long source = Long.valueOf(sourceVerificationResult.get(0).get(0));
+        Long dest = Long.valueOf(destVerificationResult.get(0).get(0));
+        passed = source.equals(dest);
+        if (!passed) {
+          LOG.error("Record number not matched, source: {}, dest: {}, actionId: {}",
+                    source, dest, id);
+        }
       } else {
         List<List<String>> succeededPartitions = new LinkedList<>();
         List<List<String>> failedPartitions = new LinkedList<>();

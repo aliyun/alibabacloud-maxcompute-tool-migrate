@@ -16,8 +16,8 @@
         <Async name="ServerLoggerAppender" bufferSize="100000" blocking="false" includeLocation="true">
             <AppenderRef ref="ServerLogFile"/>
         </Async>
-        <RollingFile name="RunnerLogFile" fileName="${env:MMA_HOME}/log/task_runner.LOG"
-                     filePattern="${env:MMA_HOME}/log/task_runner.LOG.%i.gz">
+        <RollingFile name="ExecutorLogFile" fileName="${env:MMA_HOME}/log/action_executor.LOG"
+                     filePattern="${env:MMA_HOME}/log/action_executor.LOG.%i.gz">
             <PatternLayout>
                 <!-- Only print the original message. -->
                 <Pattern>%d{DEFAULT} [%t] %m%n</Pattern>
@@ -28,19 +28,19 @@
             </Policies>
             <DefaultRolloverStrategy fileIndex="min" max="10"/>
         </RollingFile>
-        <Async name="RunnerLoggerAppender" bufferSize="100000" blocking="false" includeLocation="false">
-            <AppenderRef ref="RunnerLogFile"/>
+        <Async name="ExecutorLoggerAppender" bufferSize="100000" blocking="false" includeLocation="false">
+            <AppenderRef ref="ExecutorLogFile"/>
         </Async>
     </Appenders>
     <Loggers>
         <Root level="info">
             <AppenderRef ref="ServerLoggerAppender"/>
         </Root>
-        <logger name="RunnerLogger" level="all" additivity="false">
-            <AppenderRef ref="RunnerLoggerAppender"/>
+        <logger name="ExecutorLogger" level="all" additivity="false">
+            <AppenderRef ref="ExecutorLoggerAppender"/>
         </logger>
         <logger name="org.apache.thrift.transport.TSaslTransport" level="warn" additivity="false">
-            <AppenderRef ref="RunnerLoggerAppender"/>
+            <AppenderRef ref="ExecutorLoggerAppender"/>
         </logger>
     </Loggers>
 </Configuration>
