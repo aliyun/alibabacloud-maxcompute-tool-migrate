@@ -354,7 +354,7 @@ $ grep "${ACTION_ID}" /path/to/mma/log/mma_server.LOG
 2020-10-27 14:56:37,781 ERROR [Scheduler] action.AbstractAction (VerificationAction.java:execute(66)) - Record number not matched, source: 1, dest: 2, actionId: Migration.mma_test.dummy.1603781749.Compare
 ```
 
-#FAQ
+## FAQ
 ## 1. 升级MMA
 MMA会不断更新功能，并修复已知问题，提高稳定性，因此我们建议长期使用MMA的客户升级MMA。升级MMA的步骤如下：
 1. 下载解压新版本MMA
