@@ -137,7 +137,7 @@ public class TaskScheduler {
             }
           }
         } catch (Throwable ex) {
-          LOG.error("Exception on heartbeat", ex);
+          LOG.error("Exception on scheduling thread", ex);
           ex.printStackTrace();
           // interrupt handler thread in case it waiting on the queue
           break;

@@ -41,7 +41,7 @@ import com.aliyun.odps.task.SQLTask;
 
 public class OdpsExecutor extends AbstractActionExecutor {
 
-  private static final Logger LOG = LogManager.getLogger("RunnerLogger");
+  private static final Logger LOG = LogManager.getLogger("ExecutorLogger");
 
   private static class OdpsSqlCallable implements Callable<Object> {
     private Odps odps;
