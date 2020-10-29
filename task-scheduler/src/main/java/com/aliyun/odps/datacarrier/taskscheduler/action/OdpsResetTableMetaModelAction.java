@@ -102,4 +102,9 @@ public class OdpsResetTableMetaModelAction extends OdpsNoSqlAction {
       throw new MmaException("Reset table meta fail for " + id, e);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Table metadata restoration";
+  }
 }

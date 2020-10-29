@@ -65,4 +65,9 @@ public class OdpsSourceVerificationAction extends OdpsSqlAction {
       setProgress(ActionProgress.FAILED);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Source verification";
+  }
 }

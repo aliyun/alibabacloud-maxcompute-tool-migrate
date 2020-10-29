@@ -42,6 +42,9 @@ public abstract class AbstractAction implements Action {
   private ActionProgress progress;
   private ActionProgressListener actionProgressListener;
 
+  private Long startTime;
+  private Long endTime;
+
   protected Map<Resource, Integer> resourceMap;
   protected Future<Object> future;
 
@@ -66,6 +69,16 @@ public abstract class AbstractAction implements Action {
   @Override
   public ActionProgress getProgress() {
     return progress;
+  }
+
+  @Override
+  public Long getStartTime() {
+    return startTime;
+  }
+
+  @Override
+  public Long getEndTime() {
+    return endTime;
   }
 
   @Override
@@ -122,9 +135,26 @@ public abstract class AbstractAction implements Action {
              id,
              this.progress,
              progress);
+
+    // Update start time
+    if (ActionProgress.PENDING.equals(this.progress) && ActionProgress.RUNNING.equals(progress)) {
+      startTime = System.currentTimeMillis();
+    }
+
     this.progress = Objects.requireNonNull(progress);
 
+    // Update end time
+    if (isTerminated()) {
+      endTime = System.currentTimeMillis();
+    }
+
     actionProgressListener.onActionProgressChanged(progress);
+  }
+
+  private boolean isTerminated() {
+    return ActionProgress.CANCELED.equals(progress)
+        || ActionProgress.FAILED.equals(progress)
+        || ActionProgress.SUCCEEDED.equals(progress);
   }
 
   public void setActionProgressListener(ActionProgressListener actionProgressListener) {

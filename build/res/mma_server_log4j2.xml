@@ -31,6 +31,21 @@
         <Async name="ExecutorLoggerAppender" bufferSize="100000" blocking="false" includeLocation="false">
             <AppenderRef ref="ExecutorLogFile"/>
         </Async>
+        <RollingFile name="JettyLogFile" fileName="${env:MMA_HOME}/log/jetty.LOG"
+          filePattern="${env:MMA_HOME}/log/jetty.LOG.%i.gz">
+          <PatternLayout>
+            <!-- Only print the original message. -->
+            <Pattern>%d{DEFAULT} [%t] %m%n</Pattern>
+          </PatternLayout>
+          <Policies>
+            <OnStartupTriggeringPolicy />
+            <SizeBasedTriggeringPolicy size="100 MB" />
+          </Policies>
+          <DefaultRolloverStrategy fileIndex="min" max="10"/>
+        </RollingFile>
+        <Async name="JettyLoggerAppender" bufferSize="100000" blocking="false" includeLocation="false">
+          <AppenderRef ref="JettyLogFile"/>
+        </Async>
     </Appenders>
     <Loggers>
         <Root level="info">
@@ -41,6 +56,12 @@
         </logger>
         <logger name="org.apache.thrift.transport.TSaslTransport" level="warn" additivity="false">
             <AppenderRef ref="ExecutorLoggerAppender"/>
+        </logger>
+        <logger name="org.eclipse.jetty" level="info">
+            <AppenderRef ref="JettyLoggerAppender"/>
+        </logger>
+        <logger name="com.aliyun.odps.datacarrier.taskscheduler.ui" level="info">
+            <AppenderRef ref="JettyLoggerAppender"/>
         </logger>
     </Loggers>
 </Configuration>

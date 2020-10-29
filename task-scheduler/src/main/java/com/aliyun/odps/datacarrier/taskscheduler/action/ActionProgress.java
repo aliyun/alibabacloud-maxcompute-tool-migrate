@@ -23,5 +23,6 @@ public enum ActionProgress {
   PENDING,
   RUNNING,
   SUCCEEDED,
-  FAILED
+  FAILED,
+  CANCELED
 }

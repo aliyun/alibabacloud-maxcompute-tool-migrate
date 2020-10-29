@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.collections.MapUtils;
 
@@ -88,12 +89,11 @@ public class MmaConfig {
 
     @Override
     public String toString() {
-      final StringBuilder sb = new StringBuilder("{");
-      sb.append("ddlSettings=").append(ddlSettings);
-      sb.append(", migrationSettings=").append(migrationSettings);
-      sb.append(", verifySettings=").append(verifySettings);
-      sb.append('}');
-      return sb.toString();
+      return "{"
+          + "ddlSettings=" + Objects.toString(ddlSettings, "null")
+          + ", migrationSettings=" + Objects.toString(migrationSettings, "null")
+          + ", verifySettings=" + Objects.toString(verifySettings, "null")
+          + '}';
     }
   }
 
@@ -160,13 +160,12 @@ public class MmaConfig {
 
     @Override
     public String toString() {
-      final StringBuilder sb = new StringBuilder("OssDataSource {");
-      sb.append("ossEndpoint='").append(ossEndpoint).append('\'');
-      sb.append(", ossLocalEndpoint='").append(ossLocalEndpoint).append('\'');
-      sb.append(", ossBucket='").append(ossBucket).append('\'');
-      sb.append(", ossRoleArn='").append(ossRoleArn).append('\'');
-      sb.append('}');
-      return sb.toString();
+      return "OssDataSource {"
+          + "ossEndpoint='" + Objects.toString(ossEndpoint, "null") + '\''
+          + ", ossLocalEndpoint='" + Objects.toString(ossLocalEndpoint, "null") + '\''
+          + ", ossBucket='" + Objects.toString(ossBucket, "null") + '\''
+          + ", ossRoleArn='" + Objects.toString(ossRoleArn, "null") + '\''
+          + '}';
     }
   }
 
@@ -250,15 +249,17 @@ public class MmaConfig {
 
     @Override
     public String toString() {
-      final StringBuilder sb = new StringBuilder("HiveConfig {");
-      sb.append("hiveJdbcAddress='").append(jdbcConnectionUrl).append('\'');
-      sb.append(", hmsThriftAddr='").append(hmsThriftAddr).append('\'');
-      sb.append(", krbPrincipal='").append(krbPrincipal).append('\'');
-      sb.append(", keyTab='").append(keyTab).append('\'');
-      sb.append(", krbSystemProperties=").append(String.join(", ", krbSystemProperties));
-      sb.append(", hiveJdbcExtraSettings=").append(sourceTableSettings);
-      sb.append('}');
-      return sb.toString();
+      return "HiveConfig {" + "hiveJdbcAddress='"
+          + Objects.toString(jdbcConnectionUrl, "null") + '\''
+          + ", hmsThriftAddr='"
+          + Objects.toString(hmsThriftAddr, "null") + '\''
+          + ", krbPrincipal='"
+          + Objects.toString(krbPrincipal, "null") + '\''
+          + ", keyTab='" + Objects.toString(keyTab, "null") + '\''
+          + ", krbSystemProperties="
+          + Objects.toString(krbSystemProperties, "null")
+          + ", sourceTableSettings=" + Objects.toString(sourceTableSettings, "null")
+          + '}';
     }
   }
 
@@ -339,19 +340,19 @@ public class MmaConfig {
               !StringUtils.isNullOrEmpty(projectName));
     }
 
+    // TODO: handle null
     @Override
     public String toString() {
-      final StringBuilder sb = new StringBuilder("OdpsConfig {");
-      sb.append("accessId='").append(accessId).append('\'');
-      sb.append(", accessKey='").append(accessKey).append('\'');
-      sb.append(", endpoint='").append(endpoint).append('\'');
-      sb.append(", projectName='").append(projectName).append('\'');
-      sb.append(", tunnelEndpoint='").append(tunnelEndpoint).append('\'');
-      sb.append(", globalSettings=").append(globalSettings);
-      sb.append(", sourceTableSettings=").append(sourceTableSettings);
-      sb.append(", destinationTableSettings=").append(destinationTableSettings);
-      sb.append('}');
-      return sb.toString();
+      return "OdpsConfig {"
+          + "accessId='" + Objects.toString(accessId, "null") + '\''
+          + ", accessKey='" + Objects.toString(accessKey, "null") + '\''
+          + ", endpoint='" + Objects.toString(endpoint, "null") + '\''
+          + ", projectName='" + Objects.toString(projectName, "null") + '\''
+          + ", tunnelEndpoint='" + Objects.toString(tunnelEndpoint, "null") + '\''
+          + ", globalSettings=" + Objects.toString(globalSettings, "null")
+          + ", sourceTableSettings=" + Objects.toString(sourceTableSettings, "null")
+          + ", destinationTableSettings=" + Objects.toString(destinationTableSettings, "null")
+          + '}';
     }
   }
 

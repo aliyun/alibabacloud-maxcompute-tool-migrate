@@ -69,7 +69,7 @@ public class MmaConfigUtils {
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapred.map.tasks.speculative.execution", "false");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.speculative", "false");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "2048");
   }
@@ -248,7 +248,8 @@ public class MmaConfigUtils {
                                       parseHiveConfig(hiveConfigPath),
                                       parseOdpsConfig(odpsConfigPath),
                                       null,
-                                      Collections.emptyMap()).toJson();
+                                      Collections.emptyMap(),
+                                      null).toJson();
     DirUtils.writeFile(Paths.get(prefix + "mma_server_config.json"), json);
   }
 
@@ -266,7 +267,8 @@ public class MmaConfigUtils {
                                                           SAMPLE_HIVE_CONFIG,
                                                           SAMPLE_ODPS_CONFIG,
                                                           null,
-                                                          Collections.emptyMap());
+                                                          Collections.emptyMap(),
+                                                          null);
 
     MmaConfig.TableMigrationConfig tableMigrationConfig =
         new MmaConfig.TableMigrationConfig("source DB",
