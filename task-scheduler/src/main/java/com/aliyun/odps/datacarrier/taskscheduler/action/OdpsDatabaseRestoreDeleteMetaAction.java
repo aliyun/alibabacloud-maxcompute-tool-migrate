@@ -42,4 +42,9 @@ public class OdpsDatabaseRestoreDeleteMetaAction extends OdpsNoSqlAction {
     mmaMetaManager.removeRestoreJob(uniqueId);
     LOG.info("Action {}, remove information with unique id {} from {}", id, uniqueId, Constants.MMA_OBJ_RESTORE_TBL_NAME);
   }
+
+  @Override
+  public String getName() {
+    return "Clean up";
+  }
 }

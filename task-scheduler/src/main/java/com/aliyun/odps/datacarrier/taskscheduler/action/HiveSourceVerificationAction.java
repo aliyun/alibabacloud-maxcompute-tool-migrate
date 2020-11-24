@@ -73,4 +73,9 @@ public class HiveSourceVerificationAction extends HiveSqlAction {
       setProgress(ActionProgress.FAILED);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Source verification";
+  }
 }

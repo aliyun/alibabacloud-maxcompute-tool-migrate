@@ -26,6 +26,7 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
@@ -42,6 +43,8 @@ public abstract class AbstractTask implements Task {
 
   String id;
   TaskProgress progress = TaskProgress.PENDING;
+  Long startTime;
+  Long endTime;
   DirectedAcyclicGraph<Action, DefaultEdge> dag;
   ActionExecutionContext actionExecutionContext = new ActionExecutionContext();
   private ActionProgressListener actionProgressListener = new ActionProgressListener(this);
@@ -72,13 +75,36 @@ public abstract class AbstractTask implements Task {
   }
 
   @Override
+  public DirectedAcyclicGraph<Action, DefaultEdge> getDag() {
+    return dag;
+  }
+
+  @Override
+  public Long getStartTime() {
+    return startTime;
+  }
+
+  @Override
+  public Long getEndTime() {
+    return endTime;
+  }
+
+  private boolean isTerminated() {
+    return TaskProgress.CANCELED.equals(progress)
+        || TaskProgress.SUCCEEDED.equals(progress)
+        || TaskProgress.FAILED.equals(progress);
+  }
+
+  /**
+   * Get task progress.
+   */
+  @Override
   public TaskProgress getProgress() {
     return progress;
   }
 
   /**
-   * Return executable actions.
-   * @return executable actions.
+   * Get executable actions.
    */
   @Override
   public List<Action> getExecutableActions() {
@@ -86,9 +112,9 @@ public abstract class AbstractTask implements Task {
 
     for (Action a : dag.vertexSet()) {
       boolean executable = ActionProgress.PENDING.equals(a.getProgress())
-          && dag.getAncestors(a)
-                .stream()
-                .allMatch(p -> ActionProgress.SUCCEEDED.equals(p.getProgress()));
+          && Graphs.predecessorListOf(dag, a)
+                   .stream()
+                   .allMatch(p -> ActionProgress.SUCCEEDED.equals(p.getProgress()));
 
       if (executable) {
         ret.add(a);
@@ -139,6 +165,17 @@ public abstract class AbstractTask implements Task {
 
     if (taskProgressChanged) {
       LOG.info("Task {} change progress from {} to {}", id, currentProgress, progress);
+
+      // Update start time
+      if (TaskProgress.PENDING.equals(currentProgress) && TaskProgress.RUNNING.equals(progress)) {
+        startTime = System.currentTimeMillis();
+      }
+
+      // Update end time
+      if (isTerminated()) {
+        endTime = System.currentTimeMillis();
+      }
+
       updateMetadata();
     }
   }
@@ -186,6 +223,7 @@ public abstract class AbstractTask implements Task {
 
   @Override
   public void stop() {
+    // TODO: set status to canceled
     // TODO: stop all actions
   }
 
