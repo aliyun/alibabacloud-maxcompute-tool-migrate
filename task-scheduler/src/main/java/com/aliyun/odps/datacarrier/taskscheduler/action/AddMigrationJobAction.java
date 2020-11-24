@@ -31,4 +31,9 @@ public class AddMigrationJobAction extends OdpsNoSqlAction {
       throw new MmaException("Create table migration task for " + id, e);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Preparation";
+  }
 }

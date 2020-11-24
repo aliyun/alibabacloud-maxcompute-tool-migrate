@@ -64,4 +64,9 @@ public class OdpsRestorePartitionAction extends OdpsSqlAction {
   Map<String, String> getSettings() {
     return settings == null ? new HashMap<>() : settings;
   }
+
+  @Override
+  public String getName() {
+    return "Partition metadata restoration";
+  }
 }

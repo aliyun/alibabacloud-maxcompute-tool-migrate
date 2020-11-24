@@ -41,4 +41,9 @@ public class HiveUdtfDataTransferAction extends HiveSqlAction {
     }
     return settings;
   }
+
+  @Override
+  public String getName() {
+    return "Data transmission";
+  }
 }

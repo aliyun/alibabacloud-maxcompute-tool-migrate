@@ -8,7 +8,13 @@ public interface Action {
 
   String getId();
 
+  String getName();
+
   ActionProgress getProgress();
+
+  Long getStartTime();
+
+  Long getEndTime();
 
   AbstractActionInfo getActionInfo();
 

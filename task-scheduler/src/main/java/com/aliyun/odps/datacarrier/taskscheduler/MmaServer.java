@@ -14,6 +14,7 @@ import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager.MigrationSt
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImpl;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProgress;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProvider;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaUI;
 
 
 public class MmaServer {
@@ -25,6 +26,7 @@ public class MmaServer {
 
   private TaskScheduler taskScheduler;
   private MmaMetaManager mmaMetaManager;
+  private MmaUI ui;
 
   private SummaryReportingThread summaryReportingThread;
 
@@ -39,6 +41,14 @@ public class MmaServer {
 
     summaryReportingThread = new SummaryReportingThread();
     summaryReportingThread.start();
+
+    // Start Mma UI
+      String host =
+          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_SERVER_HOST);
+      int port = Integer.valueOf(
+          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_SERVER_PORT));
+      ui = new MmaUI(port, "", taskScheduler);
+      ui.bind(host);
   }
 
   public void run(){
@@ -56,6 +66,11 @@ public class MmaServer {
 
     try {
       mmaMetaManager.shutdown();
+    } catch (Exception ignore) {
+    }
+
+    try {
+      ui.stop();
     } catch (Exception ignore) {
     }
   }

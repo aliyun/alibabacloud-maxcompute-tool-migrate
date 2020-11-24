@@ -47,4 +47,8 @@ public class OdpsCreateOssExternalTableAction extends OdpsSqlAction {
         .getDDLSettings();
   }
 
+  @Override
+  public String getName() {
+    return "Data transmission";
+  }
 }

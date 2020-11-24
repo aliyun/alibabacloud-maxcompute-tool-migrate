@@ -13,6 +13,8 @@ import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 
 public class VerificationAction extends AbstractAction {
 
+  private static final Logger LOG = LogManager.getLogger(VerificationAction.class);
+
   public VerificationAction(String id) {
     super(id);
     actionInfo = new VerificationActionInfo();
@@ -26,15 +28,19 @@ public class VerificationAction extends AbstractAction {
         actionExecutionContext.getSourceVerificationResult();
     List<List<String>> destVerificationResult =
         actionExecutionContext.getDestVerificationResult();
+    VerificationActionInfo actionInfo = (VerificationActionInfo) getActionInfo();
 
     boolean passed = true;
+    int partitionColumnCount = actionExecutionContext.getTableMetaModel().partitionColumns.size();
+    boolean isPartitioned = partitionColumnCount != 0;
+    actionInfo.setIsPartitioned(isPartitioned);
+
 
     if (sourceVerificationResult == null || destVerificationResult == null) {
-      LOG.warn("source/dest verification results not found, actionId: {}", id);
+      LOG.error("ActionId: {}, source/dest verification results not found", id);
+      passed = false;
     } else {
-      int partitionColumnCount = actionExecutionContext.getTableMetaModel().partitionColumns.size();
-
-      if (partitionColumnCount == 0) {
+      if (!isPartitioned) {
         assert sourceVerificationResult.size() == 1;
         assert sourceVerificationResult.get(0).size() == 1;
         assert destVerificationResult.size() == 1;
@@ -44,8 +50,11 @@ public class VerificationAction extends AbstractAction {
         Long dest = Long.valueOf(destVerificationResult.get(0).get(0));
         passed = source.equals(dest);
         if (!passed) {
-          LOG.error("Record number not matched, source: {}, dest: {}, actionId: {}",
-                    source, dest, id);
+          LOG.error("ActionId: {}, verification failed, source: {}, dest: {}",
+                    id, source, dest);
+        } else {
+          LOG.info("ActionId: {}, verification succeeded, source: {}, dest: {}",
+                   id, source, dest);
         }
       } else {
         List<List<String>> succeededPartitions = new LinkedList<>();
@@ -68,40 +77,49 @@ public class VerificationAction extends AbstractAction {
 
           // When partition is empty, foundInSource and foundInDest are both false.
           if (sourceRecordCount.isEmpty() && destRecordCount.isEmpty()) {
-            LOG.warn("Ignored Empty partition: {}, actionId: {}", partitionValues, id);
+            LOG.warn("ActionId: {}, ignored Empty partition: {}, ", id, partitionValues);
             succeededPartitions.add(partitionValues);
           } else if (sourceRecordCount.isEmpty()) {
-            LOG.warn("Ignored unexpected partition: {}, actionId: {}",
-                     partitionValues, id);
+            LOG.warn("ActionId: {}, ignored unexpected partition: {}", id, partitionValues);
             succeededPartitions.add(partitionValues);
           } else if (destRecordCount.isEmpty()) {
-            LOG.error("Dest lacks partition: {}, actionId: {}", partitionValues, id);
+            LOG.error("ActionId: {}, dest partition not found, partition: {}",
+                      id, partitionValues);
             failedPartitions.add(partitionValues);
             passed = false;
           } else {
             Long source = Long.valueOf(sourceRecordCount.get(0));
             Long dest = Long.valueOf(destRecordCount.get(0));
             if (!dest.equals(source)) {
-              LOG.error("Record number not matched, source: {}, dest: {}, actionId: {}",
-                        source, dest, id);
+              LOG.error("ActionId: {}, verification failed, source: {}, dest: {}",
+                        id, source, dest);
               passed = false;
               failedPartitions.add(partitionValues);
             } else {
+              LOG.info("ActionId: {}, verification succeeded, source: {}, dest: {}",
+                        id, source, dest);
               succeededPartitions.add(partitionValues);
             }
           }
         }
 
-        ((VerificationActionInfo) actionInfo).setSucceededPartitions(succeededPartitions);
-        ((VerificationActionInfo) actionInfo).setFailedPartitions(failedPartitions);
+        actionInfo.setSucceededPartitions(succeededPartitions);
+        actionInfo.setFailedPartitions(failedPartitions);
       }
     }
 
     if (passed) {
+      actionInfo.setPassed(true);
       setProgress(ActionProgress.SUCCEEDED);
     } else {
+      actionInfo.setPassed(false);
       setProgress(ActionProgress.FAILED);
     }
+  }
+
+  @Override
+  public String getName() {
+    return "Final verification";
   }
 
   @Override

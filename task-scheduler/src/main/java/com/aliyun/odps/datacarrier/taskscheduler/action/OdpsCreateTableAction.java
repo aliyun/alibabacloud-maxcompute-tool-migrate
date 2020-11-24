@@ -24,4 +24,9 @@ public class OdpsCreateTableAction extends OdpsSqlAction {
         .getDestinationTableSettings()
         .getDDLSettings();
   }
+
+  @Override
+  public String getName() {
+    return "Table creation";
+  }
 }

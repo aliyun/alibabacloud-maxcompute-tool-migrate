@@ -78,4 +78,9 @@ public class OdpsRestoreTableAction extends OdpsSqlAction {
   Map<String, String> getSettings() {
     return settings == null ? new HashMap<>() : settings;
   }
+
+  @Override
+  public String getName() {
+    return "Table metadata restoration";
+  }
 }

@@ -20,4 +20,9 @@ public class AddBackgroundWorkItemAction extends OdpsNoSqlAction {
   public void doAction() throws MmaException {
     manager.addWorkItem(item);
   }
+
+  @Override
+  public String getName() {
+    return "Clean up";
+  }
 }

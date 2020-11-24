@@ -42,4 +42,9 @@ public class OdpsAddOssExternalPartitionAction extends OdpsSqlAction {
         .getDestinationTableSettings()
         .getDDLSettings();
   }
+
+  @Override
+  public String getName() {
+    return "Data transmission";
+  }
 }

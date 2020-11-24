@@ -31,4 +31,9 @@ public class OdpsExportViewAction extends OdpsNoSqlAction {
         EXPORT_META_FILE_NAME);
     OssUtils.createFile(ossFileName, viewText);
   }
+
+  @Override
+  public String getName() {
+    return "View exporting";
+  }
 }

@@ -63,7 +63,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
     @Override
     public List<List<String>> call() throws SQLException {
-      LOG.info("ActionId: {}, Executing sql: {}", actionId, sql);
+      LOG.info("ActionId: {}, executing sql: {}", actionId, sql);
 
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
         try (HiveStatement stmt = (HiveStatement) conn.createStatement()) {
@@ -79,10 +79,11 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
                   parseLogAndSetExecutionInfo(line, actionId, hiveSqlActionInfo);
                 }
               } catch (SQLException e) {
-                LOG.warn("Fetching hive query log failed", e);
+                LOG.warn("ActionId: {}, fetching hive query log failed", actionId);
                 break;
               }
             }
+            LOG.info("ActionId: {}, no more logs", actionId);
           };
           Thread loggingThread = new Thread(logging);
           loggingThread.start();
@@ -118,10 +119,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
       Map<String, String> settings,
       String actionId,
       HiveSqlActionInfo hiveSqlActionInfo) {
-
     // TODO: jdbc address, user, password should come with tableMigrationConfig
-    // TODO: different action could have different settings
-    // TODO: make settings a map
     HiveSqlCallable callable = new HiveSqlCallable(
         MmaServerConfig.getInstance().getHiveConfig().getJdbcConnectionUrl(),
         MmaServerConfig.getInstance().getHiveConfig().getUser(),
@@ -138,6 +136,8 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
       String log,
       String actionId,
       HiveSqlActionInfo hiveSqlActionInfo) {
+
+    LOG.debug("ActionId: {}, {}", actionId, log);
 
     if (StringUtils.isNullOrEmpty(log)) {
       return;

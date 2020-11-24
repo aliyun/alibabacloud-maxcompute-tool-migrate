@@ -35,8 +35,9 @@ abstract class HiveSqlAction extends AbstractAction {
   @Override
   public void afterExecution() throws MmaException {
     try {
-      future.get();
+      List<List<String>> result = future.get();
       setProgress(ActionProgress.SUCCEEDED);
+      ((HiveSqlActionInfo) actionInfo).setResult(result);
     } catch (Exception e) {
       LOG.error("Action failed, actionId: {}, stack trace: {}",
                 id,

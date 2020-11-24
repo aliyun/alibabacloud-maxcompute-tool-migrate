@@ -75,4 +75,9 @@ public class OdpsExportResourceAction extends OdpsNoSqlAction {
       setProgress(ActionProgress.FAILED);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Resource exporting";
+  }
 }

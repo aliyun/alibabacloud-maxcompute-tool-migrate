@@ -55,4 +55,9 @@ public class OdpsDestVerificationAction extends OdpsSqlAction {
       setProgress(ActionProgress.FAILED);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Dest verification";
+  }
 }

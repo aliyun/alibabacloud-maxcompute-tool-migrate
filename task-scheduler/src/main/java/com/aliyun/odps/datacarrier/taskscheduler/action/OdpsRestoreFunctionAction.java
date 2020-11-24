@@ -25,4 +25,9 @@ public class OdpsRestoreFunctionAction extends OdpsRestoreAction {
     OdpsUtils.createFunction(getDestinationProject(), functionInfo, isUpdate());
     LOG.info("Restore function {} from {} to {}", functionInfo.getFunctionName(), getOriginProject(), getDestinationProject());
   }
+
+  @Override
+  public String getName() {
+    return "Function restoration";
+  }
 }

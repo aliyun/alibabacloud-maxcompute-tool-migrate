@@ -25,4 +25,9 @@ public class OdpsDropPartitionAction extends OdpsSqlAction {
         .getDestinationTableSettings()
         .getDDLSettings();
   }
+
+  @Override
+  public String getName() {
+    return "Partition deletion";
+  }
 }

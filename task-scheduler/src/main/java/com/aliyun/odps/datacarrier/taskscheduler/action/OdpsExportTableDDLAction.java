@@ -119,4 +119,9 @@ public class OdpsExportTableDDLAction extends OdpsSqlAction {
         .getDestinationTableSettings()
         .getDDLSettings();
   }
+
+  @Override
+  public String getName() {
+    return "Table metadata exporting";
+  }
 }

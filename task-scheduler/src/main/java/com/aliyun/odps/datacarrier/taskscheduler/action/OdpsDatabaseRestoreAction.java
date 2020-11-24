@@ -220,4 +220,9 @@ public class OdpsDatabaseRestoreAction extends OdpsNoSqlAction {
 
     return OssUtils.listBucket(prefix, delimiter);
   }
+
+  @Override
+  public String getName() {
+    return "N/A";
+  }
 }

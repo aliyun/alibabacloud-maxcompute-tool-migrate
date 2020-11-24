@@ -1,0 +1,70 @@
+#dag-viz-graph a, #dag-viz-graph a:hover {
+  text-decoration: none;
+}
+
+#dag-viz-graph .label {
+  font-weight: normal;
+  text-shadow: none;
+}
+
+#dag-viz-graph svg path {
+  stroke: #444;
+  stroke-width: 1.5px;
+}
+
+#dag-viz-graph svg g.cluster rect {
+  stroke-width: 1px;
+}
+
+#dag-viz-graph div#empty-dag-viz-message {
+  margin: 15px;
+}
+
+#dag-viz-graph svg.task marker#marker-arrow path {
+  fill: #333;
+  stroke-width: 0px;
+}
+
+#dag-viz-graph svg.task g.cluster rect {
+  fill: #FFFFFF;
+  stroke: #C3EBFF;
+  stroke-width: 1px;
+}
+
+#dag-viz-graph svg.task g.pending rect {
+  fill: #C3EBFF;
+  stroke: #3EC0FF;
+  stroke-width: 1px;
+}
+
+#dag-viz-graph svg.task g.running rect {
+  fill: #FFE780;
+  stroke: #FFCE00;
+  stroke-width: 1px;
+}
+
+#dag-viz-graph svg.task g.succeeded rect {
+  fill: #A3F545;
+  stroke: #52C366;
+  stroke-width: 1px;
+}
+
+#dag-viz-graph svg.task g.failed rect {
+  fill: #FEB0B0;
+  stroke: #FF4900;
+  stroke-width: 1px;
+}
+
+#dag-viz-graph svg.task g.canceled rect {
+  fill: #C2C2C2;
+  stroke: #383838;
+  stroke-width: 1px;
+}
+
+#dag-viz-graph svg.task g.node circle {
+  fill: #444;
+}
+
+.tooltip-inner {
+  white-space: pre-wrap;
+}
