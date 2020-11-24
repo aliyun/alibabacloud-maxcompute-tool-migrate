@@ -84,4 +84,9 @@ public class OdpsRestoreResourceAction extends OdpsRestoreAction {
     }
     LOG.info("Restore resource {} succeed", content);
   }
+
+  @Override
+  public String getName() {
+    return "Resource restoration";
+  }
 }

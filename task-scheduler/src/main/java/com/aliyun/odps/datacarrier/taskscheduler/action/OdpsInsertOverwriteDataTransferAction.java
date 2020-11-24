@@ -43,4 +43,9 @@ public class OdpsInsertOverwriteDataTransferAction extends OdpsSqlAction {
         .getSourceTableSettings()
         .getMigrationSettings();
   }
+
+  @Override
+  public String getName() {
+    return "Data transmission";
+  }
 }

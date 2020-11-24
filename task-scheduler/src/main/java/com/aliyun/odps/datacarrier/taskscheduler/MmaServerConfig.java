@@ -21,6 +21,7 @@ package com.aliyun.odps.datacarrier.taskscheduler;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -28,6 +29,17 @@ import org.apache.logging.log4j.Logger;
 
 public class MmaServerConfig {
   private static final Logger LOG = LogManager.getLogger(MmaServerConfig.class);
+
+  private static final Map<String, String> DEFAULT_UI_CONFIG;
+  public static final String MMA_SERVER_HOST = "MMA_SERVER_HOST";
+  private static final String DEFAULT_MMA_SERVER_HOST_VALUE = "0.0.0.0";
+  public static final String MMA_SERVER_PORT = "MMA_SERVER_PORT";
+  private static final String DEFAULT_MMA_SERVER_PORT_VALUE = "18888";
+  static {
+    DEFAULT_UI_CONFIG = new HashMap<>();
+    DEFAULT_UI_CONFIG.put(MMA_SERVER_HOST, DEFAULT_MMA_SERVER_HOST_VALUE);
+    DEFAULT_UI_CONFIG.put(MMA_SERVER_PORT, DEFAULT_MMA_SERVER_PORT_VALUE);
+  }
 
   private static MmaServerConfig instance;
 
@@ -37,19 +49,22 @@ public class MmaServerConfig {
   private MmaConfig.OdpsConfig odpsConfig;
   private MmaEventConfig eventConfig;
   private Map<String, String> resourceConfig;
+  private Map<String, String> uiConfig;
 
   MmaServerConfig(DataSource dataSource,
                   MmaConfig.OssConfig ossConfig,
                   MmaConfig.HiveConfig hiveConfig,
                   MmaConfig.OdpsConfig odpsConfig,
                   MmaEventConfig eventConfig,
-                  Map<String, String> resourceConfig) {
+                  Map<String, String> resourceConfig,
+                  Map<String, String> uiConfig) {
     this.dataSource = dataSource;
     this.ossConfig = ossConfig;
     this.hiveConfig = hiveConfig;
     this.odpsConfig = odpsConfig;
     this.eventConfig = eventConfig;
     this.resourceConfig = resourceConfig;
+    this.uiConfig = uiConfig;
   }
 
   public DataSource getDataSource() {
@@ -74,6 +89,18 @@ public class MmaServerConfig {
 
   public Map<String, String> getResourceConfig() {
     return resourceConfig;
+  }
+
+  public Map<String, String> getUIConfig() {
+    if (uiConfig == null) {
+      return DEFAULT_UI_CONFIG;
+    }
+
+    // Merge with default ui config, make sure necessary configurations exist
+    Map<String, String> temp = new HashMap<>(DEFAULT_UI_CONFIG);
+    temp.putAll(uiConfig);
+
+    return temp;
   }
 
   public String toJson() {
@@ -121,7 +148,8 @@ public class MmaServerConfig {
     if (mmaServerConfig.validate()) {
       instance = mmaServerConfig;
     } else {
-      LOG.error("Invalid MmaServerConfig {}", content);
+      throw new IllegalArgumentException(
+          "Invalid MmaServerConfig, see mma/log/mma_server.LOG for detailed reason");
     }
   }
 

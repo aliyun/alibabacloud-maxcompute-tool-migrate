@@ -39,7 +39,7 @@ echo "Done"
 
 echo "Install local jars"
 mvn --quiet install:install-file \
--Dfile=task-scheduler/resource/taobao-sdk-java-auto_1479188381469-20200701.jar \
+-Dfile=task-scheduler/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar \
 -DgroupId=com.dingtalk \
 -DartifactId=dingtalk-sdk \
 -Dversion=1.0 \

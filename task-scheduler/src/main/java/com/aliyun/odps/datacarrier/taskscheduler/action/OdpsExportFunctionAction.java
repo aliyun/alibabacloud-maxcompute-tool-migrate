@@ -69,4 +69,9 @@ public class OdpsExportFunctionAction extends OdpsNoSqlAction {
       setProgress(ActionProgress.FAILED);
     }
   }
+
+  @Override
+  public String getName() {
+    return "Function exporting";
+  }
 }

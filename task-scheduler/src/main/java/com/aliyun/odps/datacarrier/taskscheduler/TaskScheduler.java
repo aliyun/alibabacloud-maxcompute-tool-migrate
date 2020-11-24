@@ -20,6 +20,7 @@
 package com.aliyun.odps.datacarrier.taskscheduler;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.collections.buffer.CircularFifoBuffer;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +47,9 @@ public class TaskScheduler {
   private static final int DEFAULT_SCHEDULING_INTERVAL_MS = 4000;
   private static final int DEFAULT_FINISHED_ACTION_HANDLING_INTERVAL_MS = 2000;
 
+  private static final int DEFAULT_TASK_CACHE_SIZE = 1000;
+  private static final int DEFAULT_FAILED_TASK_CACHE_SIZE = Integer.MAX_VALUE;
+
   private volatile boolean keepRunning;
 
   private TaskProvider taskProvider;
@@ -52,14 +57,23 @@ public class TaskScheduler {
   private final SchedulingThread schedulingThread;
   private final FinishedActionHandlingThread finishedActionHandlingThread;
 
-  private final List<Task> tasks;
+  private final List<Task> runningTasks;
+  private final CircularFifoBuffer failedTasks;
+  private final CircularFifoBuffer succeededTasks;
+  private final CircularFifoBuffer canceledTasks;
+
   private final List<Action> executingActions;
 
   public TaskScheduler(TaskProvider taskProvider) {
     this.taskProvider = Objects.requireNonNull(taskProvider);
 
     this.keepRunning = true;
-    this.tasks = Collections.synchronizedList(new LinkedList<>());
+
+    this.runningTasks = Collections.synchronizedList(new LinkedList<>());
+    this.failedTasks = new CircularFifoBuffer(DEFAULT_FAILED_TASK_CACHE_SIZE);
+    this.succeededTasks = new CircularFifoBuffer(DEFAULT_TASK_CACHE_SIZE);
+    this.canceledTasks = new CircularFifoBuffer(DEFAULT_TASK_CACHE_SIZE);
+
     this.executingActions = Collections.synchronizedList(new LinkedList<>());
 
     this.schedulingThread = new SchedulingThread();
@@ -68,15 +82,41 @@ public class TaskScheduler {
     this.finishedActionHandlingThread.start();
   }
 
+  public List<Task> getRunningTasks() {
+    synchronized (runningTasks) {
+      return new ArrayList<>(runningTasks);
+    }
+  }
+
+  public List<Task> getFailedTasks() {
+    synchronized (failedTasks) {
+      return new ArrayList<>(failedTasks);
+    }
+  }
+
+  public List<Task> getSucceededTasks() {
+    synchronized (succeededTasks) {
+      return new ArrayList<>(succeededTasks);
+    }
+  }
+
+  public List<Task> getCanceledTasks() {
+    synchronized (canceledTasks) {
+      return new ArrayList<>(canceledTasks);
+    }
+  }
+
   public void run() {
     // remove temporary tables created by restarted server
-    tasks.addAll(taskProvider.getTasksFromTemporaryTableDB(null));
+    runningTasks.addAll(taskProvider.getTasksFromTemporaryTableDB(null));
+
     while (keepRunning) {
       List<Task> tasksToRemove = new LinkedList<>();
-      synchronized (tasks) {
-        for (Task task : tasks) {
+      synchronized (runningTasks) {
+        for (Task task : runningTasks) {
           if (TaskProgress.SUCCEEDED.equals(task.getProgress())
-              || TaskProgress.FAILED.equals(task.getProgress())) {
+              || TaskProgress.FAILED.equals(task.getProgress())
+              || TaskProgress.CANCELED.equals(task.getProgress())) {
             tasksToRemove.add(task);
           }
         }
@@ -86,18 +126,35 @@ public class TaskScheduler {
         LOG.info("Remove terminated task: {}, progress: {}",
                  task.getId(),
                  task.getProgress());
-        tasks.remove(task);
-        if (TaskProgress.FAILED.equals(task.getProgress())) {
-          tasks.addAll(taskProvider.getTasksFromTemporaryTableDB(task.getOriginId()));
+        runningTasks.remove(task);
+
+        switch (task.getProgress()) {
+          case FAILED:
+            runningTasks.addAll(taskProvider.getTasksFromTemporaryTableDB(task.getOriginId()));
+            synchronized (failedTasks) {
+              failedTasks.add(task);
+            }
+            break;
+          case SUCCEEDED:
+            synchronized (succeededTasks) {
+              succeededTasks.add(task);
+            }
+            break;
+          case CANCELED:
+            synchronized (canceledTasks) {
+              canceledTasks.add(task);
+            }
+            break;
+          default:
         }
       }
 
       try {
         List<Task> pendingTasks = taskProvider.get();
         LOG.info("New tasks: {}", pendingTasks);
-        tasks.addAll(pendingTasks);
+        runningTasks.addAll(pendingTasks);
 
-        LOG.info("Current tasks: {}", tasks);
+        LOG.info("Current running tasks: {}", runningTasks);
 
         try {
           Thread.sleep(GET_PENDING_TASK_INTERVAL_MS);
@@ -124,8 +181,8 @@ public class TaskScheduler {
       LOG.info("Scheduling thread starts");
       while (keepRunning) {
         try {
-          synchronized (tasks) {
-            for (Task task : tasks) {
+          synchronized (runningTasks) {
+            for (Task task : runningTasks) {
               List<Action> executableActions = task.getExecutableActions();
               for (Action action : executableActions) {
                 // TODO: fatal errors -> stop the scheduler; other errors -> handlers
@@ -195,9 +252,10 @@ public class TaskScheduler {
   }
 
   public Map<String, TaskProgress> summary() {
+    // TODO: handle huge number of tasks
     Map<String, TaskProgress> ret = new LinkedHashMap<>();
-    synchronized (tasks) {
-      for (Task task : tasks) {
+    synchronized (runningTasks) {
+      for (Task task : runningTasks) {
         ret.put(task.getId(), task.getProgress());
       }
     }
