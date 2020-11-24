@@ -81,7 +81,11 @@ public class AllTasksPage extends WebUIPage {
           .stream()
           .map(t -> new TaskTableRowData(t.getId(), t.getStartTime(), t.getEndTime()))
           .sorted((o1, o2) -> {
-            if (o1.startTime < o2.startTime) {
+            if (o1.startTime == null) {
+              return -1;
+            } else if (o2.startTime == null) {
+              return 1;
+            } else if (o1.startTime < o2.startTime) {
               return -1;
             } else if (o1.startTime.equals(o2.startTime)) {
               return 0;

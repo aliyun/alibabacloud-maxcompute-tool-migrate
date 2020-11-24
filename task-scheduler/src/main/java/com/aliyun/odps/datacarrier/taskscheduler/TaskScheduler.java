@@ -48,7 +48,6 @@ public class TaskScheduler {
   private static final int DEFAULT_FINISHED_ACTION_HANDLING_INTERVAL_MS = 2000;
 
   private static final int DEFAULT_TASK_CACHE_SIZE = 1000;
-  private static final int DEFAULT_FAILED_TASK_CACHE_SIZE = Integer.MAX_VALUE;
 
   private volatile boolean keepRunning;
 
@@ -58,7 +57,7 @@ public class TaskScheduler {
   private final FinishedActionHandlingThread finishedActionHandlingThread;
 
   private final List<Task> runningTasks;
-  private final CircularFifoBuffer failedTasks;
+  private final List<Task> failedTasks;
   private final CircularFifoBuffer succeededTasks;
   private final CircularFifoBuffer canceledTasks;
 
@@ -70,7 +69,7 @@ public class TaskScheduler {
     this.keepRunning = true;
 
     this.runningTasks = Collections.synchronizedList(new LinkedList<>());
-    this.failedTasks = new CircularFifoBuffer(DEFAULT_FAILED_TASK_CACHE_SIZE);
+    this.failedTasks = Collections.synchronizedList(new LinkedList<>());
     this.succeededTasks = new CircularFifoBuffer(DEFAULT_TASK_CACHE_SIZE);
     this.canceledTasks = new CircularFifoBuffer(DEFAULT_TASK_CACHE_SIZE);
 
