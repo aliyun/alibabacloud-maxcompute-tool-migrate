@@ -173,7 +173,7 @@ $ mma/bin/quickstart hive_source_db hive_source_table mc_dest_project mc_dest_ta
 1. 等待迁移任务完成，见[查看进度](#GetProgress)
 1. 处理失败的任务并重启任务，见[查看迁移任务列表](#ListJobs)与[失败处理](#HandleFailures)
 
-## 详细说明
+## MMA 命令行工具
 ### <a name="StartMmaServer"></a>启动MMA server
 执行以下命令启动MMA server，MMA server进程在迁移期间应当一直保持运行。若MMA server因为各种原因中断了运行，直接执行以上命令重启即可。MMA server进程在一台服务器最多只能存在一个。
 
@@ -228,6 +228,9 @@ $ /path/to/mma/bin/mma-client --wait_all
 
 MMA将会打印当前所有迁移任务的进度条，当所有任务完成之后结束进程，返回值为0。
 
+MMA支持通过WebUI查看目前正在运行的迁移任务，见[Web UI](#WebUI)
+
+
 ### <a name="ListJobs"></a>查看迁移任务列表
 执行以下命令，查看所有迁移任务列表：
 ```$xslt
@@ -240,6 +243,12 @@ $ /path/bin/mma-client --list all
 ```$xslt
 $ /path/to/mma/bin/mma-client --remove hive_source_db.hive_source_table
 ```
+
+## <a name="WebUI"></a>MMA Web UI
+为了带给用户更好的体验，MMA支持了Web UI。目前Web UI主要用于查看任务的状态，进度，以及有助于错误排查的各种debug信息。
+
+Web UI运行在MMA server所在服务器的18888端口，可以通过`http://${hostname}:18888`地址进行访问。
+
 
 ## <a name="HandleFailures"></a>失败处理
 由于MMA会自动归档日志，以下```grep```命令请根据实际情况替换为```zgrep```命令。
