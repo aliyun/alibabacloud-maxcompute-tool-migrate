@@ -23,6 +23,8 @@ import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.utils.StringUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +32,8 @@ import java.util.Map;
 
 
 public class OdpsSqlUtils {
+
+  static final Logger LOG = LogManager.getLogger(OdpsSqlUtils.class);
 
   public static String getDropTableStatement(String db, String tb) {
     return "DROP TABLE IF EXISTS " + db + ".`" + tb + "`;\n";
@@ -388,8 +392,31 @@ public class OdpsSqlUtils {
       sb.append(partitionColumn.odpsColumnName).append("=");
       if ("STRING".equalsIgnoreCase(partitionColumn.odpsType)) {
         sb.append("'").append(partitionValue).append("'");
+      } else if ("BIGINT".equalsIgnoreCase(partitionColumn.type)
+          || "INT".equalsIgnoreCase(partitionColumn.type)
+          || "SMALLINT".equalsIgnoreCase(partitionColumn.type)
+          || "TINYINT".equalsIgnoreCase(partitionColumn.type)) {
+        // Although the partition column type is integer, the partition values returned by HMS
+        // client may have leading zeros. Let's say the partition in hive is hour=09. When the
+        // partition is added in MC, the partition value will still be 09, while creating an upload
+        // session with integer 9 will get an error "No such partition". So the leading zeros should
+        // be removed.
+        int count = 0;
+        for (; count < partitionValue.length(); count++) {
+          if ('0' != partitionValue.charAt(count)) {
+            break;
+          }
+        }
+
+        LOG.info("Partition value: {}, leading zero count: {}", partitionValue, count);
+
+        if (count == partitionValue.length()) {
+          sb.append("0");
+        } else {
+          sb.append(partitionValue, count, partitionValue.length());
+        }
       } else {
-        // TODO: __HIVE_DEFAULT_PARTITION__ should be handled before this
+        // TODO: handle __HIVE_DEFAULT_PARTITION__
         sb.append(partitionValue);
       }
       if (i != partitionColumns.size() - 1) {
