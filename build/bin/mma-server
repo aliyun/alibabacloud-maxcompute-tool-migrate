@@ -9,6 +9,7 @@ function CHECK_EXISTENCE()
     then
         PID=$(jps | grep MmaServerMain | awk '{print $1}')
         echo "MMA server exists: pid=${PID}. Running multiple MMA server at the same time is not allowed. Exiting ..."
+        exit -1
     fi
 }
 
