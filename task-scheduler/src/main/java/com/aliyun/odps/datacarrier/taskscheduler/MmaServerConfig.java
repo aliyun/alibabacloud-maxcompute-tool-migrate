@@ -31,14 +31,23 @@ public class MmaServerConfig {
   private static final Logger LOG = LogManager.getLogger(MmaServerConfig.class);
 
   private static final Map<String, String> DEFAULT_UI_CONFIG;
-  public static final String MMA_SERVER_HOST = "MMA_SERVER_HOST";
-  private static final String DEFAULT_MMA_SERVER_HOST_VALUE = "0.0.0.0";
-  public static final String MMA_SERVER_PORT = "MMA_SERVER_PORT";
-  private static final String DEFAULT_MMA_SERVER_PORT_VALUE = "18888";
+  public static final String MMA_UI_ENABLED = "MMA_UI_ENABLED";
+  public static final String MMA_UI_HOST = "MMA_UI_HOST";
+  private static final String DEFAULT_MMA_UI_HOST_VALUE = "0.0.0.0";
+  public static final String MMA_UI_PORT = "MMA_UI_PORT";
+  private static final String DEFAULT_MMA_UI_PORT_VALUE = "18888";
+  public static final String MMA_UI_MAX_THREADS = "MMA_UI_MAX_THREADS";
+  private static final String DEFAULT_MMA_UI_MAX_THREADS = "60";
+  public static final String MMA_UI_MIN_THREADS = "MMA_UI_MIN_THREADS";
+  private static final String DEFAULT_MMA_UI_MIN_THREADS = "10";
+
   static {
     DEFAULT_UI_CONFIG = new HashMap<>();
-    DEFAULT_UI_CONFIG.put(MMA_SERVER_HOST, DEFAULT_MMA_SERVER_HOST_VALUE);
-    DEFAULT_UI_CONFIG.put(MMA_SERVER_PORT, DEFAULT_MMA_SERVER_PORT_VALUE);
+    DEFAULT_UI_CONFIG.put(MMA_UI_ENABLED, "true");
+    DEFAULT_UI_CONFIG.put(MMA_UI_HOST, DEFAULT_MMA_UI_HOST_VALUE);
+    DEFAULT_UI_CONFIG.put(MMA_UI_PORT, DEFAULT_MMA_UI_PORT_VALUE);
+    DEFAULT_UI_CONFIG.put(MMA_UI_MAX_THREADS, DEFAULT_MMA_UI_MAX_THREADS);
+    DEFAULT_UI_CONFIG.put(MMA_UI_MIN_THREADS, DEFAULT_MMA_UI_MIN_THREADS);
   }
 
   private static MmaServerConfig instance;

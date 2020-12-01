@@ -29,14 +29,12 @@ import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.JettyUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.JettyUtils.ServerInfo;
 
 public abstract class WebUI {
-  private int port;
   private String basePath;
   private ServerInfo serverInfo;
   private List<WebUITab> tabs = new LinkedList<>();
   private List<ServletContextHandler> handlers = new LinkedList<>();
 
-  public WebUI(int port, String basePath) {
-    this.port = port;
+  public WebUI(String basePath) {
     this.basePath = Objects.requireNonNull(basePath);
   }
 
@@ -71,8 +69,8 @@ public abstract class WebUI {
     attachHandler(JettyUtils.createStaticHandler(resourceBase, path));
   }
 
-  public void bind(String host) {
-    serverInfo = JettyUtils.startJettyServer(host, port, handlers);
+  public void bind(String host, int port, int maxThreads, int minThreads) {
+    serverInfo = JettyUtils.startJettyServer(host, port, maxThreads, minThreads, handlers);
   }
 
   public void stop() throws Exception {
