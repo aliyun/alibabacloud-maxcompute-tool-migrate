@@ -42,13 +42,22 @@ public class MmaServer {
     summaryReportingThread = new SummaryReportingThread();
     summaryReportingThread.start();
 
-    // Start Mma UI
+    boolean uiEnabled = Boolean.parseBoolean(MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_ENABLED));
+    if (uiEnabled) {
+      // Start Mma UI
       String host =
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_SERVER_HOST);
+          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_HOST);
       int port = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_SERVER_PORT));
-      ui = new MmaUI(port, "", taskScheduler);
-      ui.bind(host);
+          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_PORT));
+      int maxThreads = Integer.valueOf(
+          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_MAX_THREADS));
+      int minThreads = Integer.valueOf(
+          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_MIN_THREADS));
+      ui = new MmaUI("", taskScheduler);
+      ui.bind(host, port, maxThreads, minThreads);
+    } else {
+      LOG.info("MMA UI disabled");
+    }
   }
 
   public void run(){

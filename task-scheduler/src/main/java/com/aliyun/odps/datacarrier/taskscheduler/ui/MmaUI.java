@@ -32,8 +32,8 @@ public class MmaUI extends WebUI {
   private static final String STATIC_RESOURCE_DIR =
       "com/aliyun/odps/datacarrier/taskscheduler/ui/static";
 
-  public MmaUI(int port, String basePath, TaskScheduler taskScheduler) {
-    super(port, basePath);
+  public MmaUI(String basePath, TaskScheduler taskScheduler) {
+    super(basePath);
     TasksTab tasksTab = new TasksTab(this, "tasks", taskScheduler);
     attachTab(tasksTab);
     addStaticHandler(STATIC_RESOURCE_DIR, "/static");

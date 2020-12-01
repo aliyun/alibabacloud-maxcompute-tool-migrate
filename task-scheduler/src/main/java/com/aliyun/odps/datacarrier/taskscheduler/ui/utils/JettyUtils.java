@@ -170,9 +170,11 @@ public class JettyUtils {
   public static ServerInfo startJettyServer(
       String host,
       int port,
+      int maxThreads,
+      int minThreads,
       List<ServletContextHandler> handlers){
 
-    QueuedThreadPool pool = new QueuedThreadPool(5, 3);
+    QueuedThreadPool pool = new QueuedThreadPool(maxThreads, minThreads);
     pool.setDaemon(true);
     Server server = new Server(pool);
     ContextHandlerCollection collection = new ContextHandlerCollection();
