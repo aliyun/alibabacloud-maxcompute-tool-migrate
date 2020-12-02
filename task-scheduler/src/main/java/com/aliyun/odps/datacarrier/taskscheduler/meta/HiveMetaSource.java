@@ -117,11 +117,26 @@ public class HiveMetaSource implements MetaSource {
     tableMetaModel.databaseName = databaseName;
     tableMetaModel.tableName = tableName;
     tableMetaModel.location = table.getSd().getLocation();
+    LOG.debug("Database: {}, Table: {}, location: {}",
+              databaseName, tableName, table.getSd().getLocation());
     tableMetaModel.inputFormat = table.getSd().getInputFormat();
+    LOG.debug("Database: {}, Table: {}, input format: {}",
+              databaseName, tableName, table.getSd().getInputFormat());
     tableMetaModel.outputFormat = table.getSd().getOutputFormat();
+    LOG.debug("Database: {}, Table: {}, output format: {}",
+              databaseName, tableName, table.getSd().getOutputFormat());
     tableMetaModel.serDe = table.getSd().getSerdeInfo().getSerializationLib();
+    LOG.debug("Database: {}, Table: {}, serde lib: {}",
+              databaseName, tableName, table.getSd().getSerdeInfo().getSerializationLib());
     if (table.getSd().getSerdeInfo().isSetParameters()) {
       tableMetaModel.serDeProperties.putAll(table.getSd().getSerdeInfo().getParameters());
+      table.getSd().getSerdeInfo().getParameters().forEach((key, value) -> {
+        LOG.debug("Database: {}, Table: {}, serde property key: {}, value: {}",
+                  databaseName,
+                  tableName,
+                  key,
+                  value);
+      });
     }
     if (table.isSetParameters()) {
       Map<String, String> parameters = table.getParameters();
@@ -129,6 +144,10 @@ public class HiveMetaSource implements MetaSource {
         try {
           tableMetaModel.lastModifiedTime =
               Long.parseLong(parameters.get("transient_lastDdlTime"));
+          LOG.debug("Database: {}, Table: {}, mtime: {}",
+                    databaseName,
+                    tableName,
+                    Long.parseLong(parameters.get("transient_lastDdlTime")));
         } catch (NumberFormatException ignore) {
         }
       }
@@ -142,6 +161,11 @@ public class HiveMetaSource implements MetaSource {
       columnMetaModel.type = column.getType();
       columnMetaModel.comment = column.getComment();
       tableMetaModel.columns.add(columnMetaModel);
+      LOG.debug("Database: {}, Table: {}, column: {} {}",
+                databaseName,
+                tableName,
+                column.getName(),
+                column.getType());
     }
 
     List<FieldSchema> partitionColumns = table.getPartitionKeys();
@@ -151,17 +175,28 @@ public class HiveMetaSource implements MetaSource {
       columnMetaModel.type = partitionColumn.getType();
       columnMetaModel.comment = partitionColumn.getComment();
       tableMetaModel.partitionColumns.add(columnMetaModel);
+      LOG.debug("Database: {}, Table: {}, partition column: {} {}",
+                databaseName,
+                tableName,
+                partitionColumn.getName(),
+                partitionColumn.getType());
     }
 
     // Get partition meta for partitioned tables
     if (!withoutPartitionMeta && partitionColumns.size() > 0) {
       List<Partition> partitions = hmsClient.listPartitions(databaseName, tableName, (short) -1);
+      LOG.info("Database: {}, Table: {}, number of partitions: {}",
+                databaseName, tableName, partitions.size());
       for (Partition partition : partitions) {
         PartitionMetaModel partitionMetaModel = new PartitionMetaModel();
         partitionMetaModel.createTime = (long) partition.getCreateTime();
         partitionMetaModel.location = partition.getSd().getLocation();
         partitionMetaModel.partitionValues = partition.getValues();
         tableMetaModel.partitions.add(partitionMetaModel);
+        LOG.debug("Database: {}, Table: {}, partition: {} ",
+                  databaseName,
+                  tableName,
+                  partition.getValues());
       }
     }
 
@@ -180,11 +215,21 @@ public class HiveMetaSource implements MetaSource {
         try {
           partitionMetaModel.lastModifiedTime =
               Long.parseLong(parameters.get("transient_lastDdlTime"));
+          LOG.debug("Database: {}, Table: {}, Partition: {}, mtime: {}",
+                    databaseName,
+                    tableName,
+                    partitionValues,
+                    Long.parseLong(parameters.get("transient_lastDdlTime")));
         } catch (NumberFormatException ignore) {
         }
       }
     }
     partitionMetaModel.location = partition.getSd().getLocation();
+    LOG.debug("Database: {}, Table: {}, Partition: {}, location: {}",
+              databaseName,
+              tableName,
+              partitionValues,
+              partition.getSd().getLocation());
     partitionMetaModel.partitionValues = partition.getValues();
 
     return partitionMetaModel;
@@ -223,7 +268,10 @@ public class HiveMetaSource implements MetaSource {
 
   @Override
   public List<String> listDatabases() throws Exception {
-    return hmsClient.getAllDatabases();
+    List<String> databases = hmsClient.getAllDatabases();
+    LOG.debug("Databases: {}", databases);
+
+    return databases;
   }
 
 
@@ -236,8 +284,14 @@ public class HiveMetaSource implements MetaSource {
   public List<List<String>> listPartitions(String databaseName, String tableName) throws Exception {
     List<List<String>> partitionValuesList = new LinkedList<>();
     List<Partition> partitions = hmsClient.listPartitions(databaseName, tableName, (short) -1);
+    LOG.info("Database: {}, Table: {}, number of partitions: {}",
+              databaseName, tableName, partitions.size());
     for (Partition partition : partitions) {
       partitionValuesList.add(partition.getValues());
+      LOG.debug("Database: {}, Table: {}, partition: {} ",
+                databaseName,
+                tableName,
+                partition.getValues());
     }
     return partitionValuesList;
   }
