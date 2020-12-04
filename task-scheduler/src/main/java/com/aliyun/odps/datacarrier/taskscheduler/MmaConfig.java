@@ -601,6 +601,8 @@ public class MmaConfig {
     private String destTableName;
     private String destTableStorage;
     private List<List<String>> partitionValuesList;
+    private List<String> beginPartition;
+    private List<String> endPartition;
     private AdditionalTableConfig additionalTableConfig;
 
     public TableMigrationConfig (String sourceDataBaseName,
@@ -659,6 +661,14 @@ public class MmaConfig {
 
     public List<List<String>> getPartitionValuesList() {
       return partitionValuesList;
+    }
+
+    public List<String> getBeginPartition() {
+      return beginPartition;
+    }
+
+    public List<String> getEndPartition() {
+      return endPartition;
     }
 
     public AdditionalTableConfig getAdditionalTableConfig() {

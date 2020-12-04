@@ -72,7 +72,7 @@ public class MmaConfigUtils {
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.speculative", "false");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "2048");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "4096");
   }
 
 

@@ -19,7 +19,6 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
-// TODO: not a good practice. should be removed later
 import static com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils.*;
 
 import java.nio.file.Path;
@@ -188,7 +187,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         MmaConfig.JobType.MIGRATION,
         TableMigrationConfig.toJson(config),
         config.getAdditionalTableConfig(),
-        config.getPartitionValuesList());
+        config.getPartitionValuesList(),
+        config.getBeginPartition(),
+        config.getEndPartition());
   }
 
   @Override
@@ -206,7 +207,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         MmaConfig.JobType.BACKUP,
         MmaConfig.ObjectExportConfig.toJson(config),
         config.getAdditionalTableConfig(),
-        config.getPartitionValuesList());
+        config.getPartitionValuesList(),
+        null,
+        null);
   }
 
   @Override
@@ -226,7 +229,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         MmaConfig.JobType.RESTORE,
         MmaConfig.ObjectRestoreConfig.toJson(config),
         config.getAdditionalTableConfig(),
-        config.getPartitionValuesList());
+        config.getPartitionValuesList(),
+        null,
+        null);
   }
 
   @Override
@@ -241,6 +246,8 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         MmaConfig.JobType.RESTORE,
         MmaConfig.DatabaseRestoreConfig.toJson(config),
         config.getAdditionalTableConfig(),
+        null,
+        null,
         null);
   }
 
@@ -310,7 +317,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
       MmaConfig.JobType type,
       String config,
       MmaConfig.AdditionalTableConfig additionalTableConfig,
-      List<List<String>> partitionValuesList) throws MmaException {
+      List<List<String>> partitionValuesList,
+      List<String> beginPartition,
+      List<String> endPartition) throws MmaException {
 
     try (Connection conn = ds.getConnection()) {
       try {
@@ -321,7 +330,8 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
         }
 
         if (isTable) {
-          MetaSource.TableMetaModel tableMetaModel = metaSource.getTableMetaWithoutPartitionMeta(db, object);
+          MetaSource.TableMetaModel tableMetaModel =
+              metaSource.getTableMetaWithoutPartitionMeta(db, object);
           boolean isPartitioned = tableMetaModel.partitionColumns.size() > 0;
 
           // Create or update mma partition meta
@@ -350,12 +360,53 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
                 }
               }
             } else {
-              // All the partitions we know
               List<MigrationJobPtInfo> jobPtInfos = MmaMetaManagerDbImplUtils
                   .selectFromMmaPartitionMeta(conn, db, object, null, -1);
 
-              // Latest partition list from meta source
+              Comparator<List<String>> partitionComparator = (o1, o2) -> {
+                int ret = 0;
+                for (int i = 0; i < o1.size(); i++) {
+                  if (o1.get(i).length() < o2.get(i).length()) {
+                    ret = -1;
+                  } else if (o1.get(i).length() > o2.get(i).length()) {
+                    ret = 1;
+                  } else {
+                    ret = o1.get(i).compareTo(o2.get(i));
+                  }
+                  if (ret != 0) {
+                    break;
+                  }
+                }
+                return ret;
+              };
+
               List<List<String>> totalPartitionValuesList = metaSource.listPartitions(db, object);
+
+              if (beginPartition != null && endPartition != null) {
+                if (partitionComparator.compare(beginPartition, endPartition) > 0) {
+                  throw new IllegalArgumentException("Invalid start and end partition, start partition > end partition");
+                }
+              }
+
+              if (beginPartition != null) {
+                if (beginPartition.size() != tableMetaModel.partitionColumns.size()) {
+                  throw new IllegalArgumentException("Invalid start partition, number of columns not matched");
+                }
+                totalPartitionValuesList =
+                    totalPartitionValuesList.stream()
+                                            .filter(list -> partitionComparator.compare(beginPartition, list) <= 0)
+                                            .collect(Collectors.toList());
+              }
+
+              if (endPartition != null) {
+                if (endPartition.size() != tableMetaModel.partitionColumns.size()) {
+                  throw new IllegalArgumentException("Invalid end partition, number of columns not matched");
+                }
+                totalPartitionValuesList =
+                    totalPartitionValuesList.stream()
+                                            .filter(list -> partitionComparator.compare(endPartition, list) >= 0)
+                                            .collect(Collectors.toList());
+              }
 
               // Iterate over latest partition list and try to find partitions that should be
               // migrated
