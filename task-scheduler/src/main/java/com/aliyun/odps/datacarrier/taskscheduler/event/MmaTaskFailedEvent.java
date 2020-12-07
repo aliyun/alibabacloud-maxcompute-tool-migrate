@@ -19,25 +19,31 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.event;
 
+import java.util.List;
 import java.util.Objects;
 
-public class MmaJobSuccceedEvent extends BaseMmaEvent {
+public class MmaTaskFailedEvent extends BaseMmaEvent {
 
-  private String databaseName;
-  private String tableName;
+  private String id;
+  private List<String> actionIds;
 
-  public MmaJobSuccceedEvent(String databaseName, String tableName) {
-    this.databaseName = Objects.requireNonNull(databaseName);
-    this.tableName = Objects.requireNonNull(tableName);
+  public MmaTaskFailedEvent(String id, List<String> actionIds) {
+    this.id = Objects.requireNonNull(id);
+    this.actionIds = actionIds;
   }
 
   @Override
   public MmaEventType getType() {
-    return MmaEventType.JOB_SUCCEEDED;
+    return MmaEventType.JOB_FAILED;
   }
 
   @Override
   public String toString() {
-    return String.format("Job succeeded: %s.%s", databaseName, tableName);
+    if (actionIds != null) {
+      return String.format(
+          "Task failed: %s (caused by %s)", id, String.join(", ", actionIds));
+    } else {
+      return String.format("Task failed: %s", id);
+    }
   }
 }

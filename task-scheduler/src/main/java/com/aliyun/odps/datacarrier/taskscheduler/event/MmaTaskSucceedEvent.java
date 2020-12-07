@@ -21,24 +21,31 @@ package com.aliyun.odps.datacarrier.taskscheduler.event;
 
 import java.util.Objects;
 
-public class MmaJobFailedEvent extends BaseMmaEvent {
-  // TODO: include reason and possible solution
+public class MmaTaskSucceedEvent extends BaseMmaEvent {
 
-  private String databaseName;
-  private String tableName;
+  private String taskId;
+  private Integer numOfPartitions;
 
-  public MmaJobFailedEvent(String databaseName, String tableName) {
-    this.databaseName = Objects.requireNonNull(databaseName);
-    this.tableName = Objects.requireNonNull(tableName);
+  public MmaTaskSucceedEvent(String taskId) {
+    this(taskId, null);
+  }
+
+  public MmaTaskSucceedEvent(String taskId, Integer numOfPartitions) {
+    this.taskId = Objects.requireNonNull(taskId);
+    this.numOfPartitions = numOfPartitions;
   }
 
   @Override
   public MmaEventType getType() {
-    return MmaEventType.JOB_FAILED;
+    return MmaEventType.JOB_SUCCEEDED;
   }
 
   @Override
   public String toString() {
-    return String.format("Job failed: %s.%s", databaseName, tableName);
+    if (numOfPartitions == null) {
+      return String.format("Task succeeded: %s", taskId);
+    } else {
+      return String.format("Task succeeded: %s(includes %d partitions)", taskId, numOfPartitions);
+    }
   }
 }

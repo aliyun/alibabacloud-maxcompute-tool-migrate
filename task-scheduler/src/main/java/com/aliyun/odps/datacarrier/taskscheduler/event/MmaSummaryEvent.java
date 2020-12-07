@@ -52,15 +52,14 @@ public class MmaSummaryEvent extends BaseMmaEvent {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("Job Overview:\n");
+    StringBuilder sb = new StringBuilder("Job Summary:\n");
     sb.append("> pending: ").append(numPendingJobs).append("\n\n");
     sb.append("> running: ").append(numRunningJobs).append("\n\n");
     sb.append("> failed: ").append(numFailedJobs).append("\n\n");
     sb.append("> succeeded: ").append(numSucceededJobs).append("\n\n");
-    sb.append("Task Progress:\n");
+    sb.append("Running Tasks:\n");
     for (Entry<String, TaskProgress> entry : taskToProgress.entrySet()) {
-      sb.append("> task id: ").append(entry.getKey())
-        .append(", progress: ").append(entry.getValue().name()).append("\n\n");
+      sb.append("> task id: ").append(entry.getKey()).append("\n\n");
     }
     return sb.toString();
   }
