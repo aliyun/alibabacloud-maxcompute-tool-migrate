@@ -324,8 +324,6 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
           MetaSource.TableMetaModel tableMetaModel = metaSource.getTableMetaWithoutPartitionMeta(db, object);
           boolean isPartitioned = tableMetaModel.partitionColumns.size() > 0;
 
-          mergeObjectInfoIntoMetaDB(
-              db, object, type, config, additionalTableConfig, isPartitioned, conn);
           // Create or update mma partition meta
           // If partitions are specified, MMA will only create or update these partition. Else, MMA
           // will fetch all the partitions, then create meta for new partitions, reset meta for
@@ -407,6 +405,9 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
 
             mergeIntoMmaPartitionMeta(conn, db, object, jobPtInfosToMerge);
           }
+
+          mergeObjectInfoIntoMetaDB(
+              db, object, type, config, additionalTableConfig, isPartitioned, conn);
         } else {
           mergeObjectInfoIntoMetaDB(
               db, object, type, config, additionalTableConfig, false, conn);
