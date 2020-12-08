@@ -148,7 +148,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
         String odpsColumnNameString = soi2.getPrimitiveJavaObject(args[2]).trim();
         odpsColumnNames = new ArrayList<>();
         if (!odpsColumnNameString.isEmpty()) {
-          odpsColumnNames.addAll(Arrays.asList(trimAll(odpsColumnNameString.split(","))));
+          odpsColumnNames.addAll(Arrays.asList(odpsColumnNameString.split(",")));
         }
         hiveColumnValues = new Object[odpsColumnNames.size()];
 
@@ -156,7 +156,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
         odpsPartitionColumnNames = new ArrayList<>();
         if (!odpsPartitionColumnNameString.isEmpty()) {
           odpsPartitionColumnNames.addAll(
-              Arrays.asList(trimAll(odpsPartitionColumnNameString.split(","))));
+              Arrays.asList(odpsPartitionColumnNameString.split(",")));
         }
         hivePartitionColumnValues = new Object[odpsPartitionColumnNames.size()];
       }
@@ -281,13 +281,6 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
     }
 
     return uploadSession;
-  }
-
-  private String[] trimAll(String[] array) {
-    for (int i = 0; i < array.length; i++) {
-      array[i] = array[i].trim();
-    }
-    return array;
   }
 
   @Override
