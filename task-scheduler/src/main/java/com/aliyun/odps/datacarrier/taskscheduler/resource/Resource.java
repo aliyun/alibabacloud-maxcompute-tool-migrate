@@ -33,4 +33,8 @@ public enum Resource {
    * requires 5 'HIVE_DATA_TRANSFER_WORKER_RESOURCE'.
    */
   HIVE_DATA_TRANSFER_WORKER_RESOURCE,
+  /**
+   * Represents an operation on the metadata of a MaxCompute object (table, resource, e.g.).
+   */
+  MC_METADATA_OPERATION_RESOURCE
 }
