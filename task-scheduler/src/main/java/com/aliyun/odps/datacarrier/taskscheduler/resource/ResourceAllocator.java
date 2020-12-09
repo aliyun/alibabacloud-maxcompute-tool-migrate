@@ -12,6 +12,7 @@ public class ResourceAllocator {
 
   private static final int DEFAULT_NUM_HIVE_DATA_TRANSFER_JOB_RESOURCE = 5;
   private static final int DEFAULT_NUM_HIVE_DATA_TRANSFER_WORKER_RESOURCE = 25;
+  private static final int DEFAULT_NUM_MC_METADATA_OPERATION_RESOURCE = 10;
 
   private static final Logger LOG = LogManager.getLogger(ResourceAllocator.class);
 
@@ -24,6 +25,9 @@ public class ResourceAllocator {
     this.resourceMap.putIfAbsent(
         Resource.HIVE_DATA_TRANSFER_WORKER_RESOURCE,
         DEFAULT_NUM_HIVE_DATA_TRANSFER_WORKER_RESOURCE);
+    this.resourceMap.putIfAbsent(
+        Resource.MC_METADATA_OPERATION_RESOURCE,
+        DEFAULT_NUM_MC_METADATA_OPERATION_RESOURCE);
   }
 
   /**

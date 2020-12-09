@@ -4,11 +4,13 @@ import java.util.Map;
 
 import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
+import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
 
 public class OdpsDropPartitionAction extends OdpsSqlAction {
 
   public OdpsDropPartitionAction(String id) {
     super(id);
+    resourceMap.put(Resource.MC_METADATA_OPERATION_RESOURCE, 1);
   }
 
   @Override
