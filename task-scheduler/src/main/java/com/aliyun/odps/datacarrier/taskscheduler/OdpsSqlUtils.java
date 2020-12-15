@@ -398,9 +398,9 @@ public class OdpsSqlUtils {
           || "TINYINT".equalsIgnoreCase(partitionColumn.type)) {
         // Although the partition column type is integer, the partition values returned by HMS
         // client may have leading zeros. Let's say the partition in hive is hour=09. When the
-        // partition is added in MC, the partition value will still be 09, while creating an upload
-        // session with integer 9 will get an error "No such partition". So the leading zeros should
-        // be removed.
+        // partition is added in MC, the partition value will still be 09. In this example, however,
+        // the UDTF will receive an integer 9 and creating an upload session with  9 will end up
+        // with an error "No such partition". So, the leading zeros must be removed here.
         int count = 0;
         for (; count < partitionValue.length(); count++) {
           if ('0' != partitionValue.charAt(count)) {
@@ -408,7 +408,9 @@ public class OdpsSqlUtils {
           }
         }
 
-        LOG.info("Partition value: {}, leading zero count: {}", partitionValue, count);
+        if (count != 0) {
+          LOG.warn("Partition value: {}, leading zero count: {}", partitionValue, count);
+        }
 
         if (count == partitionValue.length()) {
           sb.append("0");
