@@ -2,10 +2,13 @@ package com.aliyun.odps.datacarrier.taskscheduler.event;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProgress;
 
 public class MmaSummaryEvent extends BaseMmaEvent {
+
+  private static final int MAX_NUM_TASKS = 15;
 
   private int numPendingJobs;
   private int numRunningJobs;
@@ -39,8 +42,14 @@ public class MmaSummaryEvent extends BaseMmaEvent {
     sb.append("> failed: ").append(numFailedJobs).append("\n\n");
     sb.append("> succeeded: ").append(numSucceededJobs).append("\n\n");
     sb.append("Running Tasks:\n");
-    for (Entry<String, TaskProgress> entry : taskToProgress.entrySet()) {
+
+    for (Entry<String, TaskProgress> entry :
+        taskToProgress.entrySet().stream().limit(MAX_NUM_TASKS).collect(Collectors.toList())) {
       sb.append("> task id: ").append(entry.getKey()).append("\n\n");
+    }
+    if (taskToProgress.entrySet().size() > MAX_NUM_TASKS) {
+      sb.append("> ...\n\n");
+      sb.append("> total number of running tasks: ").append(taskToProgress.size()).append("\n\n");
     }
     return sb.toString();
   }

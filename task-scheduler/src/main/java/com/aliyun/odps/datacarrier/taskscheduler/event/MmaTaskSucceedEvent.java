@@ -18,7 +18,7 @@ public class MmaTaskSucceedEvent extends BaseMmaEvent {
 
   @Override
   public MmaEventType getType() {
-    return MmaEventType.JOB_SUCCEEDED;
+    return MmaEventType.TASK_SUCCEEDED;
   }
 
   @Override
@@ -26,7 +26,7 @@ public class MmaTaskSucceedEvent extends BaseMmaEvent {
     if (numOfPartitions == null) {
       return String.format("Task succeeded: %s", taskId);
     } else {
-      return String.format("Task succeeded: %s(includes %d partitions)", taskId, numOfPartitions);
+      return String.format("Task succeeded: %s, includes %d partition(s)", taskId, numOfPartitions);
     }
   }
 }

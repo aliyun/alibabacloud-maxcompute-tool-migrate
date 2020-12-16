@@ -15,7 +15,7 @@ public class MmaTaskFailedEvent extends BaseMmaEvent {
 
   @Override
   public MmaEventType getType() {
-    return MmaEventType.JOB_FAILED;
+    return MmaEventType.TASK_FAILED;
   }
 
   @Override
