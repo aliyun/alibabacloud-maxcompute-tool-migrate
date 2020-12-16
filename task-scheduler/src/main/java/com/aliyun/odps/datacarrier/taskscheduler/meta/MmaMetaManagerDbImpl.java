@@ -368,6 +368,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
 
               Comparator<List<String>> partitionComparator = (o1, o2) -> {
                 int ret = 0;
+                // o1.size() != o2.size() is allowed. Implicit partition range depends on this.
                 for (int i = 0; i < o1.size(); i++) {
                   if (o1.get(i).length() < o2.get(i).length()) {
                     ret = -1;
@@ -376,7 +377,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
                   } else {
                     ret = o1.get(i).compareTo(o2.get(i));
                   }
-                  if (ret != 0) {
+                  if (ret != 0 || i == o2.size() - 1) {
                     break;
                   }
                 }
@@ -387,28 +388,31 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
 
               if (beginPartition != null && endPartition != null) {
                 if (partitionComparator.compare(beginPartition, endPartition) > 0) {
-                  throw new IllegalArgumentException("Invalid start and end partition, start partition > end partition");
+                  throw new IllegalArgumentException(
+                      "Invalid begin and end partition, begin partition > end partition");
                 }
               }
 
               if (beginPartition != null) {
-                if (beginPartition.size() != tableMetaModel.partitionColumns.size()) {
-                  throw new IllegalArgumentException("Invalid start partition, number of columns not matched");
+                if (beginPartition.size() > tableMetaModel.partitionColumns.size()) {
+                  throw new IllegalArgumentException(
+                      "Invalid begin partition, number of elements > number of partition columns");
                 }
-                totalPartitionValuesList =
-                    totalPartitionValuesList.stream()
-                                            .filter(list -> partitionComparator.compare(beginPartition, list) <= 0)
-                                            .collect(Collectors.toList());
+                totalPartitionValuesList = totalPartitionValuesList
+                    .stream()
+                    .filter(list -> partitionComparator.compare(beginPartition, list) <= 0)
+                    .collect(Collectors.toList());
               }
 
               if (endPartition != null) {
-                if (endPartition.size() != tableMetaModel.partitionColumns.size()) {
-                  throw new IllegalArgumentException("Invalid end partition, number of columns not matched");
+                if (endPartition.size() > tableMetaModel.partitionColumns.size()) {
+                  throw new IllegalArgumentException(
+                      "Invalid end partition, number of elements > number of partition columns");
                 }
-                totalPartitionValuesList =
-                    totalPartitionValuesList.stream()
-                                            .filter(list -> partitionComparator.compare(endPartition, list) >= 0)
-                                            .collect(Collectors.toList());
+                totalPartitionValuesList = totalPartitionValuesList
+                    .stream()
+                    .filter(list -> partitionComparator.compare(endPartition, list) >= 0)
+                    .collect(Collectors.toList());
               }
 
               // Iterate over latest partition list and try to find partitions that should be
