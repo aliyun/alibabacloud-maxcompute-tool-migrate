@@ -238,7 +238,10 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
   public void addDatabaseRestoreJob(MmaConfig.DatabaseRestoreConfig config) throws MmaException {
     String db = config.getOriginDatabaseName().toLowerCase();
     LOG.info("Add restore database job, from {} to {}, types: {}",
-        config.getOriginDatabaseName(), config.getDestinationDatabaseName(), config.getRestoreTypes());
+             config.getOriginDatabaseName(),
+             config.getDestinationDatabaseName(),
+             config.getRestoreTypes());
+
     mergeJobInfoIntoMetaDB(
         db,
         "",
