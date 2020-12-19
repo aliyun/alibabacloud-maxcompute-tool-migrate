@@ -123,6 +123,10 @@
       <groupId>com.j2html</groupId>
       <artifactId>j2html</artifactId>
     </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

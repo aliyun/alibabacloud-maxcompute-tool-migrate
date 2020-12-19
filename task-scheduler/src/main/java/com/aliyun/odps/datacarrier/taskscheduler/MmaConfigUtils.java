@@ -56,6 +56,7 @@ import org.apache.tools.ant.filters.StringInputStream;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.AdditionalTableConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.HiveConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.OdpsConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.MetaDBConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.SQLSettingConfig;
 import com.aliyun.odps.utils.StringUtils;
 import com.csvreader.CsvReader;
@@ -99,6 +100,13 @@ public class MmaConfigUtils {
                      "endpoint",
                      "project name",
                      null);
+
+  public static final MetaDBConfig SAMPLE_META_DB_CONFIG =
+      new MetaDBConfig("org.h2.Driver",
+                       "jdbc:h2:file:/tmp/mma/.MmaMeta;AUTO_SERVER=TRUE",
+                       "mma",
+                       "",
+                       20);
 
   /*
     Acceptable formats:
@@ -147,6 +155,31 @@ public class MmaConfigUtils {
                           properties.getProperty(END_POINT),
                           properties.getProperty(PROJECT_NAME),
                           tunnelEndpoint);
+  }
+
+  public static MetaDBConfig parseMetaDBConfig(Path metaDBConfigPath)  throws IOException {
+    if (metaDBConfigPath == null || !metaDBConfigPath.toFile().exists()) {
+      throw new IllegalArgumentException("Invalid meta db config path");
+    }
+
+    Properties properties = new Properties();
+    properties.load(new FileReader(metaDBConfigPath.toFile()));
+    String userPropertyValue = properties.getProperty("user", "");
+    if (StringUtils.isNullOrEmpty(userPropertyValue)) {
+      userPropertyValue = System.getenv("META_DB_USER");
+    }
+    String passwordPropertyValue = properties.getProperty("password", "");
+    if (StringUtils.isNullOrEmpty(passwordPropertyValue)) {
+      passwordPropertyValue = System.getenv("META_DB_PASSWORD");
+    }
+    if (StringUtils.isNullOrEmpty(userPropertyValue) || StringUtils.isNullOrEmpty(passwordPropertyValue)) {
+      throw new IllegalArgumentException("Invalid meta db user and password");
+    }
+    return new MetaDBConfig(properties.getProperty("db_type"),
+                            properties.getProperty("jdbc_connection_url"),
+                            userPropertyValue,
+                            passwordPropertyValue,
+                            Integer.parseInt(properties.getProperty("max_pool_size")));
   }
 
   public static List<MmaConfig.TableMigrationConfig> parseTableMapping(List<String> lines)
@@ -242,11 +275,13 @@ public class MmaConfigUtils {
 
   public static void generateMmaServerConfig(Path hiveConfigPath,
                                              Path odpsConfigPath,
+                                             Path metaDBConfigPath,
                                              String prefix) throws IOException {
     String json = new MmaServerConfig(DataSource.Hive,
                                       null,
                                       parseHiveConfig(hiveConfigPath),
                                       parseOdpsConfig(odpsConfigPath),
+                                      parseMetaDBConfig(metaDBConfigPath),
                                       null,
                                       Collections.emptyMap(),
                                       null).toJson();
@@ -266,6 +301,7 @@ public class MmaConfigUtils {
                                                           null,
                                                           SAMPLE_HIVE_CONFIG,
                                                           SAMPLE_ODPS_CONFIG,
+                                                          SAMPLE_META_DB_CONFIG,
                                                           null,
                                                           Collections.emptyMap(),
                                                           null);
@@ -335,6 +371,14 @@ public class MmaConfigUtils {
         .desc("odps_config.ini path")
         .build();
 
+    Option metaDBConfigOption = Option
+        .builder()
+        .longOpt("meta_db_conf")
+        .hasArg()
+        .argName("meta_db_config.ini path")
+        .desc("meta_db_config.ini path")
+        .build();
+
     Option tableMappingOption = Option
         .builder()
         .longOpt("table_mapping")
@@ -358,6 +402,7 @@ public class MmaConfigUtils {
         .addOption(migrationOption)
         .addOption(hiveConfigOption)
         .addOption(odpsConfigOption)
+        .addOption(metaDBConfigOption)
         .addOption(tableMappingOption)
         .addOption(prefixOption);
 
@@ -386,6 +431,7 @@ public class MmaConfigUtils {
 
       generateMmaServerConfig(Paths.get(cmd.getOptionValue("hive_config")),
                               Paths.get(cmd.getOptionValue("odps_config")),
+                              Paths.get(cmd.getOptionValue("meta_db_conf")),
                               prefix);
     }
 

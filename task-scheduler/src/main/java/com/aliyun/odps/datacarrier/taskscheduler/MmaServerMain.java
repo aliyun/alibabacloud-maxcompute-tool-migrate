@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImpl;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -23,9 +24,12 @@ import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventSenderFactory;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventType;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.ResourceAllocator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public class MmaServerMain {
+  private static final Logger LOG = LogManager.getLogger(MmaServerMain.class);
   /*
     Options
    */
@@ -119,11 +123,16 @@ public class MmaServerMain {
       ResourceAllocator.getInstance().update(resource, number);
     }
 
-    MmaServer mmaServer = new MmaServer();
+    MmaServer mmaServer = null;
     try {
+      mmaServer = new MmaServer();
       mmaServer.run();
+    } catch (Exception e) {
+      LOG.error("Startup mma server failed.", e);
     } finally {
-      mmaServer.shutdown();
+      if (mmaServer != null) {
+        mmaServer.shutdown();
+      }
     }
 
     MmaEventManager.getInstance().shutdown();
