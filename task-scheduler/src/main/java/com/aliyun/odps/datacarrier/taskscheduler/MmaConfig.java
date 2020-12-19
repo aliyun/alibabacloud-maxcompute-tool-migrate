@@ -356,6 +356,76 @@ public class MmaConfig {
     }
   }
 
+  public static class MetaDBConfig implements Config {
+    private String dbType;
+    private String jdbcUrl;
+    private String user;
+    private String password;
+    private int maxPoolSize;
+
+    public MetaDBConfig(String dbType,
+                        String jdbcUrl,
+                        String user,
+                        String password,
+                        int maxPoolSize) {
+      this.dbType = dbType.toLowerCase();
+      this.jdbcUrl = jdbcUrl;
+      this.user = user;
+      this.password = password;
+      this.maxPoolSize = maxPoolSize;
+    }
+
+    public String getDbType() {
+      return dbType;
+    }
+
+    public String getDriverClass() {
+      if (dbType.equals("mysql")) {
+        return "com.mysql.cj.jdbc.Driver";
+      } else if (dbType.equals("h2")) {
+        return "org.h2.Driver";
+      }
+      throw new RuntimeException("Unknown meta db type: " + dbType);
+    }
+
+    public String getJdbcUrl() {
+      return jdbcUrl;
+    }
+
+    public String getUser() {
+      return user;
+    }
+
+    public String getPassword() {
+      return password;
+    }
+
+    public int getMaxPoolSize() {
+      return maxPoolSize;
+    }
+
+    @Override
+    public boolean validate() {
+      if (StringUtils.isNullOrEmpty(user)) {
+        user = System.getenv("META_DB_USER");
+      }
+      if (StringUtils.isNullOrEmpty(password)) {
+        password = System.getenv("META_DB_PASSWORD");
+      }
+      if (StringUtils.isNullOrEmpty(jdbcUrl)) {
+        password = System.getenv("META_DB_JDBC_URL");
+      }
+      if (StringUtils.isNullOrEmpty(dbType) ||
+          StringUtils.isNullOrEmpty(jdbcUrl) ||
+          StringUtils.isNullOrEmpty(user) ||
+          StringUtils.isNullOrEmpty(password) ||
+          maxPoolSize <= 0) {
+        return false;
+      }
+      return true;
+    }
+  }
+
   public static class ServiceMigrationConfig implements Config {
     private String destProjectName;
 
