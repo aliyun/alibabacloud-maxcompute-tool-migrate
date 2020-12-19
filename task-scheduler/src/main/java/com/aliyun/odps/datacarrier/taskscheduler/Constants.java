@@ -44,6 +44,7 @@ public class Constants {
   // Types
   public static final String VARCHAR_255 = "VARCHAR(255)";
   public static final String VARCHAR_65535 = "VARCHAR(65535)";
+  public static final String TEXT = "TEXT";
   public static final String INT = "INT";
   public static final String BIGINT = "BIGINT";
   public static final String BOOLEAN = "BOOLEAN";
@@ -66,7 +67,7 @@ public class Constants {
     temp.put(MMA_TBL_META_COL_DB_NAME, VARCHAR_255);
     temp.put(MMA_TBL_META_COL_TBL_NAME, VARCHAR_255);
     temp.put(MMA_TBL_META_COL_IS_PARTITIONED, BOOLEAN);
-    temp.put(MMA_TBL_META_COL_MIGRATION_CONF, VARCHAR_65535);
+    temp.put(MMA_TBL_META_COL_MIGRATION_CONF, TEXT);
     temp.put(MMA_TBL_META_COL_STATUS, VARCHAR_255);
     temp.put(MMA_TBL_META_COL_ATTEMPT_TIMES, INT);
     temp.put(MMA_TBL_META_COL_LAST_MODIFIED_TIME, BIGINT);
@@ -99,7 +100,7 @@ public class Constants {
     temp.put(MMA_OBJ_RESTORE_COL_TYPE, VARCHAR_255);            // type
     temp.put(MMA_OBJ_RESTORE_COL_DB_NAME, VARCHAR_255);         // db_name
     temp.put(MMA_OBJ_RESTORE_COL_OBJECT_NAME, VARCHAR_255);     // object_name
-    temp.put(MMA_OBJ_RESTORE_COL_JOB_CONFIG, VARCHAR_65535);    // job_config
+    temp.put(MMA_OBJ_RESTORE_COL_JOB_CONFIG, TEXT);    // job_config
     temp.put(MMA_OBJ_RESTORE_COL_STATUS, VARCHAR_255);          // status
     temp.put(MMA_OBJ_RESTORE_COL_ATTEMPT_TIMES, INT);           // attempt_times
     temp.put(MMA_OBJ_RESTORE_COL_LAST_MODIFIED_TIME, BIGINT);   // last_modified_time
@@ -121,7 +122,7 @@ public class Constants {
   public static final Map<String, String> MMA_PT_META_COL_TO_TYPE;
   static {
     Map<String, String> temp = new LinkedHashMap<>();
-    temp.put(MMA_PT_META_COL_PT_VALS, VARCHAR_65535);
+    temp.put(MMA_PT_META_COL_PT_VALS, TEXT);
     temp.put(MMA_PT_META_COL_STATUS, VARCHAR_255);
     temp.put(MMA_PT_META_COL_ATTEMPT_TIMES, INT);
     temp.put(MMA_PT_META_COL_LAST_MODIFIED_TIME, BIGINT);
