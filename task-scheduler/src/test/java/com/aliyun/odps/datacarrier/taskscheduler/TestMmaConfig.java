@@ -46,6 +46,8 @@ public class TestMmaConfig {
                                                        "odps_config.ini");
   private static final Path hiveConfigPath = Paths.get(resourcesDir.toString(),
                                                        "hive_config.ini");
+  private static final Path metaDbConfigPath = Paths.get(resourcesDir.toString(),
+                                                         "meta_db_config.ini");
   private static final Path tableMappingPath = Paths.get(resourcesDir.toString(),
                                                          "table_mapping.txt");
 
@@ -64,6 +66,7 @@ public class TestMmaConfig {
     // Ensure required test resources exist
     if (!odpsConfigPath.toFile().exists()
         || !hiveConfigPath.toFile().exists()
+        || !metaDbConfigPath.toFile().exists()
         || !tableMappingPath.toFile().exists()) {
       throw new IllegalStateException("Test resources for TestMmaConfig not found");
     }
@@ -95,7 +98,7 @@ public class TestMmaConfig {
 
   @Test (timeout = 5000)
   public void testGenerateMmaServerConfig() throws IOException {
-    MmaConfigUtils.generateMmaServerConfig(hiveConfigPath, odpsConfigPath, "");
+    MmaConfigUtils.generateMmaServerConfig(hiveConfigPath, odpsConfigPath, metaDbConfigPath, "");
     MmaServerConfig.init(mmaServerConfigPath);
 
     // Datasource

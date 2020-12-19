@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,6 +63,7 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
 
   private HikariDataSource ds;
   private MetaSource metaSource;
+  private MmaConfig.MetaDBConfig metaDBConfig;
 
   public MmaMetaManagerDbImpl(Path parentDir, MetaSource metaSource, boolean needRecover)
       throws MmaException {
@@ -77,19 +79,17 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
     this.metaSource = metaSource;
 
     LOG.info("Initialize MmaMetaManagerDbImpl");
+    metaDBConfig = MmaServerConfig.getInstance().getMetaDBConfig();
     try {
-      Class.forName("org.h2.Driver");
+      Class.forName(metaDBConfig.getDriverClass());
     } catch (ClassNotFoundException e) {
-      LOG.error("H2 JDBC driver not found");
-      throw new IllegalStateException("Class not found: org.h2.Driver");
+      LOG.error("JDBC driver {} not found", metaDBConfig.getDriverClass());
+      throw new IllegalStateException("Class not found: " + metaDBConfig.getDriverClass());
     }
 
     LOG.info("Create connection pool");
-    String connectionUrl =
-        "jdbc:h2:file:" + Paths.get(parentDir.toString(), Constants.DB_FILE_NAME).toAbsolutePath() +
-        ";AUTO_SERVER=TRUE";
-    setupDatasource(connectionUrl);
-    LOG.info("JDBC connection URL: {}", connectionUrl);
+    setupDatasource();
+    LOG.info("JDBC connection URL: {}", metaDBConfig.getJdbcUrl());
 
     LOG.info("Create connection pool done");
 
@@ -115,13 +115,13 @@ public class MmaMetaManagerDbImpl implements MmaMetaManager {
     LOG.info("Initialize MmaMetaManagerDbImpl done");
   }
 
-  private void setupDatasource(String connectionUrl) {
+  private void setupDatasource() {
     HikariConfig hikariConfig = new HikariConfig();
-    hikariConfig.setJdbcUrl(connectionUrl);
-    hikariConfig.setUsername("mma");
-    hikariConfig.setPassword("mma");
+    hikariConfig.setJdbcUrl(metaDBConfig.getJdbcUrl());
+    hikariConfig.setUsername(metaDBConfig.getUser());
+    hikariConfig.setPassword(metaDBConfig.getPassword());
     hikariConfig.setAutoCommit(false);
-    hikariConfig.setMaximumPoolSize(50);
+    hikariConfig.setMaximumPoolSize(metaDBConfig.getMaxPoolSize());
     hikariConfig.setMinimumIdle(1);
     hikariConfig.setTransactionIsolation("TRANSACTION_SERIALIZABLE");
     ds = new HikariDataSource(hikariConfig);

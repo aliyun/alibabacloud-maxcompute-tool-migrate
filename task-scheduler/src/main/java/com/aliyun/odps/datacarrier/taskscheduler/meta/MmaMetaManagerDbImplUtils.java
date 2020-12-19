@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager.MigrationStatus;
 import com.google.common.base.Strings;
 import org.apache.logging.log4j.LogManager;
@@ -48,6 +49,8 @@ import com.google.gson.reflect.TypeToken;
 public class MmaMetaManagerDbImplUtils {
 
   private static final Logger LOG = LogManager.getLogger(MmaMetaManagerDbImplUtils.class);
+
+  private static String UPSERT_KEYWORD = null;
 
   /**
    * Represents a row in table meta
@@ -292,7 +295,6 @@ public class MmaMetaManagerDbImplUtils {
     for (Map.Entry<String, String> entry : Constants.MMA_PT_META_COL_TO_TYPE.entrySet()) {
       sb.append("    ").append(entry.getKey()).append(" ").append(entry.getValue()).append(",\n");
     }
-    sb.append("    PRIMARY KEY (").append(Constants.MMA_PT_META_COL_PT_VALS).append("))\n");
     return sb.toString();
   }
 
@@ -351,13 +353,22 @@ public class MmaMetaManagerDbImplUtils {
     }
   }
 
+  // return MERGE INTO or REPLACE INTO
+  private synchronized static String getUpsertKeyword() {
+    if (UPSERT_KEYWORD == null) {
+      UPSERT_KEYWORD = MmaServerConfig.getInstance().getMetaDBConfig().getDbType().toLowerCase().equals("mysql") ?
+          "REPLACE INTO " : "MERGE INTO ";
+    }
+    return UPSERT_KEYWORD;
+  }
+
   /**
    * Insert into or update (A.K.A Upsert) MMA_TBL_META
    */
   public static void mergeIntoMmaTableMeta(Connection conn, JobInfo jobInfo)
       throws SQLException {
 
-    String dml = "MERGE INTO " + Constants.MMA_TBL_META_TBL_NAME + " VALUES (?, ?, ?, ?, ?, ?, ?)";
+    String dml = getUpsertKeyword() + Constants.MMA_TBL_META_TBL_NAME + " VALUES (?, ?, ?, ?, ?, ?, ?)";
     try (PreparedStatement preparedStatement = conn.prepareStatement(dml)) {
       preparedStatement.setString(1, jobInfo.getDb());
       preparedStatement.setString(2, jobInfo.getTbl());
@@ -378,7 +389,7 @@ public class MmaMetaManagerDbImplUtils {
 
   public static void mergeIntoRestoreTableMeta(Connection conn, RestoreTaskInfo taskInfo)
       throws SQLException {
-    String dml = "MERGE INTO " + Constants.MMA_OBJ_RESTORE_TBL_NAME + " VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    String dml = getUpsertKeyword() + Constants.MMA_OBJ_RESTORE_TBL_NAME + " VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     try (PreparedStatement preparedStatement = conn.prepareStatement(dml)) {
       preparedStatement.setString(1, taskInfo.getUniqueId());
       preparedStatement.setString(2, taskInfo.getType());
@@ -400,7 +411,7 @@ public class MmaMetaManagerDbImplUtils {
 
   public static void mergeIntoTemporaryTableMeta(Connection conn, String uniqueId, String db, String tbl)
       throws SQLException {
-    String dml = "MERGE INTO " + Constants.MMA_OBJ_TEMPORARY_TBL_NAME + " VALUES (?, ?, ?)";
+    String dml = getUpsertKeyword() + Constants.MMA_OBJ_TEMPORARY_TBL_NAME + " VALUES (?, ?, ?)";
     try (PreparedStatement preparedStatement = conn.prepareStatement(dml)) {
       preparedStatement.setString(1, uniqueId);
       preparedStatement.setString(2, db);

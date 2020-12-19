@@ -21,6 +21,7 @@ package com.aliyun.odps.datacarrier.taskscheduler;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,6 +57,7 @@ public class MmaServerConfig {
   private MmaConfig.OssConfig ossConfig;
   private MmaConfig.HiveConfig hiveConfig;
   private MmaConfig.OdpsConfig odpsConfig;
+  private MmaConfig.MetaDBConfig metaDBConfig;
   private MmaEventConfig eventConfig;
   private Map<String, String> resourceConfig;
   private Map<String, String> uiConfig;
@@ -64,6 +66,7 @@ public class MmaServerConfig {
                   MmaConfig.OssConfig ossConfig,
                   MmaConfig.HiveConfig hiveConfig,
                   MmaConfig.OdpsConfig odpsConfig,
+                  MmaConfig.MetaDBConfig metaDBConfig,
                   MmaEventConfig eventConfig,
                   Map<String, String> resourceConfig,
                   Map<String, String> uiConfig) {
@@ -71,6 +74,7 @@ public class MmaServerConfig {
     this.ossConfig = ossConfig;
     this.hiveConfig = hiveConfig;
     this.odpsConfig = odpsConfig;
+    this.metaDBConfig = metaDBConfig;
     this.eventConfig = eventConfig;
     this.resourceConfig = resourceConfig;
     this.uiConfig = uiConfig;
@@ -86,6 +90,10 @@ public class MmaServerConfig {
 
   public MmaConfig.HiveConfig getHiveConfig() {
     return hiveConfig;
+  }
+
+  public MmaConfig.MetaDBConfig getMetaDBConfig() {
+    return metaDBConfig;
   }
 
   public MmaConfig.OssConfig getOssConfig() {
@@ -141,6 +149,16 @@ public class MmaServerConfig {
     if (!odpsConfig.validate()) {
       valid = false;
       LOG.error("Validate MetaConfiguration failed due to {}", this.odpsConfig);
+    }
+
+    if (metaDBConfig == null) {
+      String connectionUrl = "jdbc:h2:file:" +
+          Paths.get(Paths.get(System.getenv("MMA_HOME")).toString(), Constants.DB_FILE_NAME).toAbsolutePath() +
+          ";AUTO_SERVER=TRUE";
+      metaDBConfig = new MmaConfig.MetaDBConfig("h2", connectionUrl, "mma", "mma", 50);
+    } else if (!metaDBConfig.validate()) {
+      valid = false;
+      LOG.error("Validate MetaConfiguration failed due to {}", this.metaDBConfig);
     }
 
     return valid;
