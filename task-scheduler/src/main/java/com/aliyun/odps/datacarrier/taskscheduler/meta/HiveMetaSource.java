@@ -106,7 +106,7 @@ public class HiveMetaSource implements MetaSource {
   private void initFileSystem(String defaultFs) {
     LOG.info("Initializing HDFS client with default fs: {}", defaultFs);
     if (defaultFs == null) {
-      LOG.info("Default filesystem not configured");
+      return;
     }
 
     Configuration conf = new Configuration();
@@ -222,15 +222,7 @@ public class HiveMetaSource implements MetaSource {
         partitionMetaModel.createTime = (long) partition.getCreateTime();
         partitionMetaModel.location = partition.getSd().getLocation();
         partitionMetaModel.partitionValues = partition.getValues();
-        if (fs != null) {
-          Path path = new Path(partitionMetaModel.location);
-          partitionMetaModel.size = fs.getContentSummary(path).getLength();
-          LOG.debug("Database: {}, Table: {}, partition: {}, size: {}",
-                    databaseName,
-                    tableName,
-                    partition.getValues(),
-                    partitionMetaModel.size);
-        }
+        setPartitionSize(partitionMetaModel);
 
         tableMetaModel.partitions.add(partitionMetaModel);
         LOG.debug("Database: {}, Table: {}, partition: {} ",
@@ -270,18 +262,20 @@ public class HiveMetaSource implements MetaSource {
               tableName,
               partitionValues,
               partition.getSd().getLocation());
-    if (fs != null) {
-      Path path = new Path(partitionMetaModel.location);
-      partitionMetaModel.size = fs.getContentSummary(path).getLength();
-      LOG.debug("Database: {}, Table: {}, partition: {}, size: {}",
-                databaseName,
-                tableName,
-                partition.getValues(),
-                partitionMetaModel.size);
-    }
     partitionMetaModel.partitionValues = partition.getValues();
+    setPartitionSize(partitionMetaModel);
 
     return partitionMetaModel;
+  }
+
+
+
+  public void setPartitionSize(PartitionMetaModel partitionMetaModel) throws IOException {
+    if (fs != null) {
+      Path location = new Path(partitionMetaModel.location);
+      partitionMetaModel.size = fs.getContentSummary(location).getLength();
+      LOG.debug("Location: {}, size: {}", location, partitionMetaModel.size);
+    }
   }
 
   @Override

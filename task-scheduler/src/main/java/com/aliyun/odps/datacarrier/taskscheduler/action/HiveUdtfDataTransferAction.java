@@ -64,9 +64,7 @@ public class HiveUdtfDataTransferAction extends HiveSqlAction {
         totalDataSize = optionalTotalDataSize.get();
       }
     } else {
-      if (tableMetaModel.size != null) {
-        totalDataSize = tableMetaModel.size;
-      }
+      totalDataSize = tableMetaModel.size;
     }
 
     // Update resource map based on total data size

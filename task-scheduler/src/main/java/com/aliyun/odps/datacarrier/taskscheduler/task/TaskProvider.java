@@ -999,14 +999,8 @@ public class TaskProvider {
       }
     });
 
-    boolean[] selected = new boolean[tableMetaModel.partitions.size()];
     int i = 0;
     while (i < tableMetaModel.partitions.size()) {
-      if (selected[i]) {
-        i++;
-        continue;
-      }
-
       TableMetaModel clone = tableMetaModel.clone();
 
       // Handle extremely large partitions. Generate a task for each of them.
@@ -1017,7 +1011,6 @@ public class TaskProvider {
                  tableMetaModel.partitions.get(i).partitionValues,
                  tableMetaModel.partitions.get(i).size);
         clone.partitions = Collections.singletonList(tableMetaModel.partitions.get(i));
-        selected[i] = true;
         i++;
         ret.add(clone);
         continue;
@@ -1032,26 +1025,23 @@ public class TaskProvider {
 
       // Keep adding partitions as long as the total size is less than splitSizeInByte and the
       // number of partitions is less than Constants.MAX_PARTITION_GROUP_SIZE
-      int j = i;
-      while (j < tableMetaModel.partitions.size()
+      while (i < tableMetaModel.partitions.size()
           && clone.partitions.size() < Constants.MAX_PARTITION_GROUP_SIZE) {
-        if (!selected[j] && sum + tableMetaModel.partitions.get(j).size <= splitSizeInByte) {
-          clone.partitions.add(tableMetaModel.partitions.get(j));
-          selected[j] = true;
+        if (sum + tableMetaModel.partitions.get(i).size <= splitSizeInByte) {
+          clone.partitions.add(tableMetaModel.partitions.get(i));
           LOG.debug(
               "Database: {}, table: {}, add partition: {}, size: {} to partition group",
               tableMetaModel.databaseName,
               tableMetaModel.tableName,
-              tableMetaModel.partitions.get(j).partitionValues,
-              tableMetaModel.partitions.get(j).size);
-          sum += tableMetaModel.partitions.get(j).size;
+              tableMetaModel.partitions.get(i).partitionValues,
+              tableMetaModel.partitions.get(i).size);
+          sum += tableMetaModel.partitions.get(i).size;
         } else {
           break;
         }
-        j++;
+        i++;
       }
 
-      i = j;
       ret.add(clone);
       LOG.debug(
           "Database: {}, table: {}, {} th partition group, num partitions: {}, size: {}",
