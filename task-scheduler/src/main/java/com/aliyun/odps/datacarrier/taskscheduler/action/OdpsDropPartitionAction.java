@@ -29,7 +29,7 @@ public class OdpsDropPartitionAction extends OdpsSqlAction {
 
   public OdpsDropPartitionAction(String id) {
     super(id);
-    resourceMap.put(Resource.MC_METADATA_OPERATION_RESOURCE, 1);
+    resourceMap.put(Resource.MC_METADATA_OPERATION_RESOURCE, 1L);
   }
 
   @Override

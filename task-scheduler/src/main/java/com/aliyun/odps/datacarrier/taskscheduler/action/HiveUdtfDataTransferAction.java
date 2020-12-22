@@ -21,13 +21,17 @@ package com.aliyun.odps.datacarrier.taskscheduler.action;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.datacarrier.taskscheduler.Constants;
 import com.aliyun.odps.datacarrier.taskscheduler.HiveSqlUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
+import com.aliyun.odps.datacarrier.taskscheduler.resource.ResourceAllocator;
 
 public class HiveUdtfDataTransferAction extends HiveSqlAction {
 
@@ -36,13 +40,59 @@ public class HiveUdtfDataTransferAction extends HiveSqlAction {
   public HiveUdtfDataTransferAction(String id) {
     super(id);
     // Init default resourceMap
-    resourceMap.put(Resource.HIVE_DATA_TRANSFER_JOB_RESOURCE, 1);
-    resourceMap.put(Resource.HIVE_DATA_TRANSFER_WORKER_RESOURCE, 5);
+    resourceMap.put(Resource.HIVE_DATA_TRANSFER_JOB_RESOURCE, 1L);
+    resourceMap.put(Resource.HIVE_DATA_TRANSFER_WORKER_RESOURCE, 5L);
   }
 
   @Override
   String getSql() {
     return HiveSqlUtils.getUdtfSql(actionExecutionContext.getTableMetaModel());
+  }
+
+  @Override
+  public boolean tryAllocateResource() {
+    TableMetaModel tableMetaModel = actionExecutionContext.getTableMetaModel();
+    boolean isPartitioned = !tableMetaModel.partitionColumns.isEmpty();
+
+    // Get total data size
+    Long totalDataSize = null;
+    if (isPartitioned) {
+      Optional<Long> optionalTotalDataSize = tableMetaModel.partitions
+          .stream()
+          .map(p -> p.size).reduce((s1, s2) -> s1 + s2);
+      if (optionalTotalDataSize.isPresent()) {
+        totalDataSize = optionalTotalDataSize.get();
+      }
+    } else {
+      if (tableMetaModel.size != null) {
+        totalDataSize = tableMetaModel.size;
+      }
+    }
+
+    // Update resource map based on total data size
+    if (totalDataSize != null) {
+      long numHiveDataTransferWorkerResource =
+          Math.max(1L, totalDataSize / Constants.DEFAULT_MAPREDUCE_SPLIT_SIZE_IN_BYTE);
+      resourceMap.put(
+          Resource.HIVE_DATA_TRANSFER_WORKER_RESOURCE, numHiveDataTransferWorkerResource);
+      LOG.info("ActionId: {}, data size: {}, updated resource map: {}",
+               id,
+               totalDataSize,
+               resourceMap.toString());
+    } else {
+      LOG.warn("ActionId: {}, failed to get accurate data size, resource map: {}",
+               id,
+               resourceMap.toString());
+    }
+
+    Map<Resource, Long> finalResourceMap =
+        ResourceAllocator.getInstance().allocate(id, resourceMap);
+    if (finalResourceMap != null) {
+      resourceMap = finalResourceMap;
+      return true;
+    }
+
+    return false;
   }
 
   @Override

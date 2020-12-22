@@ -64,6 +64,7 @@ public class MmaServerConfig {
   private MmaEventConfig eventConfig;
   private Map<String, String> resourceConfig;
   private Map<String, String> uiConfig;
+  private MmaConfig.HdfsConfig hdfsConfig;
 
   MmaServerConfig(DataSource dataSource,
                   MmaConfig.OssConfig ossConfig,
@@ -113,6 +114,10 @@ public class MmaServerConfig {
 
   public Map<String, String> getResourceConfig() {
     return resourceConfig;
+  }
+
+  public MmaConfig.HdfsConfig getHdfsConfig() {
+    return hdfsConfig;
   }
 
   public Map<String, String> getUIConfig() {

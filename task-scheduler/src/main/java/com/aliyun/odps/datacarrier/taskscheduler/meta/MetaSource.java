@@ -92,6 +92,7 @@ public interface MetaSource {
     public String location;
     public Long createTime;
     public Long lastModifiedTime;
+    public Long size;
   }
 
   /**
