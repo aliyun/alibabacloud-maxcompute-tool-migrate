@@ -139,7 +139,7 @@ public class MmaServerMain {
     if (resourceConfig != null) {
       for (Entry<String, String> entry : resourceConfig.entrySet()) {
         Resource resource = Resource.valueOf(entry.getKey().trim().toUpperCase());
-        Integer number = Integer.valueOf(entry.getValue());
+        Long number = Long.valueOf(entry.getValue());
         ResourceAllocator.getInstance().update(resource, number);
       }
     }

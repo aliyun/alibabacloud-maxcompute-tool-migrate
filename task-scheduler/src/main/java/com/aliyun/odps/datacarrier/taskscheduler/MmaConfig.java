@@ -38,6 +38,14 @@ public class MmaConfig {
     boolean validate();
   }
 
+  public static class HdfsConfig {
+    String defaultFs;
+
+    public String getDefaultFs() {
+      return defaultFs;
+    }
+  }
+
   public static class SQLSettingConfig {
     Map<String, String> ddlSettings = new HashMap<>();
     Map<String, String> migrationSettings = new HashMap<>();
@@ -883,6 +891,7 @@ public class MmaConfig {
   public static class AdditionalTableConfig implements Config {
     private int partitionGroupSize;
     private int retryTimesLimit;
+    private int partitionGroupSplitSizeInGb = Constants.DEFAULT_PARTITION_GROUP_SPLIT_SIZE_IN_GB;
 
     public AdditionalTableConfig(int partitionGroupSize, int retryTimesLimit) {
       this.partitionGroupSize = partitionGroupSize;
@@ -895,6 +904,10 @@ public class MmaConfig {
 
     public int getRetryTimesLimit() {
       return retryTimesLimit;
+    }
+
+    public int getPartitionGroupSplitSizeInGb() {
+      return partitionGroupSplitSizeInGb;
     }
 
     @Override

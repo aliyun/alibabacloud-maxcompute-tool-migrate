@@ -32,7 +32,12 @@ public class Constants {
   public static final String END_POINT = "end_point";
   public static final String TUNNEL_ENDPOINT = "tunnel_endpoint";
 
-  public static final int MAX_PARTITION_BATCH_SIZE = 200;
+  /*
+    Performance related constants
+   */
+  public static final int MAX_PARTITION_GROUP_SIZE = 200;
+  public static final int DEFAULT_PARTITION_GROUP_SPLIT_SIZE_IN_GB = 10;
+  public static final int DEFAULT_MAPREDUCE_SPLIT_SIZE_IN_BYTE = 512000000;
 
   public static final String MMA_TEMPORARY_TABLE_PREFIX = "_temporary_table_generated_by_mma_";
 

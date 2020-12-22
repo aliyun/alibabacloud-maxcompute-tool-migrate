@@ -29,13 +29,13 @@ public class ResourceAllocator {
 
   private static ResourceAllocator instance;
 
-  private static final int DEFAULT_NUM_HIVE_DATA_TRANSFER_JOB_RESOURCE = 5;
-  private static final int DEFAULT_NUM_HIVE_DATA_TRANSFER_WORKER_RESOURCE = 25;
-  private static final int DEFAULT_NUM_MC_METADATA_OPERATION_RESOURCE = 10;
+  private static final long DEFAULT_NUM_HIVE_DATA_TRANSFER_JOB_RESOURCE = 5;
+  private static final long DEFAULT_NUM_HIVE_DATA_TRANSFER_WORKER_RESOURCE = 25;
+  private static final long DEFAULT_NUM_MC_METADATA_OPERATION_RESOURCE = 10;
 
   private static final Logger LOG = LogManager.getLogger(ResourceAllocator.class);
 
-  private Map<Resource, Integer> resourceMap = new HashMap<>();
+  private Map<Resource, Long> resourceMap = new HashMap<>();
 
   private ResourceAllocator() {
     // All resources should be initialized with their default value
@@ -57,16 +57,16 @@ public class ResourceAllocator {
    * @return Allocated resources, may be different from resource requirements, or null if the
    * requirements cannot be satisfied.
    */
-  public synchronized Map<Resource, Integer> allocate(
+  public synchronized Map<Resource, Long> allocate(
       String actionId,
-      Map<Resource, Integer> resources) {
+      Map<Resource, Long> resources) {
 
     LOG.info("Allocate resource for {}, required: {}, current: {}",
              actionId, resources, resourceMap);
 
     for (Resource resource : resources.keySet()) {
-      Integer requiredNum = resources.get(resource);
-      Integer availableNum = resourceMap.get(resource);
+      Long requiredNum = resources.get(resource);
+      Long availableNum = resourceMap.get(resource);
       if (availableNum == 0) {
         LOG.info("Allocate resource for {} failed, run out of {}", actionId, resource);
         return null;
@@ -82,8 +82,8 @@ public class ResourceAllocator {
 
     // Update the resource map
     for (Resource resource : resources.keySet()) {
-      Integer requiredNum = resources.get(resource);
-      Integer availableNum = resourceMap.get(resource);
+      Long requiredNum = resources.get(resource);
+      Long availableNum = resourceMap.get(resource);
       resourceMap.put(resource, availableNum - requiredNum);
     }
 
@@ -97,12 +97,12 @@ public class ResourceAllocator {
    * @param actionId Action ID.
    * @param resources Resources to release.
    */
-  public synchronized void release(String actionId, Map<Resource, Integer> resources) {
+  public synchronized void release(String actionId, Map<Resource, Long> resources) {
     // Update the resource map
     LOG.info("Release resource from {}, resources: {}", actionId, resources);
     for (Resource resource : resources.keySet()) {
-      Integer releasedNum = resources.get(resource);
-      Integer availableNum = resourceMap.get(resource);
+      Long releasedNum = resources.get(resource);
+      Long availableNum = resourceMap.get(resource);
       resourceMap.put(resource, availableNum + releasedNum);
     }
 
@@ -115,7 +115,7 @@ public class ResourceAllocator {
    * @param resource Resource to update.
    * @param number Number of the resource.
    */
-  public void update(Resource resource, Integer number) {
+  public void update(Resource resource, Long number) {
     if (resourceMap.containsKey(resource)) {
       LOG.warn("Found duplicated resource config, will overwrite");
     }

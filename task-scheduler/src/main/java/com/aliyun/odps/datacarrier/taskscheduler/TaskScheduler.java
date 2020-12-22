@@ -150,11 +150,7 @@ public class TaskScheduler {
 
       try {
         List<Task> pendingTasks = taskProvider.get();
-        LOG.info("New tasks: {}", pendingTasks);
         runningTasks.addAll(pendingTasks);
-
-        LOG.info("Current running tasks: {}", runningTasks);
-
         try {
           Thread.sleep(GET_PENDING_TASK_INTERVAL_MS);
         } catch (InterruptedException e) {

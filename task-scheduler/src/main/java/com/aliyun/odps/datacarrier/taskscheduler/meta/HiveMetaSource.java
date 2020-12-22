@@ -19,11 +19,14 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
@@ -43,12 +46,15 @@ public class HiveMetaSource implements MetaSource {
   private static final Logger LOG = LogManager.getLogger(HiveMetaSource.class);
 
   private IMetaStoreClient hmsClient;
+  private FileSystem fs;
 
   public HiveMetaSource(String hmsAddr,
+                        String defaultFs,
                         String principal,
                         String keyTab,
                         List<String> systemProperties) throws MetaException {
     initHmsClient(hmsAddr, principal, keyTab, systemProperties);
+    initFileSystem(defaultFs);
   }
 
   private void initHmsClient(String hmsAddr,
@@ -95,6 +101,22 @@ public class HiveMetaSource implements MetaSource {
 
     this.hmsClient = RetryingMetaStoreClient.getProxy(
         hiveConf, tbl -> null, HiveMetaStoreClient.class.getName());
+  }
+
+  private void initFileSystem(String defaultFs) {
+    LOG.info("Initializing HDFS client with default fs: {}", defaultFs);
+    if (defaultFs == null) {
+      return;
+    }
+
+    Configuration conf = new Configuration();
+    conf.set("fs.default.name", defaultFs);
+    conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+    try {
+      fs = FileSystem.get(conf);
+    } catch (IOException e) {
+      LOG.warn("Initializing HDFS client failed", e);
+    }
   }
 
   @Override
@@ -152,7 +174,15 @@ public class HiveMetaSource implements MetaSource {
         }
       }
     }
-    // TODO: get size from hdfs
+
+    if (fs != null) {
+      Path path = new Path(tableMetaModel.location);
+      tableMetaModel.size = fs.getContentSummary(path).getLength();
+      LOG.debug("Database: {}, Table: {}, size: {}",
+                databaseName,
+                tableName,
+                tableMetaModel.size);
+    }
 
     List<FieldSchema> columns = hmsClient.getFields(databaseName, tableName);
     for (FieldSchema column : columns) {
@@ -192,6 +222,8 @@ public class HiveMetaSource implements MetaSource {
         partitionMetaModel.createTime = (long) partition.getCreateTime();
         partitionMetaModel.location = partition.getSd().getLocation();
         partitionMetaModel.partitionValues = partition.getValues();
+        setPartitionSize(partitionMetaModel);
+
         tableMetaModel.partitions.add(partitionMetaModel);
         LOG.debug("Database: {}, Table: {}, partition: {} ",
                   databaseName,
@@ -231,8 +263,19 @@ public class HiveMetaSource implements MetaSource {
               partitionValues,
               partition.getSd().getLocation());
     partitionMetaModel.partitionValues = partition.getValues();
+    setPartitionSize(partitionMetaModel);
 
     return partitionMetaModel;
+  }
+
+
+
+  public void setPartitionSize(PartitionMetaModel partitionMetaModel) throws IOException {
+    if (fs != null) {
+      Path location = new Path(partitionMetaModel.location);
+      partitionMetaModel.size = fs.getContentSummary(location).getLength();
+      LOG.debug("Location: {}, size: {}", location, partitionMetaModel.size);
+    }
   }
 
   @Override

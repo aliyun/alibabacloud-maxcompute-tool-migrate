@@ -67,7 +67,9 @@ public class MmaConfigUtils {
   static {
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.fetch.task.conversion", "none");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.execution.engine", "mr");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
+    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put(
+        "mapreduce.max.split.size",
+        Integer.toString(Constants.DEFAULT_MAPREDUCE_SPLIT_SIZE_IN_BYTE));
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
     HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.speculative", "false");

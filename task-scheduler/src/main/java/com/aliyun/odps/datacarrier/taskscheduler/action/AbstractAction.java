@@ -45,7 +45,7 @@ public abstract class AbstractAction implements Action {
   private Long startTime;
   private Long endTime;
 
-  protected Map<Resource, Integer> resourceMap;
+  protected Map<Resource, Long> resourceMap;
   protected Future<Object> future;
 
   /**
@@ -88,7 +88,7 @@ public abstract class AbstractAction implements Action {
 
   @Override
   public boolean tryAllocateResource() {
-    Map<Resource, Integer> finalResourceMap =
+    Map<Resource, Long> finalResourceMap =
         ResourceAllocator.getInstance().allocate(id, resourceMap);
     if (finalResourceMap != null) {
       resourceMap = finalResourceMap;
