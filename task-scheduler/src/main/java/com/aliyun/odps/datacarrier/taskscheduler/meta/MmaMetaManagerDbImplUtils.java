@@ -295,6 +295,7 @@ public class MmaMetaManagerDbImplUtils {
     for (Map.Entry<String, String> entry : Constants.MMA_PT_META_COL_TO_TYPE.entrySet()) {
       sb.append("    ").append(entry.getKey()).append(" ").append(entry.getValue()).append(",\n");
     }
+    sb.append("    PRIMARY KEY (").append(Constants.MMA_PT_META_COL_PT_VALS).append("))\n");
     return sb.toString();
   }
 

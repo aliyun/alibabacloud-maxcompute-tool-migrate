@@ -24,9 +24,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.MetaDBConfig;
 
 public class MmaServerConfig {
   private static final Logger LOG = LogManager.getLogger(MmaServerConfig.class);
@@ -94,6 +97,10 @@ public class MmaServerConfig {
 
   public MmaConfig.MetaDBConfig getMetaDBConfig() {
     return metaDBConfig;
+  }
+
+  public void setMetaDBConfig(MetaDBConfig metaDBConfig) {
+    this.metaDBConfig = metaDBConfig;
   }
 
   public MmaConfig.OssConfig getOssConfig() {
@@ -186,5 +193,9 @@ public class MmaServerConfig {
     }
 
     return instance;
+  }
+
+  public static void setInstance(MmaServerConfig mmaServerConfig) {
+    instance = Objects.requireNonNull(mmaServerConfig);
   }
 }
