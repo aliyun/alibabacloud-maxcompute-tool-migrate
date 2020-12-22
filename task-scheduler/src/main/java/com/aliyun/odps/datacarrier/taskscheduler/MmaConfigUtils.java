@@ -105,7 +105,7 @@ public class MmaConfigUtils {
       new MetaDBConfig("org.h2.Driver",
                        "jdbc:h2:file:/tmp/mma/.MmaMeta;AUTO_SERVER=TRUE",
                        "mma",
-                       "",
+                       "mma",
                        20);
 
   /*
@@ -157,13 +157,26 @@ public class MmaConfigUtils {
                           tunnelEndpoint);
   }
 
-  public static MetaDBConfig parseMetaDBConfig(Path metaDBConfigPath)  throws IOException {
-    if (metaDBConfigPath == null || !metaDBConfigPath.toFile().exists()) {
+  public static MetaDBConfig parseMetaDBConfig(Path metaDbConfigPath)  throws IOException {
+    if (metaDbConfigPath == null) {
+      // Ensure MMA_HOME is set
+      String mmaHome = System.getenv("MMA_HOME");
+      if (mmaHome == null) {
+        throw new IllegalStateException("Environment variable 'MMA_HOME' not set");
+      }
+      Path parentDir = Paths.get(mmaHome);
+      String connectionUrl = "jdbc:h2:file:"
+          + Paths.get(parentDir.toString(), Constants.DB_FILE_NAME).toAbsolutePath()
+          + ";AUTO_SERVER=TRUE";
+      return new MetaDBConfig("h2", connectionUrl, "mma", "mma", 50);
+    }
+
+    if (!metaDbConfigPath.toFile().exists()) {
       throw new IllegalArgumentException("Invalid meta db config path");
     }
 
     Properties properties = new Properties();
-    properties.load(new FileReader(metaDBConfigPath.toFile()));
+    properties.load(new FileReader(metaDbConfigPath.toFile()));
     String userPropertyValue = properties.getProperty("user", "");
     if (StringUtils.isNullOrEmpty(userPropertyValue)) {
       userPropertyValue = System.getenv("META_DB_USER");
@@ -429,9 +442,11 @@ public class MmaConfigUtils {
         throw new IllegalArgumentException("Requires '--hive_config' and '--odps_config'");
       }
 
+      String metaDbConfPathString = cmd.getOptionValue("meta_db_conf");
+
       generateMmaServerConfig(Paths.get(cmd.getOptionValue("hive_config")),
                               Paths.get(cmd.getOptionValue("odps_config")),
-                              Paths.get(cmd.getOptionValue("meta_db_conf")),
+                              metaDbConfPathString != null ? Paths.get(metaDbConfPathString) : null,
                               prefix);
     }
 
