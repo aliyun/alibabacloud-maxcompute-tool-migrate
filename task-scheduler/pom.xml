@@ -15,6 +15,7 @@
     <dependency>
       <groupId>com.aliyun.odps</groupId>
       <artifactId>odps-sdk-core</artifactId>
+      <classifier>shaded</classifier>
     </dependency>
     <dependency>
       <groupId>com.aliyun.oss</groupId>
@@ -23,6 +24,18 @@
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-mapreduce-client-core</artifactId>
     </dependency>
     <!-- Log Settings: Log4j2 + Slf4j -->
     <dependency>

@@ -24,6 +24,7 @@ import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_TABLE_F
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -79,10 +80,12 @@ import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsRestoreTableAction;
 import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsSourceVerificationAction;
 import com.aliyun.odps.datacarrier.taskscheduler.action.VerificationAction;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils.RestoreTaskInfo;
 import com.aliyun.odps.utils.StringUtils;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 
 public class TaskProvider {
@@ -913,18 +916,32 @@ public class TaskProvider {
       return Collections.singletonList(tableMetaModel);
     }
 
-    List<TableMetaModel> ret = new LinkedList<>();
+    // Adaptive table split
+    List<TableMetaModel> splits = getAdaptiveTableSplits(tableMetaModel, config);
+    if (splits != null) {
+      return splits;
+    }
 
-    // TODO: adaptive table split
+    return getStaticTableSplits(tableMetaModel, config);
+  }
+
+  @VisibleForTesting
+  static List<TableMetaModel> getStaticTableSplits(
+      TableMetaModel tableMetaModel,
+      MmaConfig.AdditionalTableConfig config) {
+    LOG.info("Database: {}, table: {}, enter getStaticTableSplits",
+             tableMetaModel.databaseName,
+             tableMetaModel.tableName);
+    List<TableMetaModel> ret = new LinkedList<>();
     int partitionGroupSize;
     if (config != null && config.getPartitionGroupSize() > 0) {
       partitionGroupSize = config.getPartitionGroupSize();
     } else {
-      partitionGroupSize = Math.min(tableMetaModel.partitions.size(), Constants.MAX_PARTITION_BATCH_SIZE);
+      partitionGroupSize =
+          Math.min(tableMetaModel.partitions.size(), Constants.MAX_PARTITION_GROUP_SIZE);
     }
 
     int startIdx = 0;
-
     while (startIdx < tableMetaModel.partitions.size()) {
       TableMetaModel clone = tableMetaModel.clone();
 
@@ -934,6 +951,105 @@ public class TaskProvider {
       ret.add(clone);
 
       startIdx += partitionGroupSize;
+    }
+
+    return ret;
+  }
+
+  @VisibleForTesting
+  static List<TableMetaModel> getAdaptiveTableSplits(
+      TableMetaModel tableMetaModel,
+      MmaConfig.AdditionalTableConfig config) {
+    LOG.info("Database: {}, table: {}, enter getAdaptiveTableSplits",
+             tableMetaModel.databaseName,
+             tableMetaModel.tableName);
+
+
+    if (tableMetaModel.partitionColumns.isEmpty()) {
+      LOG.info("Database: {}, table: {}, adaptive table splitting not working with non-partitioned table",
+               tableMetaModel.databaseName,
+               tableMetaModel.tableName);
+      return null;
+    }
+
+    List<PartitionMetaModel> partitionsWithoutSize = tableMetaModel.partitions
+        .stream()
+        .filter(p -> p.size == null).collect(Collectors.toList());
+    if (!partitionsWithoutSize.isEmpty()) {
+      partitionsWithoutSize.forEach(p -> {
+        LOG.info("Database: {}, table: {}, partition: {}, size not available",
+                 tableMetaModel.databaseName,
+                 tableMetaModel.tableName,
+                 p.partitionValues);
+      });
+      return null;
+    }
+
+    List<TableMetaModel> ret = new LinkedList<>();
+    final long splitSizeInByte = config.getPartitionGroupSplitSizeInGb() * 1024 * 1024 * 1024L;
+
+    // Sort in descending order
+    tableMetaModel.partitions.sort((o1, o2) -> {
+      if (o1.size > o2.size) {
+        return -1;
+      } else if (o1.size.equals(o2.size)) {
+        return 0;
+      } else {
+        return 1;
+      }
+    });
+
+    int i = 0;
+    while (i < tableMetaModel.partitions.size()) {
+      TableMetaModel clone = tableMetaModel.clone();
+
+      // Handle extremely large partitions. Generate a task for each of them.
+      if (tableMetaModel.partitions.get(i).size > splitSizeInByte) {
+        LOG.info("Database: {}, table: {}, partition: {}, size exceeds split size: {}",
+                 tableMetaModel.databaseName,
+                 tableMetaModel.tableName,
+                 tableMetaModel.partitions.get(i).partitionValues,
+                 tableMetaModel.partitions.get(i).size);
+        clone.partitions = Collections.singletonList(tableMetaModel.partitions.get(i));
+        i++;
+        ret.add(clone);
+        continue;
+      }
+
+      clone.partitions = new LinkedList<>();
+      LOG.debug("Database: {}, table: {}, assemble {} th partition group",
+                tableMetaModel.databaseName,
+                tableMetaModel.tableName,
+                ret.size());
+      long sum = 0;
+
+      // Keep adding partitions as long as the total size is less than splitSizeInByte and the
+      // number of partitions is less than Constants.MAX_PARTITION_GROUP_SIZE
+      while (i < tableMetaModel.partitions.size()
+          && clone.partitions.size() < Constants.MAX_PARTITION_GROUP_SIZE) {
+        if (sum + tableMetaModel.partitions.get(i).size <= splitSizeInByte) {
+          clone.partitions.add(tableMetaModel.partitions.get(i));
+          LOG.debug(
+              "Database: {}, table: {}, add partition: {}, size: {} to partition group",
+              tableMetaModel.databaseName,
+              tableMetaModel.tableName,
+              tableMetaModel.partitions.get(i).partitionValues,
+              tableMetaModel.partitions.get(i).size);
+          sum += tableMetaModel.partitions.get(i).size;
+        } else {
+          break;
+        }
+        i++;
+      }
+
+      ret.add(clone);
+      LOG.debug(
+          "Database: {}, table: {}, {} th partition group, num partitions: {}, size: {}",
+          tableMetaModel.databaseName,
+          tableMetaModel.tableName,
+          ret.size(),
+          ((LinkedList<TableMetaModel>) ret).getLast().partitions.size(),
+          ((LinkedList<TableMetaModel>) ret).getLast().partitions.stream().map(p -> p.size).reduce((s1, s2) -> s1 + s2));
     }
 
     return ret;
