@@ -53,7 +53,7 @@ public class MmaClientDbImpl implements MmaClient {
   public MmaClientDbImpl() throws MetaException, MmaException {
     metaSource = MetaSourceFactory.getMetaSource();
     dataSource = MmaServerConfig.getInstance().getDataSource();
-    mmaMetaManager = new MmaMetaManagerDbImpl(null, metaSource, false);
+    mmaMetaManager = new MmaMetaManagerDbImpl(metaSource, false);
   }
 
   @Override

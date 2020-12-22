@@ -50,10 +50,7 @@ public class MmaServer {
   private SummaryReportingThread summaryReportingThread;
 
   public MmaServer() throws MetaException, MmaException {
-    mmaMetaManager = new MmaMetaManagerDbImpl(
-        null,
-        MetaSourceFactory.getMetaSource(),
-        true);
+    mmaMetaManager = new MmaMetaManagerDbImpl(MetaSourceFactory.getMetaSource(), true);
 
     TaskProvider taskProvider = new TaskProvider(mmaMetaManager);
     taskScheduler = new TaskScheduler(taskProvider);
