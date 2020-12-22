@@ -83,6 +83,7 @@ public class MockHiveMetaSource implements MetaSource {
 
     PartitionMetaModel partitionMetaModel = new PartitionMetaModel();
     partitionMetaModel.partitionValues.addAll(TBL_PARTITIONED_PARTITION_VALUES);
+    partitionMetaModel.lastModifiedTime = -1L;
     testPartitioned.partitions.add(partitionMetaModel);
 
     return testPartitioned;

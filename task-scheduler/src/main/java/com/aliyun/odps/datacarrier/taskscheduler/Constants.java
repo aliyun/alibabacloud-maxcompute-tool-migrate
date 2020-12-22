@@ -43,6 +43,7 @@ public class Constants {
 
   // Types
   public static final String VARCHAR_255 = "VARCHAR(255)";
+  public static final String VARCHAR_768 = "VARCHAR(768)";
   public static final String VARCHAR_65535 = "VARCHAR(65535)";
   public static final String TEXT = "TEXT";
   public static final String INT = "INT";
@@ -122,7 +123,9 @@ public class Constants {
   public static final Map<String, String> MMA_PT_META_COL_TO_TYPE;
   static {
     Map<String, String> temp = new LinkedHashMap<>();
-    temp.put(MMA_PT_META_COL_PT_VALS, TEXT);
+    // Since single partition column value is less than 128 bytes and the number of partition
+    // columns cannot exceeds 6, VARCHAR_768 is enough for column MMA_PT_META_COL_PT_VALS
+    temp.put(MMA_PT_META_COL_PT_VALS, VARCHAR_768);
     temp.put(MMA_PT_META_COL_STATUS, VARCHAR_255);
     temp.put(MMA_PT_META_COL_ATTEMPT_TIMES, INT);
     temp.put(MMA_PT_META_COL_LAST_MODIFIED_TIME, BIGINT);

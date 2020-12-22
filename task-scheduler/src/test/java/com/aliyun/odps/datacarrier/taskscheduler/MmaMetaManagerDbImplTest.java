@@ -39,6 +39,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.MetaDBConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImpl;
@@ -86,7 +87,10 @@ public class MmaMetaManagerDbImplTest {
 
   @BeforeClass
   public static void beforeClass() throws MmaException, SQLException {
-    mmaMetaManager = new MmaMetaManagerDbImpl(DEFAULT_MMA_PARENT_DIR, metaSource, false);
+    MetaDBConfig metaDBConfig = new MetaDBConfig("h2", DEFAULT_CONN_URL, "mma", "mma", 20);
+    MmaServerConfig mmaServerConfig = new MmaServerConfig(DataSource.Hive, null, null, null, metaDBConfig, null, null, null);
+    MmaServerConfig.setInstance(mmaServerConfig);
+    mmaMetaManager = new MmaMetaManagerDbImpl(metaSource, false);
     conn = DriverManager.getConnection(DEFAULT_CONN_URL, "mma", "mma");
   }
 
@@ -280,19 +284,6 @@ public class MmaMetaManagerDbImplTest {
       try (ResultSet rs = stmt.executeQuery(sql)) {
         Assert.assertFalse(rs.next());
       }
-    }
-  }
-
-  @Test
-  public void testRemoveExistingRunningMigrationJob() throws MmaException {
-    mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
-    try {
-      mmaMetaManager.removeMigrationJob(
-          TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
-          TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceTableName());
-      Assert.fail();
-    } catch (MmaException e) {
-      Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("Running migration job exists"));
     }
   }
 

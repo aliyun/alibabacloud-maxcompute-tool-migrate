@@ -380,9 +380,9 @@ public class MmaConfig {
     }
 
     public String getDriverClass() {
-      if (dbType.equals("mysql")) {
+      if ("mysql".equals(dbType)) {
         return "com.mysql.cj.jdbc.Driver";
-      } else if (dbType.equals("h2")) {
+      } else if ("h2".equals(dbType)) {
         return "org.h2.Driver";
       }
       throw new RuntimeException("Unknown meta db type: " + dbType);
@@ -413,7 +413,7 @@ public class MmaConfig {
         password = System.getenv("META_DB_PASSWORD");
       }
       if (StringUtils.isNullOrEmpty(jdbcUrl)) {
-        password = System.getenv("META_DB_JDBC_URL");
+        jdbcUrl = System.getenv("META_DB_JDBC_URL");
       }
       if (StringUtils.isNullOrEmpty(dbType) ||
           StringUtils.isNullOrEmpty(jdbcUrl) ||
@@ -701,6 +701,8 @@ public class MmaConfig {
         typeTransformer = new HiveTypeTransformer();
       } else if (DataSource.ODPS.equals(dataSource)) {
         typeTransformer = new OdpsTypeTransformer(!StringUtils.isNullOrEmpty(destTableStorage));
+      } else {
+        throw new IllegalArgumentException("Unsupported datasource type: " + dataSource.name());
       }
 
       for (MetaSource.ColumnMetaModel c : tableMetaModel.columns) {
