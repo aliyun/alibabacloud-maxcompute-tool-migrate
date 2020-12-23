@@ -50,7 +50,7 @@ public class OdpsRestoreTableAction extends OdpsSqlAction {
                                 String destinationTable,
                                 MmaConfig.ObjectType type,
                                 Map<String, String> settings) {
-    super(id);
+    super(id, destinationProject);
     this.taskName = taskName;
     this.originProject = originProject;
     this.destinationProject = destinationProject;

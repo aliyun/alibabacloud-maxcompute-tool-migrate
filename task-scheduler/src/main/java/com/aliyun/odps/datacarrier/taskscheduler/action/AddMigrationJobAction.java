@@ -28,13 +28,16 @@ import org.apache.logging.log4j.Logger;
 public class AddMigrationJobAction extends OdpsNoSqlAction {
   private static final Logger LOG = LogManager.getLogger(AddMigrationJobAction.class);
 
+  private String taskName;
   private MmaConfig.TableMigrationConfig config;
   private MmaMetaManager mmaMetaManager;
 
   public AddMigrationJobAction(String id,
+                               String taskName,
                                MmaConfig.TableMigrationConfig config,
                                MmaMetaManager mmaMetaManager) {
     super(id);
+    this.taskName = taskName;
     this.config = config;
     this.mmaMetaManager = mmaMetaManager;
   }
@@ -42,7 +45,7 @@ public class AddMigrationJobAction extends OdpsNoSqlAction {
   @Override
   public void doAction() throws MmaException {
     try {
-      mmaMetaManager.addMigrationJob(config);
+      mmaMetaManager.addMigrationJob(taskName, config);
       LOG.info("Add migration job {}", MmaConfig.TableMigrationConfig.toJson(config));
     } catch (Exception e) {
       LOG.error("Action {} Exception when create table migration job, config {}",

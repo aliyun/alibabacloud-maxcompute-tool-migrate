@@ -36,14 +36,23 @@ import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 public class ObjectExportAndRestoreTask extends AbstractTask {
   private static final Logger LOG = LogManager.getLogger(ObjectExportAndRestoreTask.class);
 
+  protected final String uniqueId;
+  private final String jobType;
+  private final String objectType;
   private final MetaSource.TableMetaModel tableMetaModel;
   private RestoreTaskInfo restoreTaskInfo;
 
   public ObjectExportAndRestoreTask(String id,
+                                    String uniqueId,
+                                    String jobType,
+                                    String objectType,
                                     MetaSource.TableMetaModel tableMetaModel,
                                     DirectedAcyclicGraph<Action, DefaultEdge> dag,
                                     MmaMetaManager mmaMetaManager) {
     super(id, dag, mmaMetaManager);
+    this.uniqueId = uniqueId;
+    this.jobType = jobType;
+    this.objectType = objectType;
     this.tableMetaModel = Objects.requireNonNull(tableMetaModel);
     actionExecutionContext.setTableMetaModel(this.tableMetaModel);
   }
@@ -67,9 +76,12 @@ public class ObjectExportAndRestoreTask extends AbstractTask {
     if (restoreTaskInfo != null) {
       mmaMetaManager.updateStatusInRestoreDB(restoreTaskInfo, status);
     } else {
-      mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-          tableMetaModel.tableName,
-          status);
+      mmaMetaManager.updateStatus(uniqueId,
+                                  jobType,
+                                  objectType,
+                                  tableMetaModel.databaseName,
+                                  tableMetaModel.tableName,
+                                  status);
     }
   }
 }

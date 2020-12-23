@@ -30,6 +30,7 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
 
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -67,17 +68,27 @@ public class MmaMetaManagerDbImplTest {
           MockHiveMetaSource.TBL_NON_PARTITIONED,
           MmaConfigUtils.DEFAULT_ADDITIONAL_TABLE_CONFIG);
 
+  public static final String UNIQUE_ID = MmaMetaManagerDbImplUtils.generateMigrationUniqueId(
+      MockHiveMetaSource.DB_NAME,
+      MockHiveMetaSource.TBL_NON_PARTITIONED,
+      MockHiveMetaSource.DB_NAME,
+      MockHiveMetaSource.TBL_NON_PARTITIONED);
+
   public static final MmaConfig.JobConfig PARTITIONED_TABLE_MIGRATION_JOB_CONFIG =
-      new MmaConfig.JobConfig(MockHiveMetaSource.DB_NAME,
+      new MmaConfig.JobConfig(UNIQUE_ID,
+          MockHiveMetaSource.DB_NAME,
           MockHiveMetaSource.TBL_PARTITIONED,
           MmaConfig.JobType.MIGRATION,
+          MmaConfig.ObjectType.TABLE,
           MmaConfig.TableMigrationConfig.toJson(MmaMetaManagerDbImplTest.TABLE_MIGRATION_CONFIG_PARTITIONED),
           MmaMetaManagerDbImplTest.TABLE_MIGRATION_CONFIG_PARTITIONED.getAdditionalTableConfig());
 
   public static final MmaConfig.JobConfig NON_PARTITIONED_TABLE_MIGRATION_JOB_CONFIG =
-      new MmaConfig.JobConfig(MockHiveMetaSource.DB_NAME,
+      new MmaConfig.JobConfig(UNIQUE_ID,
+          MockHiveMetaSource.DB_NAME,
           MockHiveMetaSource.TBL_NON_PARTITIONED,
           MmaConfig.JobType.MIGRATION,
+          MmaConfig.ObjectType.TABLE,
           MmaConfig.TableMigrationConfig.toJson(MmaMetaManagerDbImplTest.TABLE_MIGRATION_CONFIG_NON_PARTITIONED),
           MmaMetaManagerDbImplTest.TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getAdditionalTableConfig());
 
@@ -111,7 +122,7 @@ public class MmaMetaManagerDbImplTest {
   @Before
   public void setup() throws SQLException {
     try (Statement stmt = conn.createStatement()) {
-      stmt.execute("TRUNCATE TABLE " + Constants.MMA_TBL_META_TBL_NAME);
+      stmt.execute("TRUNCATE TABLE " + Constants.MMA_OBJECT_META_TBL_NAME);
     }
 
     try (Statement stmt = conn.createStatement()) {
@@ -139,48 +150,48 @@ public class MmaMetaManagerDbImplTest {
 
     try (Statement stmt = conn.createStatement()) {
       String sql = String.format("SELECT * FROM %s ORDER BY %s DESC",
-                                 Constants.MMA_TBL_META_TBL_NAME,
-                                 Constants.MMA_TBL_META_COL_TBL_NAME);
+                                 Constants.MMA_OBJECT_META_TBL_NAME,
+                                 Constants.MMA_TBL_META_COL_OBJECT_NAME);
       try (ResultSet rs = stmt.executeQuery(sql)) {
         // test.test_partitioned
         Assert.assertTrue(rs.next());
-        Assert.assertEquals(MockHiveMetaSource.DB_NAME, rs.getString(1));
-        Assert.assertEquals(MockHiveMetaSource.TBL_PARTITIONED, rs.getString(2));
-        Assert.assertTrue(rs.getBoolean(3));
+        Assert.assertEquals(MockHiveMetaSource.DB_NAME, rs.getString(3));
+        Assert.assertEquals(MockHiveMetaSource.TBL_PARTITIONED, rs.getString(4));
+        Assert.assertTrue(rs.getBoolean(5));
         Assert.assertEquals(GsonUtils.getFullConfigGson().toJson(PARTITIONED_TABLE_MIGRATION_JOB_CONFIG),
-                            rs.getString(4));
+                            rs.getString(6));
         Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING.toString(),
-                            rs.getString(5));
-        Assert.assertEquals(0, rs.getInt(6));
-        Assert.assertEquals(-1L, rs.getLong(7));
+                            rs.getString(7));
+        Assert.assertEquals(0, rs.getInt(8));
+        Assert.assertEquals(-1L, rs.getLong(9));
 
         // test.test_non_partitioned
         Assert.assertTrue(rs.next());
-        Assert.assertEquals(MockHiveMetaSource.DB_NAME, rs.getString(1));
-        Assert.assertEquals(MockHiveMetaSource.TBL_NON_PARTITIONED, rs.getString(2));
-        Assert.assertFalse(rs.getBoolean(3));
+        Assert.assertEquals(MockHiveMetaSource.DB_NAME, rs.getString(3));
+        Assert.assertEquals(MockHiveMetaSource.TBL_NON_PARTITIONED, rs.getString(4));
+        Assert.assertFalse(rs.getBoolean(5));
         Assert.assertEquals(GsonUtils.getFullConfigGson().toJson(NON_PARTITIONED_TABLE_MIGRATION_JOB_CONFIG),
-                            rs.getString(4));
+                            rs.getString(6));
         Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING.toString(),
-                            rs.getString(5));
-        Assert.assertEquals(0, rs.getInt(6));
-        Assert.assertEquals(-1L, rs.getLong(7));
+                            rs.getString(7));
+        Assert.assertEquals(0, rs.getInt(8));
+        Assert.assertEquals(-1L, rs.getLong(9));
       }
 
       // check mma_meta_pt_test_test_partitioned
       String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                        MockHiveMetaSource.DB_NAME);
+                                        MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
       String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                       MockHiveMetaSource.TBL_PARTITIONED);
+                                       MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
       sql = "SELECT  * FROM " + schemaName + "." + tableName;
       try (ResultSet rs = stmt.executeQuery(sql)) {
         Assert.assertTrue(rs.next());
         Assert.assertEquals(GsonUtils.getFullConfigGson().toJson(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES),
-                            rs.getString(1));
+                            rs.getString(3));
         Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING.toString(),
-                            rs.getString(2));
-        Assert.assertEquals(0, rs.getInt(3));
-        Assert.assertEquals(-1L, rs.getInt(4));
+                            rs.getString(4));
+        Assert.assertEquals(0, rs.getInt(5));
+        Assert.assertEquals(-1L, rs.getInt(6));
       }
     }
   }
@@ -202,17 +213,23 @@ public class MmaMetaManagerDbImplTest {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
 
     // Update status to SUCCEEDED
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_NON_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
 
     // Make sure the status is updated
     try (Statement stmt = conn.createStatement()) {
       String sql = "SELECT " + Constants.MMA_TBL_META_COL_STATUS + " FROM " +
-                   Constants.MMA_TBL_META_TBL_NAME;
+                   Constants.MMA_OBJECT_META_TBL_NAME;
       try (ResultSet rs = stmt.executeQuery(sql)) {
         while (rs.next()) {
           Assert.assertEquals(MmaMetaManager.MigrationStatus.SUCCEEDED.toString(),
@@ -233,7 +250,7 @@ public class MmaMetaManagerDbImplTest {
                                  Constants.MMA_TBL_META_COL_STATUS,
                                  Constants.MMA_TBL_META_COL_ATTEMPT_TIMES,
                                  Constants.MMA_TBL_META_COL_LAST_MODIFIED_TIME,
-                                 Constants.MMA_TBL_META_TBL_NAME);
+                                 Constants.MMA_OBJECT_META_TBL_NAME);
       try (ResultSet rs = stmt.executeQuery(sql)) {
         while (rs.next()) {
           Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING.toString(),
@@ -249,9 +266,15 @@ public class MmaMetaManagerDbImplTest {
   public void testHasMigrationJob() throws MmaException {
     String db = TABLE_MIGRATION_CONFIG_PARTITIONED.getSourceDataBaseName();
     String tbl = TABLE_MIGRATION_CONFIG_PARTITIONED.getSourceTableName();
-    Assert.assertFalse(mmaMetaManager.hasMigrationJob(db, tbl));
+    Assert.assertFalse(mmaMetaManager.hasMigrationJob(UNIQUE_ID,
+        MmaConfig.JobType.MIGRATION.name(),
+        MmaConfig.ObjectType.TABLE.name(),
+        db, tbl));
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
-    Assert.assertTrue(mmaMetaManager.hasMigrationJob(db,tbl));
+    Assert.assertTrue(mmaMetaManager.hasMigrationJob(UNIQUE_ID,
+        MmaConfig.JobType.MIGRATION.name(),
+        MmaConfig.ObjectType.TABLE.name(),
+        db,tbl));
   }
 
   @Test
@@ -272,15 +295,21 @@ public class MmaMetaManagerDbImplTest {
   public void testRemoveExistingTerminatedMigrationJob() throws MmaException, SQLException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
 
-    mmaMetaManager.updateStatus(TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
                                 TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceTableName(),
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
 
-    mmaMetaManager.removeMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
+    mmaMetaManager.removeMigrationJob(UNIQUE_ID,
+                                      MmaConfig.JobType.MIGRATION.name(),
+                                      MmaConfig.ObjectType.TABLE.name(),
+                                      TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
                                       TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceTableName());
 
     try (Statement stmt = conn.createStatement()) {
-      String sql = "SELECT * FROM " + Constants.MMA_TBL_META_TBL_NAME;
+      String sql = "SELECT * FROM " + Constants.MMA_OBJECT_META_TBL_NAME;
       try (ResultSet rs = stmt.executeQuery(sql)) {
         Assert.assertFalse(rs.next());
       }
@@ -290,9 +319,11 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testRemoveNonExistingMigrationJob() {
     try {
-      mmaMetaManager.removeMigrationJob(
-          TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
-          TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceTableName());
+      mmaMetaManager.removeMigrationJob(UNIQUE_ID,
+                                        MmaConfig.JobType.MIGRATION.name(),
+                                        MmaConfig.ObjectType.TABLE.name(),
+                                        TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceDataBaseName(),
+                                        TABLE_MIGRATION_CONFIG_NON_PARTITIONED.getSourceTableName());
     } catch (MmaException e) {
       Assert.fail("Unexpected exception: " + ExceptionUtils.getStackTrace(e));
     }
@@ -302,8 +333,11 @@ public class MmaMetaManagerDbImplTest {
   public void testGetExistingMigrationJobStatus() throws MmaException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
     MmaMetaManager.MigrationStatus status =
-        mmaMetaManager.getStatus(MockHiveMetaSource.DB_NAME,
-                                 MockHiveMetaSource.TBL_NON_PARTITIONED);
+        mmaMetaManager.getStatus(UNIQUE_ID,
+            MmaConfig.JobType.MIGRATION.name(),
+            MmaConfig.ObjectType.TABLE.name(),
+            MockHiveMetaSource.DB_NAME,
+            MockHiveMetaSource.TBL_NON_PARTITIONED);
     Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING, status);
   }
 
@@ -311,9 +345,12 @@ public class MmaMetaManagerDbImplTest {
   public void testGetExistingMigrationJobPtStatus() throws MmaException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
     MmaMetaManager.MigrationStatus status =
-        mmaMetaManager.getStatus(MockHiveMetaSource.DB_NAME,
-                                 MockHiveMetaSource.TBL_PARTITIONED,
-                                 MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
+        mmaMetaManager.getStatus(UNIQUE_ID,
+            MmaConfig.JobType.MIGRATION.name(),
+            MmaConfig.ObjectType.TABLE.name(),
+            MockHiveMetaSource.DB_NAME,
+            MockHiveMetaSource.TBL_PARTITIONED,
+            MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
 
     Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING, status);
   }
@@ -321,11 +358,17 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testUpdateExistingMigrationJobToRunning() throws Exception {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.RUNNING);
 
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_PARTITIONED,
                                 Collections.singletonList(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES),
                                 MmaMetaManager.MigrationStatus.RUNNING);
@@ -347,13 +390,16 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testUpdateExistingMigrationJobToSucceeded() throws Exception {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_NON_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
 
     String sql = String.format("SELECT %s FROM %s",
                                Constants.MMA_TBL_META_COL_STATUS,
-                               Constants.MMA_TBL_META_TBL_NAME);
+                               Constants.MMA_OBJECT_META_TBL_NAME);
     try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
       Assert.assertTrue(rs.next());
       Assert.assertEquals(MmaMetaManager.MigrationStatus.SUCCEEDED.toString(),
@@ -365,14 +411,17 @@ public class MmaMetaManagerDbImplTest {
   public void testUpdateExistingMigrationJobToFailed() throws MmaException, SQLException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
 
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_NON_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.FAILED);
 
     String sql = String.format("SELECT %s, %s FROM %s",
                                Constants.MMA_TBL_META_COL_STATUS,
                                Constants.MMA_TBL_META_COL_ATTEMPT_TIMES,
-                               Constants.MMA_TBL_META_TBL_NAME);
+                               Constants.MMA_OBJECT_META_TBL_NAME);
     try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
       Assert.assertTrue(rs.next());
       Assert.assertEquals(MmaMetaManager.MigrationStatus.PENDING.toString(),
@@ -381,7 +430,10 @@ public class MmaMetaManagerDbImplTest {
     }
 
     // Retry fails, status is set to FAILED since max retry times is 1
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_NON_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.FAILED);
     try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
@@ -395,7 +447,10 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testUpdateNonExistingMigrationJob() {
     try {
-      mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+      mmaMetaManager.updateStatus(UNIQUE_ID,
+                                  MmaConfig.JobType.MIGRATION.name(),
+                                  MmaConfig.ObjectType.TABLE.name(),
+                                  MockHiveMetaSource.DB_NAME,
                                   MockHiveMetaSource.TBL_NON_PARTITIONED,
                                   MmaMetaManager.MigrationStatus.FAILED);
       Assert.fail();
@@ -408,15 +463,18 @@ public class MmaMetaManagerDbImplTest {
   public void testUpdateExistingMigrationJobPt() throws MmaException, SQLException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
 
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_PARTITIONED,
                                 Collections.singletonList(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES),
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
 
     String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                      MockHiveMetaSource.DB_NAME);
+                                      MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                     MockHiveMetaSource.TBL_PARTITIONED);
+                                     MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     String sql = String.format("SELECT %s FROM %s.%s",
                                Constants.MMA_PT_META_COL_STATUS,
                                schemaName,
@@ -434,28 +492,41 @@ public class MmaMetaManagerDbImplTest {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
 
     MmaMetaManager.MigrationProgress progress =
-        mmaMetaManager.getProgress(MockHiveMetaSource.DB_NAME, MockHiveMetaSource.TBL_PARTITIONED);
+        mmaMetaManager.getProgress(UNIQUE_ID,
+                                   MmaConfig.JobType.MIGRATION.name(),
+                                   MmaConfig.ObjectType.TABLE.name(),
+                                   MockHiveMetaSource.DB_NAME,
+                                   MockHiveMetaSource.TBL_PARTITIONED);
     Assert.assertEquals(1, progress.getNumPendingPartitions());
     Assert.assertEquals(0, progress.getNumRunningPartitions());
     Assert.assertEquals(0, progress.getNumSucceededPartitions());
     Assert.assertEquals(0, progress.getNumFailedPartitions());
 
-    Assert.assertNull(mmaMetaManager.getProgress(MockHiveMetaSource.DB_NAME,
+    Assert.assertNull(mmaMetaManager.getProgress(UNIQUE_ID,
+                                                 MmaConfig.JobType.MIGRATION.name(),
+                                                 MmaConfig.ObjectType.TABLE.name(),
+                                                 MockHiveMetaSource.DB_NAME,
                                                  MockHiveMetaSource.TBL_NON_PARTITIONED));
   }
 
   @Test
   public void testGetProgressNonExistingMigrationJob() throws MmaException {
-    Assert.assertNull(mmaMetaManager.getProgress(MockHiveMetaSource.DB_NAME,
-                               MockHiveMetaSource.TBL_NON_PARTITIONED));
+    Assert.assertNull(mmaMetaManager.getProgress(UNIQUE_ID,
+                                                 MmaConfig.JobType.MIGRATION.name(),
+                                                 MmaConfig.ObjectType.TABLE.name(),
+                                                 MockHiveMetaSource.DB_NAME,
+                                                 MockHiveMetaSource.TBL_NON_PARTITIONED));
   }
 
   @Test
   public void testGetConfigExistingMigrationJob() throws MmaException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
 
-    MmaConfig.JobConfig config =
-        mmaMetaManager.getConfig(MockHiveMetaSource.DB_NAME, MockHiveMetaSource.TBL_PARTITIONED);
+    MmaConfig.JobConfig config = mmaMetaManager.getConfig(UNIQUE_ID,
+                                                          MmaConfig.JobType.MIGRATION.name(),
+                                                          MmaConfig.ObjectType.TABLE.name(),
+                                                          MockHiveMetaSource.DB_NAME,
+                                                          MockHiveMetaSource.TBL_PARTITIONED);
     Assert.assertEquals(GsonUtils.getFullConfigGson().toJson(PARTITIONED_TABLE_MIGRATION_JOB_CONFIG),
                         GsonUtils.getFullConfigGson().toJson(config));
   }
@@ -463,7 +534,11 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testGetConfigNonExistingMigrationJob() {
     try {
-      mmaMetaManager.getConfig(MockHiveMetaSource.DB_NAME, MockHiveMetaSource.TBL_PARTITIONED);
+      mmaMetaManager.getConfig(UNIQUE_ID,
+                               MmaConfig.JobType.MIGRATION.name(),
+                               MmaConfig.ObjectType.TABLE.name(),
+                               MockHiveMetaSource.DB_NAME,
+                               MockHiveMetaSource.TBL_PARTITIONED);
       Assert.fail();
     } catch (MmaException e) {
       Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("Migration job not existed"));
@@ -475,14 +550,14 @@ public class MmaMetaManagerDbImplTest {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
 
-    List<MetaSource.TableMetaModel> tableMetaModels = mmaMetaManager.getPendingTables();
+    List<MmaMetaManagerDbImplUtils.JobInfo> jobInfos = mmaMetaManager.getPendingTables();
 
-    Assert.assertEquals(2, tableMetaModels.size());
+    Assert.assertEquals(2, jobInfos.size());
 
     MetaSource.TableMetaModel nonPartitioned;
     MetaSource.TableMetaModel partitioned;
-    nonPartitioned = tableMetaModels.get(0);
-    partitioned = tableMetaModels.get(1);
+    nonPartitioned = jobInfos.get(0).getTableMetaModel();
+    partitioned = jobInfos.get(1).getTableMetaModel();
 
     MetaSource.TableMetaModel expectedNonPartitioned =
         MockHiveMetaSource.TABLE_NAME_2_TABLE_META_MODEL.get(MockHiveMetaSource.TBL_NON_PARTITIONED);
@@ -501,11 +576,14 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testGetPendingTablesAfterMigrationJobSucceeded() throws MmaException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_NON_PARTITIONED);
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_NON_PARTITIONED,
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
 
-    List<MetaSource.TableMetaModel> tableMetaModels = mmaMetaManager.getPendingTables();
+    List<MmaMetaManagerDbImplUtils.JobInfo> tableMetaModels = mmaMetaManager.getPendingTables();
 
     Assert.assertEquals(0, tableMetaModels.size());
   }
@@ -513,12 +591,15 @@ public class MmaMetaManagerDbImplTest {
   @Test
   public void testGetPendingTablesAfterMigrationJobPtSucceeded() throws MmaException {
     mmaMetaManager.addMigrationJob(TABLE_MIGRATION_CONFIG_PARTITIONED);
-    mmaMetaManager.updateStatus(MockHiveMetaSource.DB_NAME,
+    mmaMetaManager.updateStatus(UNIQUE_ID,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                MockHiveMetaSource.DB_NAME,
                                 MockHiveMetaSource.TBL_PARTITIONED,
                                 Collections.singletonList(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES),
                                 MmaMetaManager.MigrationStatus.SUCCEEDED);
 
-    List<MetaSource.TableMetaModel> tableMetaModels = mmaMetaManager.getPendingTables();
+    List<MmaMetaManagerDbImplUtils.JobInfo> tableMetaModels = mmaMetaManager.getPendingTables();
 
     Assert.assertEquals(0, tableMetaModels.size());
   }

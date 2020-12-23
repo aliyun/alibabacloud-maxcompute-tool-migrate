@@ -19,6 +19,7 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 
@@ -87,6 +88,8 @@ public interface MmaMetaManager {
    */
   void addMigrationJob(TableMigrationConfig config) throws MmaException;
 
+  void addMigrationJob(String uniqueId, TableMigrationConfig config) throws MmaException;
+
   /**
    * Add a backup job of give table.
    * @param config backup config
@@ -109,7 +112,11 @@ public interface MmaMetaManager {
    * @param db database name
    * @param tbl table name
    */
-  void removeMigrationJob(String db, String tbl) throws MmaException;
+  void removeMigrationJob(String uniqueId,
+                          String jobType,
+                          String objectType,
+                          String db,
+                          String tbl) throws MmaException;
 
   /**
    * Check if a migration job exists.
@@ -117,9 +124,17 @@ public interface MmaMetaManager {
    * @param db database name
    * @param tbl table name
    */
-  boolean hasMigrationJob(String db, String tbl) throws MmaException;
+  boolean hasMigrationJob(String uniqueId,
+                          String jobType,
+                          String objectType,
+                          String db,
+                          String tbl) throws MmaException;
 
-  JobInfo getMigrationJob(String db, String tbl) throws MmaException;
+  JobInfo getMigrationJob(String uniqueId,
+                          String jobType,
+                          String objectType,
+                          String db,
+                          String tbl) throws MmaException;
 
   /**
    * List migration jobs
@@ -132,9 +147,8 @@ public interface MmaMetaManager {
    * @param status migration status
    * @return migration jobs in given status
    */
-  List<MmaConfig.JobConfig> listMigrationJobs(
-      MigrationStatus status,
-      int limit) throws MmaException;
+  List<MmaConfig.JobConfig> listMigrationJobs(MigrationStatus status,
+                                              int limit) throws MmaException;
 
   List<RestoreTaskInfo> listRestoreJobs(String condition, int limit) throws MmaException;
 
@@ -154,7 +168,11 @@ public interface MmaMetaManager {
    * @param tbl table name
    * @param status migration status
    */
-  void updateStatus(String db, String tbl, MigrationStatus status) throws MmaException;
+  void updateStatus(String uniqueId,
+                    String jobType,
+                    String objectType,
+                    String db, String tbl,
+                    MigrationStatus status) throws MmaException;
 
   /**
    * Update status of a migration job. If all of the partitions succeeded, the status will be
@@ -164,12 +182,13 @@ public interface MmaMetaManager {
    * @param partitionValuesList list of partition values
    * @param status migration status
    */
-  void updateStatus(
-      String db,
-      String tbl,
-      List<List<String>> partitionValuesList,
-      MigrationStatus status)
-      throws MmaException;
+  void updateStatus(String uniqueId,
+                    String jobType,
+                    String objectType,
+                    String db,
+                    String tbl,
+                    List<List<String>> partitionValuesList,
+                    MigrationStatus status) throws MmaException;
 
   /**
    * Get status of a migration job.
@@ -178,7 +197,10 @@ public interface MmaMetaManager {
    * @param tbl table name
    * @return migration status
    */
-  MigrationStatus getStatus(String db, String tbl) throws MmaException;
+  MigrationStatus getStatus(String uniqueId,
+                            String jobType,
+                            String objectType,
+                            String db, String tbl) throws MmaException;
 
   /**
    * Get migration status of specified partition.
@@ -188,6 +210,9 @@ public interface MmaMetaManager {
    * @return migration status
    */
   MigrationStatus getStatus(
+      String uniqueId,
+      String jobType,
+      String objectType,
       String db,
       String tbl,
       List<String> partitionValues)
@@ -200,7 +225,11 @@ public interface MmaMetaManager {
    * @return for partitioned tables, a {@link MigrationProgress} object will be returned. For
    * non-partitioned tables, null will be returned.
    */
-  MigrationProgress getProgress(String db, String tbl) throws MmaException;
+  MigrationProgress getProgress(String uniqueId,
+                                String jobType,
+                                String objectType,
+                                String db,
+                                String tbl) throws MmaException;
 
   /**
    * Get config of a migration job.
@@ -209,13 +238,17 @@ public interface MmaMetaManager {
    * @param tbl table name
    * @return migration config
    */
-  MmaConfig.JobConfig getConfig(String db, String tbl) throws MmaException;
+  MmaConfig.JobConfig getConfig(String uniqueId,
+                                String jobType,
+                                String objectType,
+                                String db,
+                                String tbl) throws MmaException;
 
   /**
    * Get pending migration jobs.
    * @return
    */
-  List<MetaSource.TableMetaModel> getPendingTables() throws MmaException;
+  List<JobInfo> getPendingTables() throws MmaException;
 
   /**
    * Get next pending migration job.

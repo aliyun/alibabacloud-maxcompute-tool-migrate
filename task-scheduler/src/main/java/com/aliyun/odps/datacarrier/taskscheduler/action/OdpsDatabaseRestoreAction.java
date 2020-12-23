@@ -114,9 +114,11 @@ public class OdpsDatabaseRestoreAction extends OdpsNoSqlAction {
           activeObjects.get(objectName) + 1 :
           Constants.MMA_OBJ_RESTORE_INIT_ATTEMPT_TIMES;
       MmaConfig.JobConfig jobConfig = new MmaConfig.JobConfig(
+          restoreConfig.getTaskName(),
           restoreConfig.getOriginDatabaseName(),
           objectName,
           MmaConfig.JobType.RESTORE,
+          MmaConfig.ObjectType.DATABASE,
           getJobDescription(objectName, type),
           restoreConfig.getAdditionalTableConfig());
       allTasks.add(new RestoreTaskInfo(

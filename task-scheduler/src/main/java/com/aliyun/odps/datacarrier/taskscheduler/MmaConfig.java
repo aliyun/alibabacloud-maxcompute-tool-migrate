@@ -691,8 +691,8 @@ public class MmaConfig {
 
     public void apply(MetaSource.TableMetaModel tableMetaModel) {
       // TODO: use typeCustomizedConversion and columnNameCustomizedConversion
-      tableMetaModel.odpsProjectName = destProjectName;
-      tableMetaModel.odpsTableName = destTableName;
+      tableMetaModel.odpsProjectName = destProjectName == null ? null : destProjectName.toLowerCase();
+      tableMetaModel.odpsTableName = destTableName == null ? null : destTableName.toLowerCase();
       tableMetaModel.odpsTableStorage = destTableStorage;
       // TODO: should not init a hive type transformer here, looking for better design
       TypeTransformer typeTransformer = null;
@@ -752,7 +752,8 @@ public class MmaConfig {
     TABLE,
     VIEW,
     RESOURCE,
-    FUNCTION;
+    FUNCTION,
+    DATABASE;
   }
 
   // Table/View/Resource/Function backup config
@@ -919,23 +920,40 @@ public class MmaConfig {
    * Used to record job description and transfer from MmaClient to MmaServer
    */
   public static class JobConfig {
+    private String uniqueId;
     private JobType jobType;
+    private ObjectType objectType;
     private String databaseName;
     private String name; // name of table to be migrated or resource/function to be backup
     private String description;
     private AdditionalTableConfig additionalTableConfig;
 
-    public JobConfig(String databaseName, String name, JobType type,
-                     String desc, AdditionalTableConfig additionalTableConfig) {
-      this.jobType = type;
+    public JobConfig(String uniqueId,
+                     String databaseName,
+                     String name,
+                     JobType jobType,
+                     ObjectType objectType,
+                     String desc,
+                     AdditionalTableConfig additionalTableConfig) {
+      this.uniqueId = uniqueId;
+      this.jobType = jobType;
+      this.objectType = objectType;
       this.databaseName = databaseName;
       this.name = name;
       this.description = desc;
       this.additionalTableConfig = additionalTableConfig;
     }
 
+    public String getUniqueId() {
+      return this.uniqueId;
+    }
+
     public JobType getJobType() {
       return this.jobType;
+    }
+
+    public ObjectType getObjectType() {
+      return this.objectType;
     }
 
     public String getDatabaseName() {

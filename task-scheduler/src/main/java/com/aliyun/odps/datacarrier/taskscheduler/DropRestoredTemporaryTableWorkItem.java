@@ -68,7 +68,12 @@ public class DropRestoredTemporaryTableWorkItem extends BackgroundWorkItem {
   @Override
   public void execute() {
     try {
-      MmaMetaManagerDbImplUtils.JobInfo jobInfo = mmaMetaManager.getMigrationJob(db, tbl);
+      // wait for temporary table migration job finished
+      MmaMetaManagerDbImplUtils.JobInfo jobInfo = mmaMetaManager.getMigrationJob(
+          taskName,
+          MmaConfig.JobType.MIGRATION.name(),
+          MmaConfig.ObjectType.TABLE.name(),
+          db, tbl);
       if (jobInfo == null) {
         LOG.info("db {}, tbl {} not found in meta db", db, tbl);
         finished = true;
@@ -80,9 +85,19 @@ public class DropRestoredTemporaryTableWorkItem extends BackgroundWorkItem {
         OdpsDropTableAction dropTableAction = new OdpsDropTableAction(id, db, tbl, false);
         DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
         dag.addVertex(dropTableAction);
-        ObjectExportAndRestoreTask task = new ObjectExportAndRestoreTask(id, tableMetaModel, dag, mmaMetaManager);
+        ObjectExportAndRestoreTask task = new ObjectExportAndRestoreTask(id,
+            taskName,
+            MmaConfig.JobType.RESTORE.name(),
+            jobInfo.getObjectType(),
+            tableMetaModel,
+            dag,
+            mmaMetaManager);
         task.setRestoreTaskInfo(restoreTaskInfo);
         provider.addPendingTask(task);
+        mmaMetaManager.removeMigrationJob(taskName,
+                                          MmaConfig.JobType.MIGRATION.name(),
+                                          MmaConfig.ObjectType.TABLE.name(),
+                                          db, tbl);
         finished = true;
       } else if (MmaMetaManager.MigrationStatus.FAILED.equals(status)) {
         LOG.info("Migration {}.{} in restore task {} failed", db, tbl, taskName);
@@ -97,5 +112,17 @@ public class DropRestoredTemporaryTableWorkItem extends BackgroundWorkItem {
   @Override
   public boolean finished() {
     return finished;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("DropRestoredTemporaryTableWorkItem: [");
+    sb.append("id=").append(id).append(", ")
+        .append("db=").append(db).append(", ")
+        .append("tbl=").append(tbl).append(", ")
+        .append("taskName=").append(taskName).append(", ")
+        .append("restoreTaskInfo=").append(GsonUtils.toJson(restoreTaskInfo))
+        .append("]");
+    return sb.toString();
   }
 }

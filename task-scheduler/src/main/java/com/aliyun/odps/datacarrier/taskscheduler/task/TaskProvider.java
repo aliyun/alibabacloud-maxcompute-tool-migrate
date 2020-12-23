@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jgrapht.graph.DefaultEdge;
@@ -82,6 +83,7 @@ import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils.RestoreTaskInfo;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils.JobInfo;
 import com.aliyun.odps.utils.StringUtils;
 import com.google.common.base.Strings;
 
@@ -111,13 +113,16 @@ public class TaskProvider {
   }
 
   public synchronized List<Task> getTasksFromMetaDB() throws MmaException {
-    List<TableMetaModel> pendingTables = mmaMetaManager.getPendingTables();
+    List<JobInfo> pendingTables = mmaMetaManager.getPendingTables();
     if (!pendingTables.isEmpty()) {
       LOG.info("Tables to migrate");
-      for (TableMetaModel tableMetaModel : pendingTables) {
-        LOG.info("Database: {}, table: {}",
-                 tableMetaModel.databaseName,
-                 tableMetaModel.tableName);
+      for (JobInfo jobInfo : pendingTables) {
+        LOG.info("UniqueId: {}, JobType: {}, ObjectType: {}, Database: {}, table: {}",
+                 jobInfo.getUniqueId(),
+                 jobInfo.getJobType(),
+                 jobInfo.getObjectType(),
+                 jobInfo.getTableMetaModel().databaseName,
+                 jobInfo.getTableMetaModel().tableName);
       }
     } else {
       LOG.info("No pending table or partition found");
@@ -127,17 +132,22 @@ public class TaskProvider {
 
     List<Task> ret = new LinkedList<>();
     DataSource datasource = MmaServerConfig.getInstance().getDataSource();
-    for (TableMetaModel tableMetaModel : pendingTables) {
-      MmaConfig.JobConfig config =
-          mmaMetaManager.getConfig(tableMetaModel.databaseName, tableMetaModel.tableName);
+    for (JobInfo jobInfo : pendingTables) {
+      TableMetaModel tableMetaModel = jobInfo.getTableMetaModel();
+      MmaConfig.JobConfig config = mmaMetaManager.getConfig(jobInfo.getUniqueId(),
+          jobInfo.getJobType(),
+          jobInfo.getObjectType(),
+          tableMetaModel.databaseName, tableMetaModel.tableName);
 
       MmaConfig.JobType jobType = config.getJobType();
       if (MmaConfig.JobType.MIGRATION.equals(jobType)) {
         TableMigrationConfig tableMigrationConfig = TableMigrationConfig.fromJson(config.getDescription());
         if (tableMetaModel.partitionColumns.isEmpty()) {
-          ret.add(generateNonPartitionedTableMigrationTask(datasource, tableMetaModel, tableMigrationConfig));
+          ret.add(generateNonPartitionedTableMigrationTask(config.getUniqueId(),
+              datasource, tableMetaModel, tableMigrationConfig));
         } else {
-          ret.addAll(generatePartitionedTableMigrationTask(datasource, tableMetaModel, tableMigrationConfig));
+          ret.addAll(generatePartitionedTableMigrationTask(config.getUniqueId(),
+              datasource, tableMetaModel, tableMigrationConfig));
         }
       } else if (MmaConfig.JobType.BACKUP.equals(jobType)) {
         MmaConfig.ObjectExportConfig exportConfig = MmaConfig.ObjectExportConfig.fromJson(config.getDescription());
@@ -151,15 +161,15 @@ public class TaskProvider {
             break;
           }
           case VIEW: {
-            task = generateViewExportTask(taskName, tableMetaModel);
+            task = generateViewExportTask(exportConfig, tableMetaModel);
             break;
           }
           case FUNCTION: {
-            task = generateFunctionExportTask(taskName, tableMetaModel);
+            task = generateFunctionExportTask(exportConfig, tableMetaModel);
             break;
           }
           case RESOURCE: {
-            task = generateResourceExportTask(taskName, tableMetaModel);
+            task = generateResourceExportTask(exportConfig, tableMetaModel);
             break;
           }
           default:
@@ -201,10 +211,10 @@ public class TaskProvider {
       MmaConfig.ObjectRestoreConfig config = MmaConfig.ObjectRestoreConfig
           .fromJson(taskInfo.getJobConfig().getDescription());
       TableMetaModel tableMetaModel = new MetaSource.TableMetaModel();
-      tableMetaModel.databaseName = config.getOriginDatabaseName();
-      tableMetaModel.odpsProjectName = config.getDestinationDatabaseName();
-      tableMetaModel.tableName = config.getObjectName();
-      tableMetaModel.odpsTableName = config.getObjectName();
+      tableMetaModel.databaseName = config.getOriginDatabaseName().toLowerCase();
+      tableMetaModel.odpsProjectName = config.getDestinationDatabaseName().toLowerCase();
+      tableMetaModel.tableName = config.getObjectName().toLowerCase();
+      tableMetaModel.odpsTableName = config.getObjectName().toLowerCase();
       Task task = generateObjectRestoreTask(config, tableMetaModel, taskInfo);
       if (task != null) {
         ((ObjectExportAndRestoreTask) task).setRestoreTaskInfo(taskInfo);
@@ -245,13 +255,19 @@ public class TaskProvider {
     }
   }
 
-  private void setRunning(List<TableMetaModel> pendingTables) throws MmaException {
-    for (TableMetaModel tableMetaModel : pendingTables) {
-      mmaMetaManager.updateStatus(tableMetaModel.databaseName,
+  private void setRunning(List<JobInfo> pendingTables) throws MmaException {
+    for (JobInfo jobInfo : pendingTables) {
+      TableMetaModel tableMetaModel = jobInfo.getTableMetaModel();
+      mmaMetaManager.updateStatus(jobInfo.getUniqueId(),
+                                  jobInfo.getJobType(),
+                                  jobInfo.getObjectType(),
+                                  tableMetaModel.databaseName,
                                   tableMetaModel.tableName,
                                   MmaMetaManager.MigrationStatus.RUNNING);
       if (tableMetaModel.partitionColumns.size() > 0 && !tableMetaModel.partitions.isEmpty()) {
-        mmaMetaManager.updateStatus(tableMetaModel.databaseName,
+        mmaMetaManager.updateStatus(jobInfo.getUniqueId(),
+                                    jobInfo.getJobType(),
+                                    jobInfo.getObjectType(),tableMetaModel.databaseName,
                                     tableMetaModel.tableName,
                                     tableMetaModel.partitions
                                         .stream()
@@ -262,14 +278,12 @@ public class TaskProvider {
     }
   }
 
-  private Task generateNonPartitionedTableMigrationTask(
-      DataSource datasource,
-      TableMetaModel tableMetaModel,
-      TableMigrationConfig config) {
-
-    String taskId = getUniqueMigrationTaskName(
-        tableMetaModel.databaseName,
-        tableMetaModel.tableName);
+  private Task generateNonPartitionedTableMigrationTask(String uniqueId,
+                                                        DataSource datasource,
+                                                        TableMetaModel tableMetaModel,
+                                                        TableMigrationConfig config) {
+    String taskId = getUniqueMigrationTaskName(tableMetaModel.databaseName,
+                                               tableMetaModel.tableName);
 
     DirectedAcyclicGraph<Action, DefaultEdge> dag;
     switch (datasource) {
@@ -298,14 +312,13 @@ public class TaskProvider {
         throw new UnsupportedOperationException();
     }
 
-    return new MigrationTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new MigrationTask(taskId, uniqueId, MmaConfig.JobType.MIGRATION.name(), tableMetaModel, dag, mmaMetaManager);
   }
 
-  private List<Task> generatePartitionedTableMigrationTask(
-      DataSource datasource,
-      TableMetaModel tableMetaModel,
-      TableMigrationConfig config) {
-
+  private List<Task> generatePartitionedTableMigrationTask(String uniqueId,
+                                                           DataSource datasource,
+                                                           TableMetaModel tableMetaModel,
+                                                           TableMigrationConfig config) {
     List<Task> ret = new LinkedList<>();
 
     if (tableMetaModel.partitions.isEmpty()) {
@@ -315,7 +328,7 @@ public class TaskProvider {
           new OdpsCreateTableAction(taskId + ".CreateTable");
       DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
       dag.addVertex(createTableAction);
-      Task task = new MigrationTask(taskId, tableMetaModel, dag, mmaMetaManager);
+      Task task = new MigrationTask(taskId, uniqueId, MmaConfig.JobType.MIGRATION.name(), tableMetaModel, dag, mmaMetaManager);
       ret.add(task);
       return ret;
     }
@@ -356,7 +369,7 @@ public class TaskProvider {
           throw new UnsupportedOperationException();
       }
 
-      ret.add(new MigrationTask(taskId, split, dag, mmaMetaManager));
+      ret.add(new MigrationTask(taskId, uniqueId, MmaConfig.JobType.MIGRATION.name(), split, dag, mmaMetaManager));
     }
 
     return ret;
@@ -401,12 +414,12 @@ public class TaskProvider {
           lineageTasksCounter);
       dag.addVertex(exportTableDDLAction);
       dag.addEdge(leafAction, exportTableDDLAction);
-      tasks.add(new MigrationTask(taskId, model, dag, mmaMetaManager));
+      tasks.add(new MigrationTask(taskId, taskName, MmaConfig.JobType.BACKUP.name(), model, dag, mmaMetaManager));
     }
     return tasks;
   }
 
-  private Task generateViewExportTask(String taskName, TableMetaModel tableMetaModel) {
+  private Task generateViewExportTask(MmaConfig.ObjectExportConfig exportConfig, TableMetaModel tableMetaModel) {
     String taskId = getUniqueMigrationTaskName(tableMetaModel.databaseName, tableMetaModel.tableName);
     Table table = OdpsUtils.getTable(tableMetaModel.databaseName, tableMetaModel.tableName);
     if (table == null) {
@@ -414,33 +427,47 @@ public class TaskProvider {
       return null;
     }
     DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
-    OdpsExportViewAction action = new OdpsExportViewAction(taskId + ".ExportViewDDL", taskName, table.getViewText());
+    OdpsExportViewAction action = new OdpsExportViewAction(taskId + ".ExportViewDDL", exportConfig.getTaskName(), table.getViewText());
     dag.addVertex(action);
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          exportConfig.getTaskName(),
+                                          MmaConfig.JobType.BACKUP.name(),
+                                          exportConfig.getObjectType().name(),
+                                          tableMetaModel, dag, mmaMetaManager);
   }
 
-  private Task generateFunctionExportTask(String taskName, TableMetaModel tableMetaModel) {
+  private Task generateFunctionExportTask(MmaConfig.ObjectExportConfig exportConfig, TableMetaModel tableMetaModel) {
     String taskId = getUniqueMigrationTaskName(tableMetaModel.databaseName, tableMetaModel.tableName);
     DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
     Function function = OdpsUtils.getFunction(tableMetaModel.databaseName, tableMetaModel.tableName);
     if (function == null) {
       return null;
     }
-    OdpsExportFunctionAction action = new OdpsExportFunctionAction(taskId + ".ExportFunctionDDL", taskName, function);
+    OdpsExportFunctionAction action = new OdpsExportFunctionAction(
+        taskId + ".ExportFunctionDDL", exportConfig.getTaskName(), function);
     dag.addVertex(action);
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          exportConfig.getTaskName(),
+                                          MmaConfig.JobType.BACKUP.name(),
+                                          exportConfig.getObjectType().name(),
+                                          tableMetaModel, dag, mmaMetaManager);
   }
 
-  private Task generateResourceExportTask(String taskName, TableMetaModel tableMetaModel) {
+  private Task generateResourceExportTask(MmaConfig.ObjectExportConfig exportConfig, TableMetaModel tableMetaModel) {
     String taskId = getUniqueMigrationTaskName(tableMetaModel.databaseName, tableMetaModel.tableName);
     DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
     Resource resource = OdpsUtils.getResource(tableMetaModel.databaseName, tableMetaModel.tableName);
     if (resource == null) {
       return null;
     }
-    OdpsExportResourceAction action = new OdpsExportResourceAction(taskId + ".ExportResourceDDL", taskName, resource);
+    OdpsExportResourceAction action = new OdpsExportResourceAction(
+        taskId + ".ExportResourceDDL", exportConfig.getTaskName(), resource);
     dag.addVertex(action);
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          exportConfig.getTaskName(),
+                                          MmaConfig.JobType.BACKUP.name(),
+                                          exportConfig.getObjectType().name(),
+                                          tableMetaModel, dag, mmaMetaManager);
   }
 
   private Task generateObjectRestoreTask(MmaConfig.ObjectRestoreConfig restoreConfig,
@@ -490,17 +517,23 @@ public class TaskProvider {
     String temporaryTableName = generateRestoredTemporaryTableName(restoreConfig);
     String taskId = getUniqueMigrationTaskName(tableMetaModel.odpsProjectName, tableMetaModel.tableName);
     try {
-      mmaMetaManager.mergeTableInfoIntoTemporaryTableDB(taskId, restoreConfig.getDestinationDatabaseName(), temporaryTableName);
-      DropRestoredTemporaryTableWorkItem dropRestoredTemporaryTableWorkItem = new DropRestoredTemporaryTableWorkItem(
-          taskId + ".DropRestoredTemporaryTable",
+      mmaMetaManager.mergeTableInfoIntoTemporaryTableDB(taskId,
           restoreConfig.getDestinationDatabaseName(),
-          temporaryTableName,
-          restoreConfig.getTaskName(),
-          tableMetaModel,
-          restoreTaskInfo,
-          mmaMetaManager,
-          this);
-      if (!mmaMetaManager.hasMigrationJob(restoreConfig.getDestinationDatabaseName(), temporaryTableName)) {
+          temporaryTableName);
+      DropRestoredTemporaryTableWorkItem dropRestoredTemporaryTableWorkItem =
+          new DropRestoredTemporaryTableWorkItem(
+              taskId + ".DropRestoredTemporaryTable",
+              restoreConfig.getDestinationDatabaseName().toLowerCase(),
+              temporaryTableName.toLowerCase(),
+              restoreConfig.getTaskName(),
+              tableMetaModel,
+              restoreTaskInfo,
+              mmaMetaManager,
+              this);
+      if (!mmaMetaManager.hasMigrationJob(restoreConfig.getTaskName(),
+          MmaConfig.JobType.RESTORE.name(),
+          restoreConfig.getObjectType().name(),
+          restoreConfig.getDestinationDatabaseName(), temporaryTableName)) {
         DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
         String taskName = restoreConfig.getTaskName();
         OdpsRestoreTableAction restoreTableAction = new OdpsRestoreTableAction(
@@ -539,6 +572,7 @@ public class TaskProvider {
 
         AddMigrationJobAction addMigrationJobAction = new AddMigrationJobAction(
             taskId + ".AddMigrationJobAction",
+            taskName,
             config,
             mmaMetaManager);
 
@@ -555,7 +589,11 @@ public class TaskProvider {
         dag.addEdge(restorePartitionAction, addMigrationJobAction);
         dag.addEdge(addMigrationJobAction, addBackgroundWorkItemAction);
 
-        task = new OdpsRestoreTablePrepareTask(taskId, tableMetaModel, dag, mmaMetaManager);
+        task = new OdpsRestoreTablePrepareTask(taskId,
+                                               restoreConfig.getTaskName(),
+                                               tableMetaModel,
+                                               dag,
+                                               mmaMetaManager);
       } else {
         LOG.info("Migration temporary table job already exist for {}", MmaConfig.ObjectRestoreConfig.toJson(restoreConfig));
         backgroundLoopManager.addWorkItem(dropRestoredTemporaryTableWorkItem);
@@ -568,7 +606,8 @@ public class TaskProvider {
   }
 
   private String generateRestoredTemporaryTableName(MmaConfig.ObjectRestoreConfig restoreConfig) {
-    return Constants.MMA_TEMPORARY_TABLE_PREFIX + restoreConfig.getObjectName() + "_in_restore_task_" + restoreConfig.getTaskName();
+    return Constants.MMA_TEMPORARY_TABLE_PREFIX + restoreConfig.getObjectName() +
+        "_in_restore_task_" + restoreConfig.getTaskName();
   }
 
   private Task generateNonPartitionedTableRestoreTask(MmaConfig.ObjectRestoreConfig restoreConfig,
@@ -631,7 +670,11 @@ public class TaskProvider {
     dag.addEdge(destVerificationAction, verificationAction);
     dag.addEdge(sourceVerificationAction, verificationAction);
     dag.addEdge(verificationAction, dropTemporaryTableAction);
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          restoreConfig.getTaskName(),
+                                          MmaConfig.JobType.RESTORE.name(),
+                                          restoreConfig.getObjectType().name(),
+                                          tableMetaModel, dag, mmaMetaManager);
   }
 
   private Task generateViewRestoreTask(MmaConfig.ObjectRestoreConfig restoreConfig,
@@ -653,7 +696,13 @@ public class TaskProvider {
       dag.addVertex(dropTableAction);
       dag.addEdge(dropTableAction, restoreTableAction);
     }
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          restoreConfig.getTaskName(),
+                                          MmaConfig.JobType.RESTORE.name(),
+                                          restoreConfig.getObjectType().name(),
+                                          tableMetaModel,
+                                          dag,
+                                          mmaMetaManager);
   }
 
   private Task generateDatabaseRestoreTask(MmaConfig.DatabaseRestoreConfig restoreConfig,
@@ -697,7 +746,13 @@ public class TaskProvider {
     dag.addEdge(resourceRestoreAction, functionRestoreAction);
     dag.addEdge(functionRestoreAction, deleteMetaAction);
 
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          restoreConfig.getTaskName(),
+                                          MmaConfig.JobType.RESTORE.name(),
+                                          ObjectType.DATABASE.name(),
+                                          tableMetaModel,
+                                          dag,
+                                          mmaMetaManager);
   }
 
   private Task generateFunctionRestoreTask(MmaConfig.ObjectRestoreConfig restoreConfig,
@@ -706,7 +761,13 @@ public class TaskProvider {
     DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
     OdpsRestoreFunctionAction action = new OdpsRestoreFunctionAction(taskId + ".RestoreFunction", restoreConfig);
     dag.addVertex(action);
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          restoreConfig.getTaskName(),
+                                          MmaConfig.JobType.RESTORE.name(),
+                                          restoreConfig.getObjectType().name(),
+                                          tableMetaModel,
+                                          dag,
+                                          mmaMetaManager);
   }
 
   private Task generateResourceRestoreTask(MmaConfig.ObjectRestoreConfig restoreConfig,
@@ -715,7 +776,13 @@ public class TaskProvider {
     DirectedAcyclicGraph<Action, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
     OdpsRestoreResourceAction action = new OdpsRestoreResourceAction(taskId + ".RestoreFunction", restoreConfig);
     dag.addVertex(action);
-    return new ObjectExportAndRestoreTask(taskId, tableMetaModel, dag, mmaMetaManager);
+    return new ObjectExportAndRestoreTask(taskId,
+                                          restoreConfig.getTaskName(),
+                                          MmaConfig.JobType.RESTORE.name(),
+                                          restoreConfig.getObjectType().name(),
+                                          tableMetaModel,
+                                          dag,
+                                          mmaMetaManager);
   }
 
   private Task generateDropTemporaryTableTask(String db, String tbl) {

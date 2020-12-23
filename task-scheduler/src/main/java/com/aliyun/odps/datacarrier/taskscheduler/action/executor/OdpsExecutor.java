@@ -29,6 +29,7 @@ import java.util.concurrent.Future;
 
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsNoSqlAction;
+import com.aliyun.odps.utils.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,18 +46,20 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
   private static class OdpsSqlCallable implements Callable<Object> {
     private Odps odps;
+    private String db;
     private String sql;
     private Map<String, String> settings;
     private String actionId;
     private OdpsSqlActionInfo odpsSqlActionInfo;
 
-    OdpsSqlCallable(
-        Odps odps,
-        String sql,
-        Map<String, String> settings,
-        String actionId,
-        OdpsSqlActionInfo odpsSqlActionInfo) {
+    OdpsSqlCallable(Odps odps,
+                    String db,
+                    String sql,
+                    Map<String, String> settings,
+                    String actionId,
+                    OdpsSqlActionInfo odpsSqlActionInfo) {
       this.odps = odps;
+      this.db = db;
       this.sql = Objects.requireNonNull(sql);
       this.settings = Objects.requireNonNull(settings);
       this.actionId = Objects.requireNonNull(actionId);
@@ -71,7 +74,8 @@ public class OdpsExecutor extends AbstractActionExecutor {
         return null;
       }
 
-      Instance i = SQLTask.run(odps, odps.getDefaultProject(), sql, settings, null);
+      String project = StringUtils.isNullOrEmpty(db) ? odps.getDefaultProject() : db;
+      Instance i = SQLTask.run(odps, project, sql, settings, null);
 
       odpsSqlActionInfo.setInstanceId(i.getId());
       LOG.info("ActionId: {}, InstanceId: {}", actionId, i.getId());
@@ -134,15 +138,16 @@ public class OdpsExecutor extends AbstractActionExecutor {
     }
   }
 
-  public Future<Object> execute(
-      String sql,
-      Map<String, String> settings,
-      String actionId,
-      OdpsSqlActionInfo odpsSqlActionInfo) {
+  public Future<Object> execute(String project,
+                                String sql,
+                                Map<String, String> settings,
+                                String actionId,
+                                OdpsSqlActionInfo odpsSqlActionInfo) {
     // TODO: endpoint, ak, project name should come with tableMigrationConfig
 
     OdpsSqlCallable callable = new OdpsSqlCallable(
         OdpsUtils.getInstance(),
+        project,
         sql,
         settings,
         actionId,

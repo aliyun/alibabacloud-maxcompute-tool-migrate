@@ -28,19 +28,23 @@ public interface MmaClient {
 
   void createMigrationJobs(MmaMigrationConfig mmaMigrationConfig) throws MmaException;
 
-  List<MmaConfig.JobConfig> listJobs(
-      MmaMetaManager.MigrationStatus status)
-      throws MmaException;
+  List<MmaConfig.JobConfig> listJobs(MmaMetaManager.MigrationStatus status) throws MmaException;
 
-  void removeMigrationJob(String db, String tbl) throws MmaException;
+  void removeMigrationJob(String uniqueId,
+                          String jobType,
+                          String objectType,
+                          String db,
+                          String tbl) throws MmaException;
 
-  MmaMetaManager.MigrationStatus getMigrationJobStatus(
-      String db,
-      String tbl)
-      throws MmaException;
+  MmaMetaManager.MigrationStatus getMigrationJobStatus(String uniqueId,
+                                                       String jobType,
+                                                       String objectType,
+                                                       String db,
+                                                       String tbl) throws MmaException;
 
-  MmaMetaManager.MigrationProgress getMigrationProgress(
-      String db,
-      String tbl)
-      throws MmaException;
+  MmaMetaManager.MigrationProgress getMigrationProgress(String uniqueId,
+                                                        String jobType,
+                                                        String objectType,
+                                                        String db,
+                                                        String tbl) throws MmaException;
 }

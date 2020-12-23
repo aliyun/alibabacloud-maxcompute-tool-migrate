@@ -44,6 +44,8 @@ public class MmaMetaManagerDbImplUtilsTest {
   private static final String CONN_URL =
       "jdbc:h2:file:" + Paths.get(PARENT_DIR.toString(), "MmaMetaManagerDbImplUtilsTest")
       + ";AUTO_SERVER=TRUE";
+  private static final String PARTITIONED_TB_UNIQUE_ID = MockHiveMetaSource.DB_NAME + "." + MockHiveMetaSource.TBL_PARTITIONED;
+  private static final String NON_PARTITIONED_TB_UNIQUE_ID = MockHiveMetaSource.DB_NAME + "." + MockHiveMetaSource.TBL_NON_PARTITIONED;
 
   private static Connection conn;
 
@@ -68,7 +70,7 @@ public class MmaMetaManagerDbImplUtilsTest {
   @Before
   public void setUp() throws SQLException {
     try (Statement stmt = conn.createStatement()) {
-      stmt.execute("DROP TABLE IF EXISTS " + Constants.MMA_TBL_META_TBL_NAME);
+      stmt.execute("DROP TABLE IF EXISTS " + Constants.MMA_OBJECT_META_TBL_NAME);
     }
 
     try (Statement stmt = conn.createStatement()) {
@@ -89,7 +91,7 @@ public class MmaMetaManagerDbImplUtilsTest {
       try (ResultSet rs = stmt.executeQuery("SHOW TABLES")) {
         boolean created = false;
         while (rs.next()) {
-          if (Constants.MMA_TBL_META_TBL_NAME.equalsIgnoreCase(rs.getString(1))) {
+          if (Constants.MMA_OBJECT_META_TBL_NAME.equalsIgnoreCase(rs.getString(1))) {
             created = true;
           } else {
             Assert.fail("Unexpected table: " + rs.getString(1));
@@ -105,7 +107,7 @@ public class MmaMetaManagerDbImplUtilsTest {
   public void testCreateMmaPartitionMetaSchema() throws SQLException {
     MmaMetaManagerDbImplUtils.createMmaPartitionMetaSchema(conn, MockHiveMetaSource.DB_NAME);
     String expectedSchemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                              MockHiveMetaSource.DB_NAME);
+                                              MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     try (Statement stmt = conn.createStatement()) {
       try (ResultSet rs = stmt.executeQuery("SHOW SCHEMAS")) {
         boolean created = false;
@@ -130,9 +132,9 @@ public class MmaMetaManagerDbImplUtilsTest {
                                                      MockHiveMetaSource.DB_NAME,
                                                      MockHiveMetaSource.TBL_PARTITIONED);
     String expectedSchemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                              MockHiveMetaSource.DB_NAME);
+                                              MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String expectedTableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                             MockHiveMetaSource.TBL_PARTITIONED);
+                                             MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
 
     try (Statement stmt = conn.createStatement()) {
       String sql = "SHOW TABLES FROM " + expectedSchemaName;
@@ -156,6 +158,9 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.createMmaTableMeta(conn);
     MmaMetaManagerDbImplUtils.JobInfo jobInfo =
         new MmaMetaManagerDbImplUtils.JobInfo(
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getObjectType().name(),
             MockHiveMetaSource.DB_NAME,
             MockHiveMetaSource.TBL_PARTITIONED,
             true,
@@ -167,7 +172,7 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.mergeIntoMmaTableMeta(conn, jobInfo);
 
     try (Statement stmt = conn.createStatement()) {
-      String sql = "SELECT * FROM " + Constants.MMA_TBL_META_TBL_NAME;
+      String sql = "SELECT * FROM " + Constants.MMA_OBJECT_META_TBL_NAME;
       try (ResultSet rs = stmt.executeQuery(sql)) {
         int rowCount = 0;
         while (rs.next()) {
@@ -195,6 +200,9 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.createMmaTableMeta(conn);
     MmaMetaManagerDbImplUtils.JobInfo jobInfo =
         new MmaMetaManagerDbImplUtils.JobInfo(
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getObjectType().name(),
             MockHiveMetaSource.DB_NAME,
             MockHiveMetaSource.TBL_PARTITIONED,
             true,
@@ -204,11 +212,15 @@ public class MmaMetaManagerDbImplUtilsTest {
             Constants.MMA_TBL_META_NA_VALUE_LAST_MODIFIED_TIME);
 
     MmaMetaManagerDbImplUtils.mergeIntoMmaTableMeta(conn, jobInfo);
-    MmaMetaManagerDbImplUtils.deleteFromMmaMeta(conn, MockHiveMetaSource.DB_NAME,
-                                                MockHiveMetaSource.TBL_PARTITIONED);
+    MmaMetaManagerDbImplUtils.deleteFromMmaMeta(conn,
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getObjectType().name(),
+            MockHiveMetaSource.DB_NAME,
+            MockHiveMetaSource.TBL_PARTITIONED);
 
     try (Statement stmt = conn.createStatement()) {
-      String sql = "SELECT * FROM " + Constants.MMA_TBL_META_TBL_NAME;
+      String sql = "SELECT * FROM " + Constants.MMA_OBJECT_META_TBL_NAME;
       try (ResultSet rs = stmt.executeQuery(sql)) {
         Assert.assertFalse(rs.next());
       }
@@ -223,7 +235,7 @@ public class MmaMetaManagerDbImplUtilsTest {
         MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG);
     try (Statement stmt = conn.createStatement()) {
       String dml = String.format("INSERT INTO %s VALUES('%s', '%s', %b, '%s', '%s', %d, %d)",
-                                 Constants.MMA_TBL_META_TBL_NAME,
+                                 Constants.MMA_OBJECT_META_TBL_NAME,
                                  MockHiveMetaSource.DB_NAME,
                                  MockHiveMetaSource.TBL_PARTITIONED,
                                  true,
@@ -237,6 +249,9 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.JobInfo migrationJobInfo =
         MmaMetaManagerDbImplUtils.selectFromMmaTableMeta(
             conn,
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getObjectType().name(),
             MockHiveMetaSource.DB_NAME,
             MockHiveMetaSource.TBL_PARTITIONED);
 
@@ -261,6 +276,9 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.JobInfo migrationJobInfo =
         MmaMetaManagerDbImplUtils.selectFromMmaTableMeta(
             conn,
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getObjectType().name(),
             MockHiveMetaSource.DB_NAME,
             MockHiveMetaSource.TBL_PARTITIONED);
 
@@ -275,7 +293,7 @@ public class MmaMetaManagerDbImplUtilsTest {
         MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG);
     try (Statement stmt = conn.createStatement()) {
       String dml = String.format("INSERT INTO %s VALUES('%s', '%s', %b, '%s', '%s', %d, %d)",
-                                 Constants.MMA_TBL_META_TBL_NAME,
+                                 Constants.MMA_OBJECT_META_TBL_NAME,
                                  MockHiveMetaSource.DB_NAME,
                                  MockHiveMetaSource.TBL_PARTITIONED,
                                  true,
@@ -323,7 +341,7 @@ public class MmaMetaManagerDbImplUtilsTest {
         MmaMetaManagerDbImplTest.TABLE_MIGRATION_CONFIG_PARTITIONED);
     try (Statement stmt = conn.createStatement()) {
       String dml = String.format("INSERT INTO %s VALUES('%s', '%s', %b, '%s', '%s', %d, %d)",
-                                 Constants.MMA_TBL_META_TBL_NAME,
+                                 Constants.MMA_OBJECT_META_TBL_NAME,
                                  MockHiveMetaSource.DB_NAME,
                                  MockHiveMetaSource.TBL_PARTITIONED,
                                  true,
@@ -351,7 +369,7 @@ public class MmaMetaManagerDbImplUtilsTest {
     try (Statement stmt = conn.createStatement()) {
       for (int i = 0; i < 10; i++) {
         String dml = String.format("INSERT INTO %s VALUES('%s', '%s', %b, '%s', '%s', %d, %d)",
-                                   Constants.MMA_TBL_META_TBL_NAME,
+                                   Constants.MMA_OBJECT_META_TBL_NAME,
                                    MockHiveMetaSource.DB_NAME,
                                    MockHiveMetaSource.TBL_PARTITIONED + i,
                                    true,
@@ -384,15 +402,18 @@ public class MmaMetaManagerDbImplUtilsTest {
             MmaMetaManager.MigrationStatus.PENDING,
             Constants.MMA_PT_META_INIT_ATTEMPT_TIMES,
             Constants.MMA_PT_MEAT_NA_LAST_MODIFIED_TIME);
-    MmaMetaManagerDbImplUtils.mergeIntoMmaPartitionMeta(conn,
-                                                        MockHiveMetaSource.DB_NAME,
-                                                        MockHiveMetaSource.TBL_PARTITIONED,
-                                                        Collections.singletonList(jobPtInfo));
+    MmaMetaManagerDbImplUtils.mergeIntoMmaPartitionMeta(
+        conn,
+        MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+        MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
+        MockHiveMetaSource.DB_NAME,
+        MockHiveMetaSource.TBL_PARTITIONED,
+        Collections.singletonList(jobPtInfo));
 
     String mmaPartitionMetaSchema = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                                  MockHiveMetaSource.DB_NAME);
+                                                  MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String mmaPartitionMetaTable = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                                 MockHiveMetaSource.TBL_PARTITIONED);
+                                                 MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     String partitionValuesJson =
         GsonUtils.getFullConfigGson().toJson(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
     try (Statement stmt = conn.createStatement()) {
@@ -427,9 +448,9 @@ public class MmaMetaManagerDbImplUtilsTest {
                                                    MockHiveMetaSource.TBL_PARTITIONED);
 
     String mmaPartitionMetaSchema = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                                  MockHiveMetaSource.DB_NAME);
+                                                  MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String mmaPartitionMetaTable = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                                 MockHiveMetaSource.TBL_PARTITIONED);
+                                                 MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     try (Statement stmt = conn.createStatement()) {
       String sql = String.format("SHOW TABLES FROM %s", mmaPartitionMetaSchema);
       try (ResultSet rs = stmt.executeQuery(sql)) {
@@ -448,9 +469,9 @@ public class MmaMetaManagerDbImplUtilsTest {
                                                      MockHiveMetaSource.TBL_PARTITIONED);
 
     String mmaPartitionMetaSchema = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                                  MockHiveMetaSource.DB_NAME);
+                                                  MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String mmaPartitionMetaTable = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                     MockHiveMetaSource.TBL_PARTITIONED);
+                                                 MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     String partitionValuesJson = GsonUtils.getFullConfigGson()
         .toJson(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
     try (Statement stmt = conn.createStatement()) {
@@ -467,6 +488,8 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.MigrationJobPtInfo jobPtInfo =
         MmaMetaManagerDbImplUtils.selectFromMmaPartitionMeta(
             conn,
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
             MockHiveMetaSource.DB_NAME,
             MockHiveMetaSource.TBL_PARTITIONED,
             MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
@@ -492,6 +515,8 @@ public class MmaMetaManagerDbImplUtilsTest {
     MmaMetaManagerDbImplUtils.MigrationJobPtInfo jobPtInfo =
         MmaMetaManagerDbImplUtils.selectFromMmaPartitionMeta(
             conn,
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getUniqueId(),
+            MmaMetaManagerDbImplTest.PARTITIONED_TABLE_MIGRATION_JOB_CONFIG.getJobType().name(),
             MockHiveMetaSource.DB_NAME,
             MockHiveMetaSource.TBL_PARTITIONED,
             MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
@@ -507,15 +532,17 @@ public class MmaMetaManagerDbImplUtilsTest {
                                                      MockHiveMetaSource.TBL_PARTITIONED);
 
     String mmaPartitionMetaSchema = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                                  MockHiveMetaSource.DB_NAME);
+                                                  MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String mmaPartitionMetaTable = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                                 MockHiveMetaSource.TBL_PARTITIONED);
+                                                 MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     String partitionValuesJson = GsonUtils.getFullConfigGson()
         .toJson(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
     try (Statement stmt = conn.createStatement()) {
-      String dml = String.format("INSERT INTO %s.%s VALUES('%s', '%s', %d, %d)",
+      String dml = String.format("INSERT INTO %s.%s VALUES('%s', '%s', '%s', '%s', %d, %d)",
                                  mmaPartitionMetaSchema,
                                  mmaPartitionMetaTable,
+                                 PARTITIONED_TB_UNIQUE_ID,
+                                 MmaConfig.JobType.MIGRATION.name(),
                                  partitionValuesJson,
                                  MmaMetaManager.MigrationStatus.PENDING.toString(),
                                  Constants.MMA_PT_META_INIT_ATTEMPT_TIMES,
@@ -525,6 +552,8 @@ public class MmaMetaManagerDbImplUtilsTest {
 
     List<MmaMetaManagerDbImplUtils.MigrationJobPtInfo> migrationJobPtInfos =
         MmaMetaManagerDbImplUtils.selectFromMmaPartitionMeta(conn,
+                                                             PARTITIONED_TB_UNIQUE_ID,
+                                                             MmaConfig.JobType.MIGRATION.name(),
                                                              MockHiveMetaSource.DB_NAME,
                                                              MockHiveMetaSource.TBL_PARTITIONED,
                                                              null,
@@ -552,6 +581,8 @@ public class MmaMetaManagerDbImplUtilsTest {
 
     List<MmaMetaManagerDbImplUtils.MigrationJobPtInfo> migrationJobPtInfos =
         MmaMetaManagerDbImplUtils.selectFromMmaPartitionMeta(conn,
+                                                             PARTITIONED_TB_UNIQUE_ID,
+                                                             MmaConfig.JobType.MIGRATION.name(),
                                                              MockHiveMetaSource.DB_NAME,
                                                              MockHiveMetaSource.TBL_PARTITIONED,
                                                              null,
@@ -568,13 +599,15 @@ public class MmaMetaManagerDbImplUtilsTest {
                                                      MockHiveMetaSource.TBL_PARTITIONED);
 
     String mmaPartitionMetaSchema = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                                  MockHiveMetaSource.DB_NAME);
+                                                  MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String mmaPartitionMetaTable = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                                 MockHiveMetaSource.TBL_PARTITIONED);
+                                                 MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     String partitionValuesJson = GsonUtils.getFullConfigGson()
         .toJson(MockHiveMetaSource.TBL_PARTITIONED_PARTITION_VALUES);
     try (Statement stmt = conn.createStatement()) {
-      String dml = String.format("INSERT INTO %s.%s VALUES('%s', '%s', %d, %d)",
+      String dml = String.format("INSERT INTO %s.%s VALUES('%s', '%s', '%s', '%s', %d, %d)",
+                                 PARTITIONED_TB_UNIQUE_ID,
+                                 MmaConfig.JobType.MIGRATION.name(),
                                  mmaPartitionMetaSchema,
                                  mmaPartitionMetaTable,
                                  partitionValuesJson,
@@ -586,6 +619,8 @@ public class MmaMetaManagerDbImplUtilsTest {
 
     List<MmaMetaManagerDbImplUtils.MigrationJobPtInfo> migrationJobPtInfos =
         MmaMetaManagerDbImplUtils.selectFromMmaPartitionMeta(conn,
+                                                             PARTITIONED_TB_UNIQUE_ID,
+                                                             MmaConfig.JobType.MIGRATION.name(),
                                                              MockHiveMetaSource.DB_NAME,
                                                              MockHiveMetaSource.TBL_PARTITIONED,
                                                              MmaMetaManager.MigrationStatus.FAILED,
@@ -602,14 +637,16 @@ public class MmaMetaManagerDbImplUtilsTest {
                                                      MockHiveMetaSource.TBL_PARTITIONED);
 
     String mmaPartitionMetaSchema = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT,
-                                                  MockHiveMetaSource.DB_NAME);
+                                                  MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.DB_NAME));
     String mmaPartitionMetaTable = String.format(Constants.MMA_PT_META_TBL_NAME_FMT,
-                                                 MockHiveMetaSource.TBL_PARTITIONED);
+                                                 MmaMetaManagerDbImplUtils.getMD5(MockHiveMetaSource.TBL_PARTITIONED));
     try (Statement stmt = conn.createStatement()) {
       for (int i = 0; i < 10; i++) {
-        String dml = String.format("INSERT INTO %s.%s VALUES('%s', '%s', %d, %d)",
+        String dml = String.format("INSERT INTO %s.%s VALUES('%s', '%s', '%s', '%s', %d, %d)",
                                    mmaPartitionMetaSchema,
                                    mmaPartitionMetaTable,
+                                   PARTITIONED_TB_UNIQUE_ID,
+                                   MmaConfig.JobType.MIGRATION.name(),
                                    GsonUtils.getFullConfigGson().toJson(Collections.singletonList(Integer.toString(i))),
                                    MmaMetaManager.MigrationStatus.PENDING.toString(),
                                    Constants.MMA_PT_META_INIT_ATTEMPT_TIMES,
@@ -620,6 +657,8 @@ public class MmaMetaManagerDbImplUtilsTest {
 
     List<MmaMetaManagerDbImplUtils.MigrationJobPtInfo> migrationJobPtInfos =
         MmaMetaManagerDbImplUtils.selectFromMmaPartitionMeta(conn,
+                                                             PARTITIONED_TB_UNIQUE_ID,
+                                                             MmaConfig.JobType.MIGRATION.name(),
                                                              MockHiveMetaSource.DB_NAME,
                                                              MockHiveMetaSource.TBL_PARTITIONED,
                                                              MmaMetaManager.MigrationStatus.PENDING,

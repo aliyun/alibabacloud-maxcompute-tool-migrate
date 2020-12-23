@@ -19,6 +19,7 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.task;
 
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
@@ -34,10 +35,17 @@ public class OdpsRestoreTablePrepareTask extends ObjectExportAndRestoreTask {
   private final MetaSource.TableMetaModel tableMetaModel;
 
   public OdpsRestoreTablePrepareTask(String id,
+                                    String uniqueId,
                                     MetaSource.TableMetaModel tableMetaModel,
                                     DirectedAcyclicGraph<Action, DefaultEdge> dag,
                                     MmaMetaManager mmaMetaManager) {
-    super(id, tableMetaModel, dag, mmaMetaManager);
+    super(id,
+          uniqueId,
+          MmaConfig.JobType.RESTORE.name(),
+          MmaConfig.ObjectType.TABLE.name(),
+          tableMetaModel,
+          dag,
+          mmaMetaManager);
     this.tableMetaModel = Objects.requireNonNull(tableMetaModel);
     actionExecutionContext.setTableMetaModel(this.tableMetaModel);
   }
@@ -54,9 +62,12 @@ public class OdpsRestoreTablePrepareTask extends ObjectExportAndRestoreTask {
     if (restoreTaskInfo != null) {
       mmaMetaManager.updateStatusInRestoreDB(restoreTaskInfo, status);
     } else {
-      mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-          tableMetaModel.tableName,
-          status);
+      mmaMetaManager.updateStatus(uniqueId,
+                                  MmaConfig.JobType.RESTORE.name(),
+                                  MmaConfig.ObjectType.TABLE.name(),
+                                  tableMetaModel.databaseName,
+                                  tableMetaModel.tableName,
+                                  status);
     }
   }
 }

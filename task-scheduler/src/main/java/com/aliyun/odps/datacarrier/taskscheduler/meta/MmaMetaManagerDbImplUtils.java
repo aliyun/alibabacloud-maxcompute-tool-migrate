@@ -20,6 +20,8 @@
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
 import java.lang.reflect.Type;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 
 import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager.MigrationStatus;
+import com.aliyun.odps.utils.StringUtils;
 import com.google.common.base.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,10 +55,15 @@ public class MmaMetaManagerDbImplUtils {
 
   private static String UPSERT_KEYWORD = null;
 
+  private static String[] hexArray = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
+
   /**
    * Represents a row in table meta
    */
   public static class JobInfo {
+    private String uniqueId;
+    private String jobType;
+    private String objectType;
     private String db;
     private String tbl;
     private boolean isPartitioned;
@@ -63,14 +71,21 @@ public class MmaMetaManagerDbImplUtils {
     private MigrationStatus status;
     private int attemptTimes;
     private Long lastModifiedTime;
+    private MetaSource.TableMetaModel tableMetaModel;
 
-    public JobInfo(String db,
+    public JobInfo(String uniqueId,
+                   String jobType,
+                   String objectType,
+                   String db,
                    String tbl,
                    boolean isPartitioned,
                    MmaConfig.JobConfig jobConfig,
                    MigrationStatus status,
                    int attemptTimes,
                    long lastModifiedTime) {
+      this.uniqueId = Objects.requireNonNull(uniqueId);
+      this.jobType = Objects.requireNonNull(jobType);
+      this.objectType = Objects.requireNonNull(objectType);
       this.db = Objects.requireNonNull(db);
       this.tbl = Objects.requireNonNull(tbl);
       this.isPartitioned = isPartitioned;
@@ -78,6 +93,18 @@ public class MmaMetaManagerDbImplUtils {
       this.status = Objects.requireNonNull(status);
       this.attemptTimes = attemptTimes;
       this.lastModifiedTime = lastModifiedTime;
+    }
+
+    public String getUniqueId() {
+      return uniqueId;
+    }
+
+    public String getJobType() {
+      return jobType;
+    }
+
+    public String getObjectType() {
+      return objectType;
     }
 
     public String getDb() {
@@ -118,6 +145,14 @@ public class MmaMetaManagerDbImplUtils {
 
     public void setLastModifiedTime(long lastModifiedTime) {
       this.lastModifiedTime = lastModifiedTime;
+    }
+
+    public void setTableMetaModel(MetaSource.TableMetaModel tableMetaModel) {
+      this.tableMetaModel = tableMetaModel;
+    }
+
+    public MetaSource.TableMetaModel getTableMetaModel() {
+      return tableMetaModel;
     }
   }
 
@@ -243,18 +278,21 @@ public class MmaMetaManagerDbImplUtils {
   }
 
   public static String getCreateMmaPartitionMetaSchemaDdl(String db) {
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
     return "CREATE SCHEMA IF NOT EXISTS " + schemaName;
   }
 
   public static String getCreateMmaTableMetaDdl() {
     StringBuilder sb = new StringBuilder();
-    sb.append("CREATE TABLE IF NOT EXISTS ").append(Constants.MMA_TBL_META_TBL_NAME).append(" (\n");
+    sb.append("CREATE TABLE IF NOT EXISTS ").append(Constants.MMA_OBJECT_META_TBL_NAME).append(" (\n");
     for (Map.Entry<String, String> entry : Constants.MMA_TBL_META_COL_TO_TYPE.entrySet()) {
       sb.append("    ").append(entry.getKey()).append(" ").append(entry.getValue()).append(",\n");
     }
-    sb.append("    PRIMARY KEY (").append(Constants.MMA_TBL_META_COL_DB_NAME).append(", ");
-    sb.append(Constants.MMA_TBL_META_COL_TBL_NAME).append("))\n");
+    sb.append("    PRIMARY KEY (").append(Constants.MMA_TBL_META_COL_UNIQUE_ID).append(", ");
+    sb.append(Constants.MMA_TBL_META_COL_JOB_TYPE).append(", ");
+    sb.append(Constants.MMA_TBL_META_COL_OBJECT_TYPE).append(", ");
+    sb.append(Constants.MMA_TBL_META_COL_DB_NAME).append(", ");
+    sb.append(Constants.MMA_TBL_META_COL_OBJECT_NAME).append("))\n");
     return sb.toString();
   }
 
@@ -287,15 +325,18 @@ public class MmaMetaManagerDbImplUtils {
     StringBuilder sb = new StringBuilder();
     sb
         .append("CREATE TABLE IF NOT EXISTS ")
-        .append(String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db))
+        .append(String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db)))
         .append(".")
-        .append(String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl))
+        .append(String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl)))
         .append(" (\n");
 
     for (Map.Entry<String, String> entry : Constants.MMA_PT_META_COL_TO_TYPE.entrySet()) {
       sb.append("    ").append(entry.getKey()).append(" ").append(entry.getValue()).append(",\n");
     }
-    sb.append("    PRIMARY KEY (").append(Constants.MMA_PT_META_COL_PT_VALS).append("))\n");
+    sb.append("    PRIMARY KEY (")
+        .append(Constants.MMA_PT_META_COL_UNIQUE_ID).append(", ")
+        .append(Constants.MMA_PT_META_COL_JOB_TYPE).append(", ")
+        .append(Constants.MMA_PT_META_COL_PT_VALS).append("))\n");
     return sb.toString();
   }
 
@@ -369,16 +410,20 @@ public class MmaMetaManagerDbImplUtils {
   public static void mergeIntoMmaTableMeta(Connection conn, JobInfo jobInfo)
       throws SQLException {
 
-    String dml = getUpsertKeyword() + Constants.MMA_TBL_META_TBL_NAME + " VALUES (?, ?, ?, ?, ?, ?, ?)";
+    String dml = getUpsertKeyword() + Constants.MMA_OBJECT_META_TBL_NAME + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     try (PreparedStatement preparedStatement = conn.prepareStatement(dml)) {
-      preparedStatement.setString(1, jobInfo.getDb());
-      preparedStatement.setString(2, jobInfo.getTbl());
-      preparedStatement.setBoolean(3, jobInfo.isPartitioned());
-      preparedStatement.setString(4,
-                                  GsonUtils.getFullConfigGson().toJson(jobInfo.getJobConfig()));
-      preparedStatement.setString(5, jobInfo.getStatus().toString());
-      preparedStatement.setInt(6, jobInfo.getAttemptTimes());
-      preparedStatement.setLong(7, jobInfo.getLastModifiedTime());
+      int colIndex = 0;
+      preparedStatement.setString(++colIndex, jobInfo.getUniqueId());
+      preparedStatement.setString(++colIndex, jobInfo.getJobType());
+      preparedStatement.setString(++colIndex, jobInfo.getObjectType());
+      preparedStatement.setString(++colIndex, jobInfo.getDb());
+      preparedStatement.setString(++colIndex, jobInfo.getTbl());
+      preparedStatement.setBoolean(++colIndex, jobInfo.isPartitioned());
+      preparedStatement.setString(++colIndex, GsonUtils.getFullConfigGson().toJson(jobInfo.getJobConfig()));
+      preparedStatement.setString(++colIndex, jobInfo.getStatus().toString());
+      preparedStatement.setInt(++colIndex, jobInfo.getAttemptTimes());
+      preparedStatement.setLong(++colIndex, jobInfo.getLastModifiedTime());
+      assert colIndex == Constants.MMA_TBL_META_COL_TO_TYPE.size();
 
       LOG.debug("Executing DML: {}, arguments: {}",
                dml,
@@ -424,14 +469,23 @@ public class MmaMetaManagerDbImplUtils {
 
   /**
    * Delete from MMA_META
+   * for compatibility, uniqueId maybe null
    */
-  public static void deleteFromMmaMeta(Connection conn, String db, String tbl) throws SQLException {
-    String dml = String.format("DELETE FROM %s WHERE %s='%s' and %s='%s'",
-                               Constants.MMA_TBL_META_TBL_NAME,
-                               Constants.MMA_TBL_META_COL_DB_NAME,
-                               db,
-                               Constants.MMA_TBL_META_COL_TBL_NAME,
-                               tbl);
+  public static void deleteFromMmaMeta(Connection conn,
+                                       String uniqueId,
+                                       String jobType,
+                                       String objectType,
+                                       String db,
+                                       String tbl) throws SQLException {
+    String dml = String.format("DELETE FROM %s WHERE %s='%s' and %s='%s' and %s='%s' and %s='%s'",
+                               Constants.MMA_OBJECT_META_TBL_NAME,
+                               Constants.MMA_TBL_META_COL_JOB_TYPE, jobType,
+                               Constants.MMA_TBL_META_COL_OBJECT_TYPE, objectType,
+                               Constants.MMA_TBL_META_COL_DB_NAME, db,
+                               Constants.MMA_TBL_META_COL_OBJECT_NAME, tbl);
+    if (uniqueId != null) {
+      dml = String.format("%s and %s='%s'", dml, Constants.MMA_TBL_META_COL_UNIQUE_ID, uniqueId);
+    }
     try (Statement stmt = conn.createStatement()) {
       LOG.debug("Executing DML: {}", dml);
       stmt.execute(dml);
@@ -440,17 +494,24 @@ public class MmaMetaManagerDbImplUtils {
 
   /**
    * Return a record from MMA_TBL_META if it exists, else null
+   * for compatibility, uniqueId maybe null
    */
-  public static JobInfo selectFromMmaTableMeta(Connection conn, String db, String tbl)
-      throws SQLException {
+  public static JobInfo selectFromMmaTableMeta(Connection conn,
+                                               String uniqueId,
+                                               String jobType,
+                                               String objectType,
+                                               String db,
+                                               String tbl) throws SQLException {
+    String sql = String.format("SELECT * FROM %s WHERE %s='%s' and %s='%s' and %s='%s' and %s='%s'",
+                               Constants.MMA_OBJECT_META_TBL_NAME,
+                               Constants.MMA_TBL_META_COL_JOB_TYPE, jobType,
+                               Constants.MMA_TBL_META_COL_OBJECT_TYPE, objectType,
+                               Constants.MMA_TBL_META_COL_DB_NAME, db,
+                               Constants.MMA_TBL_META_COL_OBJECT_NAME, tbl);
 
-    String sql = String.format("SELECT * FROM %s WHERE %s='%s' and %s='%s'",
-                               Constants.MMA_TBL_META_TBL_NAME,
-                               Constants.MMA_TBL_META_COL_DB_NAME,
-                               db,
-                               Constants.MMA_TBL_META_COL_TBL_NAME,
-                               tbl);
-
+    if (uniqueId != null) {
+      sql = String.format("%s and %s='%s'", sql, Constants.MMA_TBL_META_COL_UNIQUE_ID, uniqueId);
+    }
     try (Statement stmt = conn.createStatement()) {
       LOG.debug("Executing SQL: {}", sql);
 
@@ -458,13 +519,16 @@ public class MmaMetaManagerDbImplUtils {
         if(!rs.next()) {
           return null;
         }
-        return new JobInfo(db,
-                                tbl,
-                                rs.getBoolean(3),
-                                GsonUtils.getFullConfigGson().fromJson(rs.getString(4), MmaConfig.JobConfig.class),
-                                MigrationStatus.valueOf(rs.getString(5)),
-                                rs.getInt(6),
-                                rs.getLong(7));
+        return new JobInfo(rs.getString(1),
+                           rs.getString(2),
+                           rs.getString(3),
+                           rs.getString(4),
+                           rs.getString(5),
+                           rs.getBoolean(6),
+                           GsonUtils.getFullConfigGson().fromJson(rs.getString(7), MmaConfig.JobConfig.class),
+                           MigrationStatus.valueOf(rs.getString(8)),
+                           rs.getInt(9),
+                           rs.getLong(10));
       }
     }
   }
@@ -476,15 +540,18 @@ public class MmaMetaManagerDbImplUtils {
                                                      MigrationStatus status,
                                                      int limit) throws SQLException {
     StringBuilder sb = new StringBuilder();
-    sb.append(String.format("SELECT * FROM %s", Constants.MMA_TBL_META_TBL_NAME));
+    sb.append(String.format("SELECT * FROM %s", Constants.MMA_OBJECT_META_TBL_NAME));
     if (status != null) {
       sb.append(String.format(" WHERE %s='%s'",
           Constants.MMA_PT_META_COL_STATUS,
           status.toString()));
     }
-    sb.append(String.format(" ORDER BY %s, %s DESC",
+    sb.append(String.format(" ORDER BY %s, %s, %s, %s, %s DESC",
+        Constants.MMA_TBL_META_COL_UNIQUE_ID,
+        Constants.MMA_TBL_META_COL_JOB_TYPE,
+        Constants.MMA_TBL_META_COL_OBJECT_TYPE,
         Constants.MMA_TBL_META_COL_DB_NAME,
-        Constants.MMA_TBL_META_COL_TBL_NAME));
+        Constants.MMA_TBL_META_COL_OBJECT_NAME));
     if (limit > 0) {
       sb.append(" LIMIT ").append(limit);
     }
@@ -495,14 +562,18 @@ public class MmaMetaManagerDbImplUtils {
       try (ResultSet rs = stmt.executeQuery(sb.toString())) {
         List<JobInfo> ret = new LinkedList<>();
         while (rs.next()) {
-          JobInfo jobInfo =
-              new JobInfo(rs.getString(1),
-                  rs.getString(2),
-                  rs.getBoolean(3),
-                  GsonUtils.getFullConfigGson().fromJson(rs.getString(4), MmaConfig.JobConfig.class),
-                  MigrationStatus.valueOf(rs.getString(5)),
-                  rs.getInt(6),
-                  rs.getLong(7));
+          int columnIndex = 0;
+          JobInfo jobInfo = new JobInfo(rs.getString(++columnIndex),
+                                        rs.getString(++columnIndex),
+                                        rs.getString(++columnIndex),
+                                        rs.getString(++columnIndex),
+                                        rs.getString(++columnIndex),
+                                        rs.getBoolean(++columnIndex),
+                                        GsonUtils.getFullConfigGson().fromJson(rs.getString(++columnIndex), MmaConfig.JobConfig.class),
+                                        MigrationStatus.valueOf(rs.getString(++columnIndex)),
+                                        rs.getInt(++columnIndex),
+                                        rs.getLong(++columnIndex));
+          assert columnIndex == Constants.MMA_TBL_META_COL_TO_TYPE.size();
           ret.add(jobInfo);
         }
         return ret;
@@ -581,23 +652,29 @@ public class MmaMetaManagerDbImplUtils {
    * Insert into or update (A.K.A Upsert) MMA_PT_META_DB_[db].MMA_PT_META_TBL_[tbl]
    */
   public static void mergeIntoMmaPartitionMeta(Connection conn,
+                                               String uniqueId,
+                                               String jobType,
                                                String db,
                                                String tbl,
                                                List<MigrationJobPtInfo> migrationJobPtInfos)
       throws SQLException {
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
-    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl);
-    String dml = "MERGE INTO " + schemaName + "." + tableName + " VALUES(?, ?, ?, ?)";
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
+    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl));
+    String dml = getUpsertKeyword() + schemaName + "." + tableName + " VALUES(?, ?, ?, ?, ?, ?)";
 
     try (PreparedStatement preparedStatement = conn.prepareStatement(dml)) {
       for (MigrationJobPtInfo jobPtInfo : migrationJobPtInfos) {
         String partitionValuesJson =
             GsonUtils.getFullConfigGson().toJson(jobPtInfo.getPartitionValues());
-        preparedStatement.setString(1, partitionValuesJson);
-        preparedStatement.setString(2, jobPtInfo.getStatus().toString());
-        preparedStatement.setInt(3, jobPtInfo.getAttemptTimes());
-        preparedStatement.setLong(4, jobPtInfo.getLastModifiedTime());
+        int columnIndex = 0;
+        preparedStatement.setString(++columnIndex, uniqueId);
+        preparedStatement.setString(++columnIndex, jobType);
+        preparedStatement.setString(++columnIndex, partitionValuesJson);
+        preparedStatement.setString(++columnIndex, jobPtInfo.getStatus().toString());
+        preparedStatement.setInt(++columnIndex, jobPtInfo.getAttemptTimes());
+        preparedStatement.setLong(++columnIndex, jobPtInfo.getLastModifiedTime());
         preparedStatement.addBatch();
+        assert columnIndex == Constants.MMA_PT_META_COL_TO_TYPE.size();
         LOG.debug("Executing DML: {}, arguments: {}",
                  dml,
                  GsonUtils.getFullConfigGson().toJson(jobPtInfo));
@@ -611,8 +688,8 @@ public class MmaMetaManagerDbImplUtils {
    * Drop table MMA_PT_META_DB_[db].MMA_PT_META_TBL_[tbl]
    */
   public static void dropMmaPartitionMeta(Connection conn, String db, String tbl) throws SQLException {
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
-    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl);
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
+    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl));
 
     String ddl = "DROP TABLE " + schemaName + "." + tableName;
     try (Statement stmt = conn.createStatement()) {
@@ -626,16 +703,20 @@ public class MmaMetaManagerDbImplUtils {
    * Return a record from MMA_PT_META_DB_[db].MMA_PT_META_TBL_[tbl] if it exists, else null
    */
   public static MigrationJobPtInfo selectFromMmaPartitionMeta(Connection conn,
+                                                              String uniqueId,
+                                                              String jobType,
                                                               String db,
                                                               String tbl,
                                                               List<String> partitionValues)
       throws SQLException {
 
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
-    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl);
-    String sql = String.format("SELECT * FROM %s.%s WHERE %s='%s'",
-                               schemaName,
-                               tableName, Constants.MMA_PT_META_COL_PT_VALS,
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
+    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl));
+    String sql = String.format("SELECT * FROM %s.%s WHERE %s='%s' and %s='%s' and %s='%s'",
+                               schemaName, tableName,
+                               Constants.MMA_PT_META_COL_UNIQUE_ID, uniqueId,
+                               Constants.MMA_PT_META_COL_JOB_TYPE, jobType,
+                               Constants.MMA_PT_META_COL_PT_VALS,
                                GsonUtils.getFullConfigGson().toJson(partitionValues));
 
     try (Statement stmt = conn.createStatement()) {
@@ -646,9 +727,9 @@ public class MmaMetaManagerDbImplUtils {
           return null;
         }
         return new MigrationJobPtInfo(partitionValues,
-                                      MigrationStatus.valueOf(rs.getString(2)),
-                                      rs.getInt(3),
-                                      rs.getLong(4));
+                                      MigrationStatus.valueOf(rs.getString(4)),
+                                      rs.getInt(5),
+                                      rs.getLong(6));
       }
     }
   }
@@ -658,23 +739,30 @@ public class MmaMetaManagerDbImplUtils {
    */
   public static List<MigrationJobPtInfo> selectFromMmaPartitionMeta(
       Connection conn,
+      String uniqueId,
+      String jobType,
       String db,
       String tbl,
       MigrationStatus status,
       int limit)
       throws SQLException {
 
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
-    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl);
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
+    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl));
 
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT * FROM ").append(schemaName).append(".").append(tableName);
+    sb.append(String.format(" WHERE %s='%s' AND %s='%s'",
+        Constants.MMA_PT_META_COL_UNIQUE_ID, uniqueId,
+        Constants.MMA_PT_META_COL_JOB_TYPE, jobType));
     if (status != null) {
-      sb.append(String.format(" WHERE %s='%s'",
+      sb.append(String.format(" AND %s='%s'",
                               Constants.MMA_PT_META_COL_STATUS,
                               status.toString()));
     }
-    sb.append(" ORDER BY ").append(Constants.MMA_PT_META_COL_PT_VALS);
+    sb.append(" ORDER BY ").append(Constants.MMA_PT_META_COL_UNIQUE_ID).append(", ")
+        .append(Constants.MMA_PT_META_COL_JOB_TYPE).append(", ")
+        .append(Constants.MMA_PT_META_COL_PT_VALS);
     if (limit > 0) {
       sb.append(" LIMIT ").append(limit);
     }
@@ -688,10 +776,10 @@ public class MmaMetaManagerDbImplUtils {
         while (rs.next()) {
           MigrationJobPtInfo jobPtInfo =
               new MigrationJobPtInfo(
-                  GsonUtils.getFullConfigGson().fromJson(rs.getString(1), type),
-                  MigrationStatus.valueOf(rs.getString(2)),
-                  rs.getInt(3),
-                  rs.getLong(4));
+                  GsonUtils.getFullConfigGson().fromJson(rs.getString(3), type),
+                  MigrationStatus.valueOf(rs.getString(4)),
+                  rs.getInt(5),
+                  rs.getLong(6));
           ret.add(jobPtInfo);
         }
         return ret;
@@ -701,18 +789,23 @@ public class MmaMetaManagerDbImplUtils {
 
   public static Map<MigrationStatus, Integer> getPartitionStatusDistribution(
       Connection conn,
+      String uniqueId,
+      String jobType,
       String db,
       String tbl)
       throws SQLException {
 
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
-    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl);
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
+    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl));
 
     StringBuilder sb = new StringBuilder();
     sb
         .append("SELECT ")
         .append(Constants.MMA_PT_META_COL_STATUS).append(", COUNT(1) as CNT FROM ")
         .append(schemaName).append(".").append(tableName)
+        .append(String.format(" WHERE %s='%s' AND %s='%s'",
+            Constants.MMA_PT_META_COL_UNIQUE_ID, uniqueId,
+            Constants.MMA_PT_META_COL_JOB_TYPE, jobType))
         .append(" GROUP BY ").append(Constants.MMA_PT_META_COL_STATUS);
 
     try (Statement stmt = conn.createStatement()) {
@@ -736,20 +829,22 @@ public class MmaMetaManagerDbImplUtils {
    */
   public static List<List<String>> filterOutPartitions(
       Connection conn,
+      String uniqueId,
+      String jobType,
       String db,
       String tbl,
       List<List<String>> candidates)
       throws SQLException {
 
-    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, db);
-    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, tbl);
+    String schemaName = String.format(Constants.MMA_PT_META_SCHEMA_NAME_FMT, getMD5(db));
+    String tableName = String.format(Constants.MMA_PT_META_TBL_NAME_FMT, getMD5(tbl));
 
-    String sql = String.format("SELECT %s FROM %s.%s WHERE %s='%s'",
+    String sql = String.format("SELECT %s FROM %s.%s WHERE %s='%s' AND %s='%s' AND %s='%s'",
         Constants.MMA_PT_META_COL_PT_VALS,
-        schemaName,
-        tableName,
-        Constants.MMA_PT_META_COL_STATUS,
-        MigrationStatus.SUCCEEDED.name());
+        schemaName, tableName,
+        Constants.MMA_PT_META_COL_UNIQUE_ID, uniqueId,
+        Constants.MMA_PT_META_COL_JOB_TYPE, jobType,
+        Constants.MMA_PT_META_COL_STATUS, MigrationStatus.SUCCEEDED.name());
 
     try (Statement stmt = conn.createStatement()) {
       LOG.debug("Executing SQL: {}", sql);
@@ -757,7 +852,7 @@ public class MmaMetaManagerDbImplUtils {
       try (ResultSet rs = stmt.executeQuery(sql)) {
         Set<String> managedPartitionValuesJsonSet = new HashSet<>();
         while (rs.next()) {
-          managedPartitionValuesJsonSet.add(rs.getString(1));
+          managedPartitionValuesJsonSet.add(rs.getString(3));
         }
 
         Type type = new TypeToken<List<String>>() {}.getType();
@@ -777,12 +872,14 @@ public class MmaMetaManagerDbImplUtils {
    */
   public static MigrationStatus inferPartitionedTableStatus(
       Connection conn,
+      String uniqueId,
+      String jobType,
       String db,
       String tbl)
       throws SQLException {
 
     Map<MigrationStatus, Integer> statusDistribution =
-        MmaMetaManagerDbImplUtils.getPartitionStatusDistribution(conn, db, tbl);
+        MmaMetaManagerDbImplUtils.getPartitionStatusDistribution(conn, uniqueId, jobType, db, tbl);
     int total = statusDistribution.values().stream().reduce(0, Integer::sum);
     int pending =
         statusDistribution.getOrDefault(MigrationStatus.PENDING, 0);
@@ -800,6 +897,40 @@ public class MmaMetaManagerDbImplUtils {
       return MigrationStatus.PENDING;
     } else {
       return MigrationStatus.RUNNING;
+    }
+  }
+
+  public static String generateMigrationUniqueId(String sourceDB,
+                                                 String sourceTbl,
+                                                 String destinationDB,
+                                                 String destinationTbl) {
+    if (StringUtils.isNullOrEmpty(sourceDB) ||
+        StringUtils.isNullOrEmpty(sourceTbl) ||
+        StringUtils.isNullOrEmpty(destinationDB) ||
+        StringUtils.isNullOrEmpty(destinationTbl)) {
+      LOG.error("Generate migration unique id failed, source db {}, source tb {}, destination db {}, destination tb {}",
+          sourceDB, sourceTbl, destinationDB, destinationTbl);
+      throw new RuntimeException("Generate migration unique id failed");
+    }
+    return sourceDB.toLowerCase() + "." + sourceTbl.toLowerCase() + ":"
+        + destinationDB.toLowerCase() + "." + destinationTbl.toLowerCase();
+  }
+
+  public static String getMD5(String content) {
+    try {
+      MessageDigest md5 = MessageDigest.getInstance("MD5");
+      byte[] rawBit = md5.digest(content.getBytes());
+      String outputMD5 = " ";
+      for (int i = 0; i < 16; i++) {
+        outputMD5 = outputMD5 + hexArray[rawBit[i] >>> 4 & 0x0f];
+        outputMD5 = outputMD5 + hexArray[rawBit[i] & 0x0f];
+      }
+      String str = outputMD5.trim();
+      LOG.info("Content: {}, MD5: {}", content, str);
+      return str;
+    } catch (NoSuchAlgorithmException e) {
+      LOG.error("MD5 algorithm not found");
+      return content;
     }
   }
 }

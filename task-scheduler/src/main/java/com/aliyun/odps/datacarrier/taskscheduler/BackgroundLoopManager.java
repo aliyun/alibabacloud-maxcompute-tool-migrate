@@ -47,12 +47,17 @@ public class BackgroundLoopManager {
       @Override
       public void run() {
         while (!Thread.currentThread().isInterrupted()) {
+          LOG.info("BackgroundWorkItem count {}", items.size());
           Iterator<BackgroundWorkItem> iter = items.iterator();
           while (iter.hasNext()) {
             BackgroundWorkItem item = iter.next();
-            item.execute();
-            if (item.finished()) {
-              iter.remove();
+            try {
+              item.execute();
+              if (item.finished()) {
+                iter.remove();
+              }
+            } catch (Exception e) {
+              LOG.error("Execute BackgroundWorkItem failed", e);
             }
           }
           try {

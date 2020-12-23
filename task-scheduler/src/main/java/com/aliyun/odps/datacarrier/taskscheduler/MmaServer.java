@@ -58,17 +58,14 @@ public class MmaServer {
     summaryReportingThread = new SummaryReportingThread();
     summaryReportingThread.start();
 
-    boolean uiEnabled = Boolean.parseBoolean(MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_ENABLED));
+    Map<String, String> uiConfig = MmaServerConfig.getInstance().getUIConfig();
+    boolean uiEnabled = Boolean.parseBoolean(uiConfig.get(MmaServerConfig.MMA_UI_ENABLED));
     if (uiEnabled) {
       // Start Mma UI
-      String host =
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_HOST);
-      int port = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_PORT));
-      int maxThreads = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_MAX_THREADS));
-      int minThreads = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_MIN_THREADS));
+      String host = uiConfig.get(MmaServerConfig.MMA_UI_HOST);
+      int port = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_PORT));
+      int maxThreads = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_MAX_THREADS));
+      int minThreads = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_MIN_THREADS));
       ui = new MmaUI("", taskScheduler);
       ui.bind(host, port, maxThreads, minThreads);
     } else {

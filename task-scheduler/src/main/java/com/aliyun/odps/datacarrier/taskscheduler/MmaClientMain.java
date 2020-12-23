@@ -109,15 +109,21 @@ public class MmaClientMain {
    * happens during waiting returns 1.
    */
   private static int wait(MmaClient client, String jobName) {
-    int dotIdx = jobName.indexOf(".");
-    String db = jobName.substring(0, dotIdx);
-    String tbl = jobName.substring(dotIdx + 1);
-
+    String[] tables = jobName.split(":");
+    String[] src = tables[0].split("\\.");
+    String uniqueId = null;
+    if (tables.length == 2) {
+      uniqueId = jobName;
+    }
     JobProgressReporter reporter = new JobProgressReporter();
     while (true) {
       MmaMetaManager.MigrationStatus status;
       try {
-        status = client.getMigrationJobStatus(db, tbl);
+
+        status = client.getMigrationJobStatus(uniqueId,
+                                              MmaConfig.JobType.MIGRATION.name(),
+                                              MmaConfig.ObjectType.TABLE.name(),
+                                              src[0], src[1]);
       } catch (MmaException e) {
         e.printStackTrace();
         return 1;
@@ -133,7 +139,10 @@ public class MmaClientMain {
       } else {
         MmaMetaManager.MigrationProgress progress;
         try {
-          progress = client.getMigrationProgress(db, tbl);
+          progress = client.getMigrationProgress(jobName,
+                                                 MmaConfig.JobType.MIGRATION.name(),
+                                                 MmaConfig.ObjectType.TABLE.name(),
+                                                 src[0], src[1]);
         } catch (MmaException e) {
           e.printStackTrace();
           return 1;
@@ -174,19 +183,33 @@ public class MmaClientMain {
                 MmaConfig.TableMigrationConfig.fromJson(config.getDescription());
             String db = tableMigrationConfig.getSourceDataBaseName();
             String tbl = tableMigrationConfig.getSourceTableName();
-            MmaMetaManager.MigrationProgress progress = client.getMigrationProgress(db, tbl);
+            if (!StringUtils.isNullOrEmpty(tbl) && tbl.startsWith(Constants.MMA_TEMPORARY_TABLE_PREFIX)) {
+              continue;
+            }
+            MmaMetaManager.MigrationProgress progress = client.getMigrationProgress(
+                config.getUniqueId(),
+                config.getJobType().name(),
+                config.getObjectType().name(),
+                config.getDatabaseName(),
+                config.getName());
             tableToProgress.put(db + "." + tbl, progress);
           } else if (MmaConfig.JobType.BACKUP.equals(config.getJobType())) {
             MmaConfig.ObjectExportConfig objectExportConfig =
                 MmaConfig.ObjectExportConfig.fromJson(config.getDescription());
             String db = objectExportConfig.getDatabaseName();
             String tbl = objectExportConfig.getObjectName();
+            if (!StringUtils.isNullOrEmpty(tbl) && tbl.startsWith(Constants.MMA_TEMPORARY_TABLE_PREFIX)) {
+              continue;
+            }
             tableToProgress.put(db + "." + tbl, null);
           } else if (MmaConfig.JobType.RESTORE.equals(config.getJobType())) {
              MmaConfig.ObjectRestoreConfig objectRestoreConfig =
                 MmaConfig.ObjectRestoreConfig.fromJson(config.getDescription());
             String db = objectRestoreConfig.getDestinationDatabaseName();
             String tbl = objectRestoreConfig.getObjectName();
+            if (!StringUtils.isNullOrEmpty(tbl) && tbl.startsWith(Constants.MMA_TEMPORARY_TABLE_PREFIX)) {
+              continue;
+            }
             tableToProgress.put(db + "." + tbl, null);
           }
         }
@@ -210,13 +233,18 @@ public class MmaClientMain {
    *
    * @return If the migration job is removed successfully, returns 0, otherwise, returns 1.
    */
-  private static int remove(MmaClient client, String jobName) {
-    int dotIdx = jobName.indexOf(".");
-    String db = jobName.substring(0, dotIdx);
-    String tbl = jobName.substring(dotIdx + 1);
-
+  private static int remove(MmaClient client,String jobName) {
     try {
-      client.removeMigrationJob(db, tbl);
+      String[] tables = jobName.split(":");
+      String[] src = tables[0].split("\\.");
+      String uniqueId = null;
+      if (tables.length == 2) {
+        uniqueId = jobName;
+      }
+      client.removeMigrationJob(uniqueId,
+                                MmaConfig.JobType.MIGRATION.name(),
+                                MmaConfig.ObjectType.TABLE.name(),
+                                src[0], src[1]);
       return 0;
     } catch (MmaException e) {
       e.printStackTrace();
@@ -249,35 +277,35 @@ public class MmaClientMain {
       if (MmaConfig.JobType.MIGRATION.equals(config.getJobType())) {
         MmaConfig.TableMigrationConfig tableMigrationConfig =
             MmaConfig.TableMigrationConfig.fromJson(config.getDescription());
-        System.err.println(String.format("[TableMigration] %s.%s:%s.%s",
+        System.err.printf("[TableMigration] %s.%s:%s.%s%n",
             tableMigrationConfig.getSourceDataBaseName(),
             tableMigrationConfig.getSourceTableName(),
             tableMigrationConfig.getDestProjectName(),
-            tableMigrationConfig.getDestTableName()));
+            tableMigrationConfig.getDestTableName());
       } else if (MmaConfig.JobType.BACKUP.equals(config.getJobType())) {
         MmaConfig.ObjectExportConfig objectExportConfig =
             MmaConfig.ObjectExportConfig.fromJson(config.getDescription());
-        System.err.println(String.format("[MetaBackup] %s: %s.%s",
+        System.err.printf("[MetaBackup] %s: %s.%s%n",
             objectExportConfig.getObjectType(),
             objectExportConfig.getDatabaseName(),
-            objectExportConfig.getObjectName()));
+            objectExportConfig.getObjectName());
       } else if (MmaConfig.JobType.RESTORE.equals(config.getJobType())) {
         if (StringUtils.isNullOrEmpty(config.getName())) {
           MmaConfig.DatabaseRestoreConfig databaseRestoreConfig =
               MmaConfig.DatabaseRestoreConfig.fromJson(config.getDescription());
-          System.err.println(String.format("[Restore] DATABASE: %s to %s, task %s",
+          System.err.printf("[Restore] DATABASE: %s to %s, task %s%n",
               databaseRestoreConfig.getOriginDatabaseName(),
               databaseRestoreConfig.getDestinationDatabaseName(),
-              databaseRestoreConfig.getTaskName()));
+              databaseRestoreConfig.getTaskName());
         } else {
           MmaConfig.ObjectRestoreConfig objectRestoreConfig =
               MmaConfig.ObjectRestoreConfig.fromJson(config.getDescription());
-          System.err.println(String.format("[Restore] %s: %s from %s to %s, task %s",
+          System.err.printf("[Restore] %s: %s from %s to %s, task %s%n",
               objectRestoreConfig.getObjectType(),
               objectRestoreConfig.getObjectName(),
               objectRestoreConfig.getOriginDatabaseName(),
               objectRestoreConfig.getDestinationDatabaseName(),
-              objectRestoreConfig.getTaskName()));
+              objectRestoreConfig.getTaskName());
         }
       }
     }
@@ -327,7 +355,7 @@ public class MmaClientMain {
         .builder(REMOVE_OPT)
         .longOpt(REMOVE_OPT)
         .hasArg()
-        .argName("<db>.<table>")
+        .argName("<source_db>.<source_table>:<destination_db>.<destination_table>")
         .desc("Remove a migration job, its status should be succeeded or failed")
         .build();
     Option listJobsOption = Option

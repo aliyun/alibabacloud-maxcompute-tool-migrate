@@ -27,8 +27,15 @@ import com.aliyun.odps.datacarrier.taskscheduler.action.info.OdpsSqlActionInfo;
 
 abstract class OdpsSqlAction extends AbstractAction {
 
+  private String project;
+
   public OdpsSqlAction(String id) {
+    this(id, null);
+  }
+
+  public OdpsSqlAction(String id, String project) {
     super(id);
+    this.project = project;
     actionInfo = new OdpsSqlActionInfo();
   }
 
@@ -38,7 +45,7 @@ abstract class OdpsSqlAction extends AbstractAction {
 
     this.future = ActionExecutorFactory
         .getOdpsExecutor()
-        .execute(getSql(), getSettings(), id, (OdpsSqlActionInfo) actionInfo);
+        .execute(project, getSql(), getSettings(), id, (OdpsSqlActionInfo) actionInfo);
   }
 
   @Override
