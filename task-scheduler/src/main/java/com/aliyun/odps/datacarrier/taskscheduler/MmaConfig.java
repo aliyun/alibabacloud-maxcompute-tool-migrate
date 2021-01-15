@@ -38,14 +38,6 @@ public class MmaConfig {
     boolean validate();
   }
 
-  public static class HdfsConfig {
-    String defaultFs;
-
-    public String getDefaultFs() {
-      return defaultFs;
-    }
-  }
-
   public static class SQLSettingConfig {
     Map<String, String> ddlSettings = new HashMap<>();
     Map<String, String> migrationSettings = new HashMap<>();

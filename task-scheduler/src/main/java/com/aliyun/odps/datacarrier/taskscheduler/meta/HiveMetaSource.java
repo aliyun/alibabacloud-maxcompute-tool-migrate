@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,6 +37,7 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,12 +51,12 @@ public class HiveMetaSource implements MetaSource {
   private FileSystem fs;
 
   public HiveMetaSource(String hmsAddr,
-                        String defaultFs,
+                        Map<String, String> hdfsConfigs,
                         String principal,
                         String keyTab,
                         List<String> systemProperties) throws MetaException {
     initHmsClient(hmsAddr, principal, keyTab, systemProperties);
-    initFileSystem(defaultFs);
+    initFileSystem(hdfsConfigs, principal, keyTab);
   }
 
   private void initHmsClient(String hmsAddr,
@@ -103,18 +105,25 @@ public class HiveMetaSource implements MetaSource {
         hiveConf, tbl -> null, HiveMetaStoreClient.class.getName());
   }
 
-  private void initFileSystem(String defaultFs) {
-    LOG.info("Initializing HDFS client with default fs: {}", defaultFs);
-    if (defaultFs == null) {
+  private void initFileSystem(
+      Map<String, String> hdfsConfigs,
+      String principal,
+      String keyTab) {
+
+    LOG.info("Initializing HDFS client with: {}", hdfsConfigs);
+    if (hdfsConfigs == null || hdfsConfigs.isEmpty()) {
       return;
     }
 
     Configuration conf = new Configuration();
-    conf.set("fs.default.name", defaultFs);
-    conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+    for (Entry<String, String> entry : hdfsConfigs.entrySet()) {
+      conf.set(entry.getKey(), entry.getValue());
+    }
+    UserGroupInformation.setConfiguration(conf);
     try {
+      UserGroupInformation.loginUserFromKeytab(principal, keyTab);
       fs = FileSystem.get(conf);
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.warn("Initializing HDFS client failed", e);
     }
   }
