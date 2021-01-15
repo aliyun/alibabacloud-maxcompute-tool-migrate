@@ -19,10 +19,11 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
+import java.util.Map;
+
 import org.apache.hadoop.hive.metastore.api.MetaException;
 
 import com.aliyun.odps.datacarrier.taskscheduler.DataSource;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.HdfsConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.HiveConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.OdpsConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
@@ -33,9 +34,9 @@ public class MetaSourceFactory {
     DataSource dataSource = MmaServerConfig.getInstance().getDataSource();
     if (DataSource.Hive.equals(dataSource)) {
       HiveConfig hiveConfig = MmaServerConfig.getInstance().getHiveConfig();
-      HdfsConfig hdfsConfig = MmaServerConfig.getInstance().getHdfsConfig();
+      Map<String, String> hdfsConfig = MmaServerConfig.getInstance().getHdfsConfig();
       return new HiveMetaSource(hiveConfig.getHmsThriftAddr(),
-                                hdfsConfig != null ? hdfsConfig.getDefaultFs() : null,
+                                hdfsConfig,
                                 hiveConfig.getKrbPrincipal(),
                                 hiveConfig.getKeyTab(),
                                 hiveConfig.getKrbSystemProperties());
