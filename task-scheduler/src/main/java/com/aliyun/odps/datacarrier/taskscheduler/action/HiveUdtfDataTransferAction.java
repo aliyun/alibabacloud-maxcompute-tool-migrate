@@ -57,17 +57,19 @@ public class HiveUdtfDataTransferAction extends HiveSqlAction {
     // Get total data size
     Long totalDataSize = null;
     if (isPartitioned) {
-      Optional<Long> optionalTotalDataSize = tableMetaModel.partitions
-          .stream()
-          .map(p -> p.size).reduce((s1, s2) -> {
-            if (s1 == null || s2 == null) {
-              return null;
-            } else {
-              return s1 + s2;
-            }
-          });
-      if (optionalTotalDataSize.isPresent()) {
-        totalDataSize = optionalTotalDataSize.get();
+      if (tableMetaModel.partitions.stream().allMatch(p -> p.size != null)) {
+        Optional<Long> optionalTotalDataSize = tableMetaModel.partitions
+            .stream()
+            .map(p -> p.size).reduce((s1, s2) -> {
+              if (s1 == null || s2 == null) {
+                return null;
+              } else {
+                return s1 + s2;
+              }
+            });
+        if (optionalTotalDataSize.isPresent()) {
+          totalDataSize = optionalTotalDataSize.get();
+        }
       }
     } else {
       totalDataSize = tableMetaModel.size;
