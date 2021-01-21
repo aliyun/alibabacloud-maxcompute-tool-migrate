@@ -132,7 +132,9 @@ $ hdfs dfs -put -f /path/to/mma/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-wit
 
 ### 进度推送
 MMA支持向钉钉群推送进度信息。目前支持summary，迁移成功以及迁移失败三种类型的事件。使用本功能前需要创建一个钉钉群，并获取
-钉钉群自定义机器人的webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。
+钉钉群自定义机器人的webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。钉钉机器人安全配置关键字可以配置"succeeded"，"failed"，以及"Summary"，大小写敏感。
+
+
 之后，在MMA server配置文件的根Json中添加以下配置，用真实的webhook url替换```${webhookurl}```，并重启MMA server。
 
 ```$xslt
