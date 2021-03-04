@@ -37,6 +37,8 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.security.AnnotatedSecurityInfo;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,15 +50,22 @@ public class HiveMetaSource implements MetaSource {
   private static final Logger LOG = LogManager.getLogger(HiveMetaSource.class);
 
   private IMetaStoreClient hmsClient;
-  private FileSystem fs;
 
-  public HiveMetaSource(String hmsAddr,
-                        Map<String, String> hdfsConfigs,
-                        String principal,
-                        String keyTab,
-                        List<String> systemProperties) throws MetaException {
+  private Map<String, String> hdfsConfigs;
+  private String principal;
+  private String keyTab;
+
+  public HiveMetaSource(
+      String hmsAddr,
+      Map<String, String> hdfsConfigs,
+      String principal,
+      String keyTab,
+      List<String> systemProperties) throws MetaException {
+    this.hdfsConfigs = hdfsConfigs;
+    this.principal = principal;
+    this.keyTab = keyTab;
+
     initHmsClient(hmsAddr, principal, keyTab, systemProperties);
-    initFileSystem(hdfsConfigs, principal, keyTab);
   }
 
   private void initHmsClient(String hmsAddr,
@@ -105,27 +114,40 @@ public class HiveMetaSource implements MetaSource {
         hiveConf, tbl -> null, HiveMetaStoreClient.class.getName());
   }
 
-  private void initFileSystem(
+  private FileSystem getFileSystem(
       Map<String, String> hdfsConfigs,
       String principal,
       String keyTab) {
 
     LOG.info("Initializing HDFS client with: {}", hdfsConfigs);
     if (hdfsConfigs == null || hdfsConfigs.isEmpty()) {
-      return;
+      return null;
     }
 
     Configuration conf = new Configuration();
     for (Entry<String, String> entry : hdfsConfigs.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
-    UserGroupInformation.setConfiguration(conf);
+
     try {
-      UserGroupInformation.loginUserFromKeytab(principal, keyTab);
-      fs = FileSystem.get(conf);
+      if (!StringUtils.isNullOrEmpty(principal) && !StringUtils.isNullOrEmpty(keyTab)) {
+        // See: https://stackoverflow.com/questions/37608049/how-to-connect-with-hdfs-via-kerberos-from-osgi-bundles
+        SecurityUtil.setSecurityInfoProviders(new AnnotatedSecurityInfo());
+
+        UserGroupInformation.setConfiguration(conf);
+        UserGroupInformation.loginUserFromKeytab(principal, keyTab);
+      }
+    } catch (IOException e) {
+      LOG.warn("Initializing HDFS client failed", e);
+    }
+
+    try {
+      return FileSystem.get(conf);
     } catch (Exception e) {
       LOG.warn("Initializing HDFS client failed", e);
     }
+
+    return null;
   }
 
   @Override
@@ -184,6 +206,7 @@ public class HiveMetaSource implements MetaSource {
       }
     }
 
+    FileSystem fs = getFileSystem(hdfsConfigs, principal, keyTab);
     if (fs != null) {
       Path path = new Path(tableMetaModel.location);
       tableMetaModel.size = fs.getContentSummary(path).getLength();
@@ -280,6 +303,7 @@ public class HiveMetaSource implements MetaSource {
 
 
   public void setPartitionSize(PartitionMetaModel partitionMetaModel) throws IOException {
+    FileSystem fs = getFileSystem(hdfsConfigs, principal, keyTab);
     if (fs != null) {
       Path location = new Path(partitionMetaModel.location);
       partitionMetaModel.size = fs.getContentSummary(location).getLength();
