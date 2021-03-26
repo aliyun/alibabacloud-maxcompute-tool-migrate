@@ -20,24 +20,55 @@
 package com.aliyun.odps.datacarrier.taskscheduler.task;
 
 import java.util.List;
+import java.util.Objects;
 
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.TableMigrationConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 
-/**
- * Should support Multi-threading
- */
-public class ActionExecutionContext {
 
-  private TableMetaModel tableMetaModel = null;
-  private List<List<String>> sourceVerificationResult = null;
-  private List<List<String>> destVerificationResult = null;
+public class ActionExecutionContext
+{
+  private String jobId;
+  private MetaSource.TableMetaModel tableMetaModel;
+  private List<List<String>> sourceVerificationResult;
+  private List<List<String>> destVerificationResult;
+  private MmaConfig.OdpsConfig odpsConfig;
+  private MmaConfig.OssConfig ossConfig;
 
-  public TableMetaModel getTableMetaModel() {
+  public ActionExecutionContext(String jobId) {
+    this.tableMetaModel = null;
+    this.sourceVerificationResult = null;
+    this.destVerificationResult = null;
+    this.odpsConfig = null;
+    this.ossConfig = null;
+
+    this.jobId = Objects.requireNonNull(jobId);
+  }
+
+  public MetaSource.TableMetaModel getTableMetaModel() {
     return tableMetaModel;
   }
 
-  public void setTableMetaModel(TableMetaModel tableMetaModel) {
+  public String getJobId() {
+    return jobId;
+  }
+  public MmaConfig.OdpsConfig getOdpsConfig() {
+    return odpsConfig;
+  }
+
+  public void setOdpsConfig(MmaConfig.OdpsConfig odpsConfig) {
+    this.odpsConfig = odpsConfig;
+  }
+
+  public MmaConfig.OssConfig getOssConfig() {
+    return ossConfig;
+  }
+
+  public void setOssConfig(MmaConfig.OssConfig ossConfig) {
+    this.ossConfig = ossConfig;
+  }
+
+  public void setTableMetaModel(MetaSource.TableMetaModel tableMetaModel) {
     this.tableMetaModel = tableMetaModel;
   }
 

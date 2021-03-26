@@ -1,22 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 package com.aliyun.odps.datacarrier.taskscheduler;
 
 import java.io.IOException;
@@ -24,11 +5,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImpl;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
@@ -36,16 +14,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.datacarrier.taskscheduler.MmaEventConfig.MmaEventSenderConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventManager;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventSenderFactory;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventType;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.ResourceAllocator;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 
 public class MmaServerMain {
   private static final Logger LOG = LogManager.getLogger(MmaServerMain.class);
@@ -67,8 +43,7 @@ public class MmaServerMain {
     return 0;
   }
 
-  public static void main(String[] args)
-      throws ParseException, IOException, MetaException, MmaException {
+  public static void main(String[] args) throws ParseException, IOException {
     BasicConfigurator.configure();
 
     String mmaHome = System.getenv("MMA_HOME");
@@ -95,12 +70,10 @@ public class MmaServerMain {
         .desc("Print usage")
         .build();
 
-    Options options = new Options()
-        .addOption(configOption)
-        .addOption(helpOption);
+    Options options = new Options().addOption(configOption).addOption(helpOption);
 
-    CommandLineParser parser = new DefaultParser();
-    CommandLine cmd = parser.parse(options, args);
+    DefaultParser defaultParser = new DefaultParser();
+    CommandLine cmd = defaultParser.parse(options, args);
 
     if (cmd.hasOption(HELP_OPT)) {
       System.exit(help(options));
@@ -110,7 +83,7 @@ public class MmaServerMain {
     if (!cmd.hasOption(CONFIG_OPT)) {
       mmaServerConfigPath = Paths.get(mmaHome, "conf", "mma_server_config.json");
     } else {
-      mmaServerConfigPath = Paths.get(cmd.getOptionValue("config"));
+      mmaServerConfigPath = Paths.get(cmd.getOptionValue(CONFIG_OPT));
     }
 
     // Setup MmaServerConfig singleton
@@ -118,9 +91,8 @@ public class MmaServerMain {
 
     // Setup MmaEventManager singleton
     if (MmaServerConfig.getInstance().getEventConfig() != null) {
-      for (MmaEventSenderConfig eventSenderConfig : MmaServerConfig.getInstance()
-                                                                   .getEventConfig()
-                                                                   .getEventSenderConfigs()) {
+      for (MmaEventConfig.MmaEventSenderConfig eventSenderConfig :
+          MmaServerConfig.getInstance().getEventConfig().getEventSenderConfigs()) {
         MmaEventManager.getInstance().register(MmaEventSenderFactory.get(eventSenderConfig));
       }
 
@@ -134,10 +106,9 @@ public class MmaServerMain {
       }
     }
 
-    // Setup MmaResourceAllocator singleton
     Map<String, String> resourceConfig = MmaServerConfig.getInstance().getResourceConfig();
     if (resourceConfig != null) {
-      for (Entry<String, String> entry : resourceConfig.entrySet()) {
+      for (Map.Entry<String, String> entry : resourceConfig.entrySet()) {
         Resource resource = Resource.valueOf(entry.getKey().trim().toUpperCase());
         Long number = Long.valueOf(entry.getValue());
         ResourceAllocator.getInstance().update(resource, number);

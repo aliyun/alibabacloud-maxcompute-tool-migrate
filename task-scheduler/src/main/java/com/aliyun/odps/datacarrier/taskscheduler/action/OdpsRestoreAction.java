@@ -26,22 +26,22 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public abstract class OdpsRestoreAction extends OdpsNoSqlAction {
+public abstract class OdpsRestoreAction extends DefaultAction {
   private static final Logger LOG = LogManager.getLogger(OdpsRestoreAction.class);
 
-  private MmaConfig.ObjectRestoreConfig restoreConfig;
+  MmaConfig.ObjectRestoreConfig restoreConfig;
 
   public OdpsRestoreAction(String id, MmaConfig.ObjectRestoreConfig restoreConfig) {
     super(id);
     this.restoreConfig = restoreConfig;
   }
 
-  public String getTaskName() {
-    return restoreConfig.getTaskName();
+  public String getBackupName() {
+    return restoreConfig.getBackupName();
   }
 
-  public String getOriginProject() {
-    return restoreConfig.getOriginDatabaseName();
+  public String getSourceProject() {
+    return restoreConfig.getSourceDatabaseName();
   }
 
   public String getDestinationProject() {
@@ -61,29 +61,30 @@ public abstract class OdpsRestoreAction extends OdpsNoSqlAction {
   }
 
   @Override
-  public void doAction() throws MmaException {
+  public Object call() throws MmaException {
     try {
       restore();
     } catch (Exception e) {
-      LOG.error("Action {} failed, restore type: {} object: {} from {} to {}, update {}, stack trace: {}",
-          id, restoreConfig.getObjectType(), restoreConfig.getObjectName(), restoreConfig.getOriginDatabaseName(),
-          restoreConfig.getDestinationDatabaseName(), restoreConfig.isUpdate(), ExceptionUtils.getFullStackTrace(e));
+      LOG.error("Action {} failed, object type: {} object: {}, stack trace: {}", id, restoreConfig.getObjectType(), restoreConfig.getObjectName(), ExceptionUtils.getFullStackTrace(e));
       setProgress(ActionProgress.FAILED);
     }
+
+    return null;
   }
 
   abstract void restore() throws Exception;
 
   public String getRestoredFilePath(String folderName, String fileName) throws Exception {
-    String ossFileName = OssUtils.getOssPathToExportObject(getTaskName(),
+    String ossFileName = OssUtils.getOssPathToExportObject(
+        getBackupName(),
         folderName,
-        getOriginProject(),
+        getSourceProject(),
         getObjectName(),
         fileName);
-    if (!OssUtils.exists(ossFileName)) {
-      LOG.error("Oss file {} not found", ossFileName);
-      throw new MmaException("Oss file " + ossFileName + " not found when restore " + getObjectType().name()
-          + " " + getObjectName() + " from " + getOriginProject() + " to " + getDestinationProject());
+
+    if (!OssUtils.exists(restoreConfig.getOssConfig(), ossFileName)) {
+      String errorMsg = String.format("ActionId: %s, OSS file %s not found", id, ossFileName);
+      throw new MmaException(errorMsg);
     }
     return ossFileName;
   }

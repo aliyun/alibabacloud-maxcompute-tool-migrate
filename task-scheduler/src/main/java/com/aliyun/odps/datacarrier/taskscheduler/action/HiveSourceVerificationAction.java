@@ -46,6 +46,7 @@ public class HiveSourceVerificationAction extends HiveSqlAction {
 
   @Override
   Map<String, String> getSettings() {
+    // TODO: should come from context
     return MmaServerConfig
         .getInstance()
         .getHiveConfig()

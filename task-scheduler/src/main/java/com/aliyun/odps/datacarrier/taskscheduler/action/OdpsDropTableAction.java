@@ -21,12 +21,16 @@ package com.aliyun.odps.datacarrier.taskscheduler.action;
 
 import java.util.Map;
 
-import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
-import org.h2.util.StringUtils;
+import com.aliyun.odps.utils.StringUtils;
+
 
 public class OdpsDropTableAction extends OdpsSqlAction {
+  private static final Logger LOG = LogManager.getLogger(OdpsDropTableAction.class);
 
   private String db;
   private String tbl;
@@ -61,11 +65,10 @@ public class OdpsDropTableAction extends OdpsSqlAction {
     return OdpsSqlUtils.getDropTableStatement(db, tbl);
   }
 
+
   @Override
   Map<String, String> getSettings() {
-    // TODO: should be included in TableMigrationCongifg
-    return MmaServerConfig
-        .getInstance()
+    return actionExecutionContext
         .getOdpsConfig()
         .getDestinationTableSettings()
         .getDDLSettings();

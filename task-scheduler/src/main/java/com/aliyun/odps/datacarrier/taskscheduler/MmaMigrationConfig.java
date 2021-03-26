@@ -19,8 +19,6 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
-import com.google.inject.internal.util.$Nullable;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -31,14 +29,15 @@ public class MmaMigrationConfig implements MmaConfig.Config {
   private MmaConfig.ServiceMigrationConfig serviceMigrationConfig;
   private List<MmaConfig.DatabaseMigrationConfig> databaseMigrationConfigs;
   private List<MmaConfig.TableMigrationConfig> tableMigrationConfigs;
-  private List<MmaConfig.ObjectExportConfig> objectExportConfigs;
+  private List<MmaConfig.ObjectBackupConfig> objectBackupConfigs;
   private List<MmaConfig.ObjectRestoreConfig> objectRestoreConfigs;
-  private List<MmaConfig.DatabaseExportConfig> databaseExportConfigs;
+  private List<MmaConfig.DatabaseBackupConfig> databaseBackupConfigs;
   private List<MmaConfig.DatabaseRestoreConfig> databaseRestoreConfigs;
 
-  public MmaMigrationConfig(String user,
-                            List<MmaConfig.TableMigrationConfig> tableMigrationConfigs,
-                            MmaConfig.AdditionalTableConfig globalAdditionalTableConfig) {
+  public MmaMigrationConfig(
+      String user,
+      List<MmaConfig.TableMigrationConfig> tableMigrationConfigs,
+      MmaConfig.AdditionalTableConfig globalAdditionalTableConfig) {
     this.user = user;
     this.tableMigrationConfigs = tableMigrationConfigs;
     this.globalAdditionalTableConfig = globalAdditionalTableConfig;
@@ -46,8 +45,7 @@ public class MmaMigrationConfig implements MmaConfig.Config {
 
   @Override
   public boolean validate() {
-    boolean valid;
-
+    boolean valid = true;
     if (serviceMigrationConfig != null) {
       if (databaseMigrationConfigs != null && !databaseMigrationConfigs.isEmpty()
           || tableMigrationConfigs != null && !tableMigrationConfigs.isEmpty()) {
@@ -60,16 +58,16 @@ public class MmaMigrationConfig implements MmaConfig.Config {
         throw new IllegalArgumentException(
             "Database migration config exists, please remove table migration configs");
       }
-      valid = databaseMigrationConfigs.stream()
-          .allMatch(MmaConfig.DatabaseMigrationConfig::validate);
+      valid =
+          databaseMigrationConfigs.stream().allMatch(MmaConfig.DatabaseMigrationConfig::validate);
     } else if (tableMigrationConfigs != null) {
       valid = tableMigrationConfigs.stream().allMatch(MmaConfig.TableMigrationConfig::validate);
-    } else if (objectExportConfigs != null) {
-      valid = objectExportConfigs.stream().allMatch(MmaConfig.ObjectExportConfig::validate);
+    } else if (objectBackupConfigs != null) {
+      valid = objectBackupConfigs.stream().allMatch(MmaConfig.ObjectBackupConfig::validate);
     } else if (objectRestoreConfigs != null) {
-      valid = objectRestoreConfigs.stream().allMatch(MmaConfig.ObjectRestoreConfig::validate);
-    } else if (databaseExportConfigs != null) {
-      valid = databaseExportConfigs.stream().allMatch(MmaConfig.DatabaseExportConfig::validate);
+      // TODO: validate restore configs
+    } else if (databaseBackupConfigs != null) {
+      valid = databaseBackupConfigs.stream().allMatch(MmaConfig.DatabaseBackupConfig::validate);
     } else if (databaseRestoreConfigs != null) {
       valid = databaseRestoreConfigs.stream().allMatch(MmaConfig.DatabaseRestoreConfig::validate);
     } else {
@@ -95,16 +93,16 @@ public class MmaMigrationConfig implements MmaConfig.Config {
     return tableMigrationConfigs;
   }
 
-  public List<MmaConfig.ObjectExportConfig> getObjectExportConfigs() {
-    return objectExportConfigs;
+  public List<MmaConfig.ObjectBackupConfig> getObjectBackupConfigs() {
+    return objectBackupConfigs;
   }
 
   public List<MmaConfig.ObjectRestoreConfig> getObjectRestoreConfigs() {
     return objectRestoreConfigs;
   }
 
-  public List<MmaConfig.DatabaseExportConfig> getDatabaseExportConfigs() {
-    return databaseExportConfigs;
+  public List<MmaConfig.DatabaseBackupConfig> getDatabaseBackupConfigs() {
+    return databaseBackupConfigs;
   }
 
   public List<MmaConfig.DatabaseRestoreConfig> getDatabaseRestoreConfigs() {

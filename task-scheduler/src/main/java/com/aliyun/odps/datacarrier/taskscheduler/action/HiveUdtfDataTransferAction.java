@@ -103,6 +103,7 @@ public class HiveUdtfDataTransferAction extends HiveSqlAction {
 
   @Override
   Map<String, String> getSettings() {
+    // TODO: should come from context
     Map<String, String> settings = new HashMap<>(
         MmaServerConfig
             .getInstance()

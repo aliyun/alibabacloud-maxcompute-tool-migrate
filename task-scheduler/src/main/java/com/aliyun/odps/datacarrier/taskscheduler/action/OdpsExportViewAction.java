@@ -19,36 +19,40 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
+import com.aliyun.odps.datacarrier.taskscheduler.Constants;
 import com.aliyun.odps.datacarrier.taskscheduler.OssUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_META_FILE_NAME;
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_VIEW_FOLDER;
-
-public class OdpsExportViewAction extends OdpsNoSqlAction {
+public class OdpsExportViewAction extends DefaultAction {
   private static final Logger LOG = LogManager.getLogger(OdpsExportViewAction.class);
 
-  private String taskName;
+  private String backupName;
   private String viewText;
 
-  public OdpsExportViewAction(String id, String taskName, String viewText) {
+  public OdpsExportViewAction(String id, String backupName, String viewText) {
     super(id);
-    this.taskName = taskName;
+    this.backupName = backupName;
     this.viewText = viewText;
   }
 
   @Override
-  public void doAction() {
+  public Object call() {
     MetaSource.TableMetaModel tableMetaModel = actionExecutionContext.getTableMetaModel();
-    LOG.info("Task {}, export view {}.{}, viewText: {}", id, tableMetaModel.databaseName, tableMetaModel.tableName, viewText);
-    String ossFileName = OssUtils.getOssPathToExportObject(taskName,
-        EXPORT_VIEW_FOLDER,
+    LOG.info("Task {}, export view {}.{}, viewText: {}",
+             id, tableMetaModel.databaseName, tableMetaModel.tableName, viewText);
+
+    String ossFileName = OssUtils.getOssPathToExportObject(
+        backupName,
+        Constants.EXPORT_VIEW_FOLDER,
         tableMetaModel.databaseName,
         tableMetaModel.tableName,
-        EXPORT_META_FILE_NAME);
-    OssUtils.createFile(ossFileName, viewText);
+        Constants.EXPORT_META_FILE_NAME);
+
+    OssUtils.createFile(actionExecutionContext.getOssConfig(), ossFileName, viewText);
+
+    return null;
   }
 
   @Override

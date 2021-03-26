@@ -47,5 +47,5 @@ public interface Action {
 
   boolean executionFinished();
 
-  void stop();
+  void stop() throws MmaException;
 }

@@ -19,6 +19,20 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.GetObjectRequest;
@@ -27,53 +41,44 @@ import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.OSSObjectSummary;
 import com.aliyun.oss.model.ObjectListing;
 import com.aliyun.oss.model.PutObjectRequest;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_OBJECT_ROOT_FOLDER;
-
-public class OssUtils {
+public class OssUtils
+{
   private static final Logger LOG = LogManager.getLogger(OssUtils.class);
 
-  public static void createFile(String fileName, // relative path from bucket, such as a/b/c.txt
-                                String content) {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    LOG.info("Create oss file: {}, endpoint: {}, bucket: {}",
-       fileName, ossConfig.getOssLocalEndpoint(), ossConfig.getOssBucket());
-    OSS ossClient = createOssClient();
-    PutObjectRequest putObjectRequest = new PutObjectRequest(ossConfig.getOssBucket(), fileName, new ByteArrayInputStream(content.getBytes()));
+  public static void createFile(MmaConfig.OssConfig ossConfig, String fileName, String content) {
+    createFile(ossConfig, fileName, new ByteArrayInputStream(content.getBytes()));
+  }
+
+  public static void createFile(
+      MmaConfig.OssConfig ossConfig,
+      String fileName,
+      InputStream inputStream) {
+    LOG.info("Create oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
+        .getOssLocalEndpoint(), ossConfig.getOssBucket());
+
+    OSS ossClient = createOssClient(ossConfig);
+
+    PutObjectRequest putObjectRequest =
+        new PutObjectRequest(ossConfig.getOssBucket(), fileName, inputStream);
     ossClient.putObject(putObjectRequest);
     ossClient.shutdown();
   }
 
-  public static void createFile(String fileName, // relative path from bucket, such as a/b/c.txt
-                                InputStream inputStream) {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    OSS ossClient = createOssClient();
-    PutObjectRequest putObjectRequest = new PutObjectRequest(ossConfig.getOssBucket(), fileName, inputStream);
-    ossClient.putObject(putObjectRequest);
-    ossClient.shutdown();
-  }
+  public static String readFile(MmaConfig.OssConfig ossConfig, String fileName) throws IOException {
+    LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
+        .getOssLocalEndpoint(), ossConfig.getOssBucket());
 
-  public static String readFile(String fileName) throws IOException {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    OSS ossClient = createOssClient();
+    OSS ossClient = createOssClient(ossConfig);
     OSSObject ossObject = ossClient.getObject(ossConfig.getOssBucket(), fileName);
     StringBuilder builder = new StringBuilder();
     BufferedReader reader = new BufferedReader(new InputStreamReader(ossObject.getObjectContent()));
     while (true) {
       String line = reader.readLine();
-      if (line == null)
+      if (line == null) {
         break;
+      }
       builder.append(line).append('\n');
     }
     reader.close();
@@ -81,20 +86,42 @@ public class OssUtils {
     return builder.toString();
   }
 
-  public static boolean exists(String fileName) {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    OSS ossClient = createOssClient();
+  public static InputStream openInputStream(MmaConfig.OssConfig ossConfig, String fileName) {
+    LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
+        .getOssLocalEndpoint(), ossConfig.getOssBucket());
+
+    OSS ossClient = createOssClient(ossConfig);
+    OSSObject ossObject = ossClient.getObject(ossConfig.getOssBucket(), fileName);
+    return ossObject.getObjectContent();
+  }
+
+  public static boolean exists(MmaConfig.OssConfig ossConfig, String fileName) {
+    LOG.info("Check oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
+        .getOssLocalEndpoint(), ossConfig.getOssBucket());
+
+    OSS ossClient = createOssClient(ossConfig);
     boolean exists = ossClient.doesObjectExist(ossConfig.getOssBucket(), fileName);
     ossClient.shutdown();
     return exists;
   }
 
-  public static String downloadFile(String fileName) {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    OSS ossClient = createOssClient();
-    File localFile = new File("oss_files/" + fileName);
-    if(!localFile.getParentFile().exists()){
-      localFile.getParentFile().mkdirs();
+  public static String downloadFile(
+      MmaConfig.OssConfig ossConfig,
+      String jobId,
+      String fileName) throws IOException {
+
+    LOG.info("Download oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
+        .getOssLocalEndpoint(), ossConfig.getOssBucket());
+
+    OSS ossClient = createOssClient(ossConfig);
+
+    String mmaHome = System.getenv("MMA_HOME");
+    Path localFilePath = Paths.get(mmaHome, "tmp", "oss", jobId, fileName);
+    File localFile = localFilePath.toFile();
+    if (!localFile.getParentFile().exists() && !localFile.getParentFile().mkdirs()) {
+      String errorMsg = "Download oss file failed when creating local file: "
+          + localFilePath.toAbsolutePath().toString();
+      throw new IOException(errorMsg);
     }
     ossClient.getObject(new GetObjectRequest(ossConfig.getOssBucket(), fileName), localFile);
     ossClient.shutdown();
@@ -102,9 +129,8 @@ public class OssUtils {
     return localFile.getAbsolutePath();
   }
 
-  public static List<String> listBucket(String prefix) {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    OSS ossClient = createOssClient();
+  public static List<String> listBucket(MmaConfig.OssConfig ossConfig, String prefix) {
+    OSS ossClient = createOssClient(ossConfig);
     ArrayList<String> allFiles = new ArrayList<>();
     ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossConfig.getOssBucket());
     listObjectsRequest.setMaxKeys(1000);
@@ -124,9 +150,12 @@ public class OssUtils {
     return allFiles;
   }
 
-  public static List<String> listBucket(String prefix, String delimiter) {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    OSS ossClient = createOssClient();
+  public static List<String> listBucket(
+      MmaConfig.OssConfig ossConfig,
+      String prefix,
+      String delimiter) {
+
+    OSS ossClient = createOssClient(ossConfig);
     ArrayList<String> allFiles = new ArrayList<>();
     ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossConfig.getOssBucket());
     listObjectsRequest.setMaxKeys(1000);
@@ -134,7 +163,7 @@ public class OssUtils {
     listObjectsRequest.setDelimiter(delimiter);
     while (true) {
       ObjectListing objectListing = ossClient.listObjects(listObjectsRequest);
-      for(String fullName : objectListing.getCommonPrefixes()) {
+      for (String fullName : objectListing.getCommonPrefixes()) {
         String[] splitResult = fullName.split(delimiter);
         allFiles.add(splitResult[splitResult.length - 1]);
       }
@@ -146,35 +175,41 @@ public class OssUtils {
     return allFiles;
   }
 
-  public static String getOssPathToExportObject(String taskName,
-                                                String folderName,
-                                                String database,
-                                                String objectName,
-                                                String ossFileName) {
+  public static String getOssPathToExportObject(
+      String taskName,
+      String folderName,
+      String database,
+      String objectName,
+      String ossFileName) {
+
     StringBuilder builder = new StringBuilder();
-    builder.append(getFolderNameWithSeparator(EXPORT_OBJECT_ROOT_FOLDER))
-        .append(getFolderNameWithSeparator(taskName))
-        .append(getFolderNameWithSeparator(folderName))
-        .append(getFolderNameWithSeparator(database.toLowerCase()))
-        .append(getFolderNameWithSeparator(objectName.toLowerCase()))
-        .append(ossFileName);
+    builder.append(getFolderNameWithSeparator("odps_mma/export_objects/"))
+           .append(getFolderNameWithSeparator(taskName))
+           .append(getFolderNameWithSeparator(folderName))
+           .append(getFolderNameWithSeparator(database.toLowerCase()))
+           .append(getFolderNameWithSeparator(objectName.toLowerCase()))
+           .append(ossFileName);
     return builder.toString();
   }
 
-  public static String getOssFolderToExportObject(String taskName,
-                                                  String folderName,
-                                                  String database) {
+  public static String getOssFolderToExportObject(
+      String taskName,
+      String folderName,
+      String database) {
+
     StringBuilder builder = new StringBuilder();
-    builder.append(getFolderNameWithSeparator(EXPORT_OBJECT_ROOT_FOLDER))
-        .append(getFolderNameWithSeparator(taskName))
-        .append(getFolderNameWithSeparator(folderName))
-        .append(getFolderNameWithSeparator(database.toLowerCase()));
+    builder.append(getFolderNameWithSeparator("odps_mma/export_objects/"))
+           .append(getFolderNameWithSeparator(taskName))
+           .append(getFolderNameWithSeparator(folderName))
+           .append(getFolderNameWithSeparator(database.toLowerCase()));
     return builder.toString();
   }
 
-  private static OSS createOssClient() {
-    MmaConfig.OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
-    return new OSSClientBuilder().build(ossConfig.getOssLocalEndpoint(), ossConfig.getOssAccessId(), ossConfig.getOssAccessKey());
+  private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
+    return (new OSSClientBuilder()).build(
+        ossConfig.getOssLocalEndpoint(),
+        ossConfig.getOssAccessId(),
+        ossConfig.getOssAccessKey());
   }
 
   private static String getFolderNameWithSeparator(String folderName) {

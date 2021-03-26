@@ -1,22 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 package com.aliyun.odps.datacarrier.taskscheduler;
 
 import java.util.Map;
@@ -27,76 +8,80 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventManager;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaSummaryEvent;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSourceFactory;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager.MigrationStatus;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImpl;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProgress;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProvider;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaUI;
 
-
 public class MmaServer {
   private static final Logger LOG = LogManager.getLogger(MmaServer.class);
 
-  private static final int DEFAULT_REPORTING_INTERVAL_MS = 60 * 60 * 1000;
+  /**
+   * 1 hour
+   */
+  private static final int DEFAULT_REPORTING_INTERVAL_MS = 3600000;
 
   private volatile boolean keepRunning = true;
 
   private TaskScheduler taskScheduler;
-  private MmaMetaManager mmaMetaManager;
+  private MmaMetaManager mmaMetaManager = new MmaMetaManagerDbImpl(true);
   private MmaUI ui;
 
   private SummaryReportingThread summaryReportingThread;
 
   public MmaServer() throws MetaException, MmaException {
-    mmaMetaManager = new MmaMetaManagerDbImpl(MetaSourceFactory.getMetaSource(), true);
-
     TaskProvider taskProvider = new TaskProvider(mmaMetaManager);
     taskScheduler = new TaskScheduler(taskProvider);
 
     summaryReportingThread = new SummaryReportingThread();
+    summaryReportingThread.setDaemon(true);
     summaryReportingThread.start();
 
-    boolean uiEnabled = Boolean.parseBoolean(MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_ENABLED));
+    Map<String, String> uiConfig = MmaServerConfig.getInstance().getUIConfig();
+    LOG.info("UI config: {}", uiConfig.toString());
+    boolean uiEnabled = Boolean.parseBoolean(uiConfig.get(MmaServerConfig.MMA_UI_ENABLED));
     if (uiEnabled) {
-      // Start Mma UI
-      String host =
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_HOST);
-      int port = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_PORT));
-      int maxThreads = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_MAX_THREADS));
-      int minThreads = Integer.valueOf(
-          MmaServerConfig.getInstance().getUIConfig().get(MmaServerConfig.MMA_UI_MIN_THREADS));
-      ui = new MmaUI("", taskScheduler);
+      String host = uiConfig.get(MmaServerConfig.MMA_UI_HOST);
+      int port = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_PORT));
+      int maxThreads = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_THREADS_MAX));
+      int minThreads = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_THREADS_MIN));
+      ui = new MmaUI("", mmaMetaManager, taskScheduler);
       ui.bind(host, port, maxThreads, minThreads);
     } else {
       LOG.info("MMA UI disabled");
     }
   }
 
-  public void run(){
+  public void run() {
     taskScheduler.run();
   }
+
 
   public void shutdown() {
     keepRunning = false;
     try {
       summaryReportingThread.join();
-    } catch (InterruptedException ignore) {
+    } catch (InterruptedException e) {
+      LOG.warn(e);
     }
 
-    taskScheduler.shutdown();
+    try {
+      taskScheduler.shutdown();
+    } catch (Exception e) {
+      LOG.warn(e);
+    }
 
     try {
       mmaMetaManager.shutdown();
-    } catch (Exception ignore) {
+    } catch (Exception e) {
+      LOG.warn(e);
     }
 
     try {
       ui.stop();
-    } catch (Exception ignore) {
+    } catch (Exception e) {
+      LOG.warn(e);
     }
   }
 
@@ -113,16 +98,16 @@ public class MmaServer {
       while (keepRunning) {
         try {
           int numPendingJobs = mmaMetaManager
-              .listMigrationJobs(MigrationStatus.PENDING, -1)
+              .listMigrationJobs(MmaMetaManager.JobStatus.PENDING, -1)
               .size();
           int numRunningJobs = mmaMetaManager
-              .listMigrationJobs(MigrationStatus.RUNNING, -1)
+              .listMigrationJobs(MmaMetaManager.JobStatus.RUNNING, -1)
               .size();
           int numFailedJobs = mmaMetaManager
-              .listMigrationJobs(MigrationStatus.FAILED, -1)
+              .listMigrationJobs(MmaMetaManager.JobStatus.FAILED, -1)
               .size();
           int numSucceededJobs = mmaMetaManager
-              .listMigrationJobs(MigrationStatus.SUCCEEDED, -1)
+              .listMigrationJobs(MmaMetaManager.JobStatus.SUCCEEDED, -1)
               .size();
 
           Map<String, TaskProgress> taskToProgress = taskScheduler.summary();

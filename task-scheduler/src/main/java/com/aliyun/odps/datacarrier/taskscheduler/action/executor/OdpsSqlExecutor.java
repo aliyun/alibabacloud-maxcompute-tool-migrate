@@ -27,8 +27,6 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-import com.aliyun.odps.datacarrier.taskscheduler.OdpsUtils;
-import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsNoSqlAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,15 +34,20 @@ import com.aliyun.odps.Instance;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.data.Record;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.action.info.OdpsSqlActionInfo;
 import com.aliyun.odps.task.SQLTask;
+import com.aliyun.odps.utils.StringUtils;
 
-public class OdpsExecutor extends AbstractActionExecutor {
+
+public class OdpsSqlExecutor extends AbstractActionExecutor {
 
   private static final Logger LOG = LogManager.getLogger("ExecutorLogger");
 
   private static class OdpsSqlCallable implements Callable<Object> {
+
     private Odps odps;
+    private String db;
     private String sql;
     private Map<String, String> settings;
     private String actionId;
@@ -52,11 +55,13 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
     OdpsSqlCallable(
         Odps odps,
+        String db,
         String sql,
         Map<String, String> settings,
         String actionId,
         OdpsSqlActionInfo odpsSqlActionInfo) {
       this.odps = odps;
+      this.db = db;
       this.sql = Objects.requireNonNull(sql);
       this.settings = Objects.requireNonNull(settings);
       this.actionId = Objects.requireNonNull(actionId);
@@ -65,26 +70,28 @@ public class OdpsExecutor extends AbstractActionExecutor {
 
     @Override
     public Object call() throws Exception {
-      LOG.info("ActionId: {}, Executing sql: {}, settings {}", actionId, sql, settings);
+      LOG.info("ActionId: {}, Executing sql: {}, settings {}", this.actionId, this.sql,
+               this.settings);
 
-      if (sql.isEmpty()) {
+      if (this.sql.isEmpty()) {
         return null;
       }
 
-      Instance i = SQLTask.run(odps, odps.getDefaultProject(), sql, settings, null);
+      String project = StringUtils.isNullOrEmpty(this.db) ? this.odps.getDefaultProject() : this.db;
+      Instance i = SQLTask.run(this.odps, project, this.sql, this.settings, null);
 
-      odpsSqlActionInfo.setInstanceId(i.getId());
-      LOG.info("ActionId: {}, InstanceId: {}", actionId, i.getId());
+      this.odpsSqlActionInfo.setInstanceId(i.getId());
+      LOG.info("ActionId: {}, InstanceId: {}", this.actionId, i.getId());
 
       try {
-        odpsSqlActionInfo.setLogView(odps.logview().generateLogView(i, 72));
-        LOG.info("ActionId: {}, LogView {}", actionId, odpsSqlActionInfo.getLogView());
-      } catch (OdpsException ignore) {
+        this.odpsSqlActionInfo.setLogView(this.odps.logview().generateLogView(i, 72L));
+        LOG.info("ActionId: {}, LogView {}", this.actionId, this.odpsSqlActionInfo.getLogView());
+      } catch (OdpsException odpsException) {
       }
 
       i.waitForSuccess();
 
-      if (OdpsSqlActionInfo.ResultType.COLUMNS.equals(odpsSqlActionInfo.getResultType())) {
+      if (OdpsSqlActionInfo.ResultType.COLUMNS.equals(this.odpsSqlActionInfo.getResultType())) {
         return parseResult(i);
       }
       List<Object> ret = new LinkedList<>();
@@ -98,12 +105,10 @@ public class OdpsExecutor extends AbstractActionExecutor {
       List<Record> records = SQLTask.getResult(instance);
       List<Object> ret = new LinkedList<>();
 
-      int columnCount;
       if (records.isEmpty()) {
         return ret;
-      } else {
-        columnCount = records.get(0).getColumnCount();
       }
+      int columnCount = records.get(0).getColumnCount();
 
       for (Record r : records) {
         List<String> row = new ArrayList<>(columnCount);
@@ -111,47 +116,30 @@ public class OdpsExecutor extends AbstractActionExecutor {
           row.add(r.get(i).toString());
         }
         ret.add(row);
-        LOG.debug("ActionId: {}, result: {}", actionId, row);
+        LOG.debug("ActionId: {}, result: {}", this.actionId, row);
       }
 
-      LOG.info("ActionId: {}, result set size: {}", actionId, ret.size());
+      LOG.info("ActionId: {}, result set size: {}", this.actionId, ret.size());
 
       return ret;
     }
   }
 
-  private static class OdpsNoSqlRunnable implements Callable {
-    OdpsNoSqlAction action;
-
-    OdpsNoSqlRunnable(OdpsNoSqlAction action) {
-      this.action = action;
-    }
-
-    @Override
-    public Object call() throws Exception {
-      action.doAction();
-      return null;
-    }
-  }
 
   public Future<Object> execute(
+      MmaConfig.OdpsConfig odpsConfig,
       String sql,
       Map<String, String> settings,
       String actionId,
       OdpsSqlActionInfo odpsSqlActionInfo) {
-    // TODO: endpoint, ak, project name should come with tableMigrationConfig
-
     OdpsSqlCallable callable = new OdpsSqlCallable(
-        OdpsUtils.getInstance(),
+        odpsConfig.toOdps(),
+        odpsConfig.getProjectName(),
         sql,
         settings,
         actionId,
         odpsSqlActionInfo);
 
-    return executor.submit(callable);
-  }
-
-  public Future<Object> execute(OdpsNoSqlAction action) {
-    return executor.submit(new OdpsNoSqlRunnable(action));
+    return this.executor.submit(callable);
   }
 }

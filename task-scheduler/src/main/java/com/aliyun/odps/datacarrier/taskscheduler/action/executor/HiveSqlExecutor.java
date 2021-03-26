@@ -58,7 +58,6 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
     private String user;
     private String password;
     private String sql;
-    // TODO: Map<String, String> could be better
     private Map<String, String> settings;
     private String actionId;
     private HiveSqlActionInfo hiveSqlActionInfo;

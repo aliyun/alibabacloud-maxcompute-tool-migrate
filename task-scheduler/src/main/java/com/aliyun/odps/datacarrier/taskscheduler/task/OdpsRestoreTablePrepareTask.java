@@ -19,44 +19,44 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.task;
 
+import java.util.Objects;
+
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DirectedAcyclicGraph;
+
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DirectedAcyclicGraph;
 
-import java.util.Objects;
-
-public class OdpsRestoreTablePrepareTask extends ObjectExportAndRestoreTask {
-
+public class OdpsRestoreTablePrepareTask extends AbstractTask {
   private final MetaSource.TableMetaModel tableMetaModel;
 
-  public OdpsRestoreTablePrepareTask(String id,
-                                    MetaSource.TableMetaModel tableMetaModel,
-                                    DirectedAcyclicGraph<Action, DefaultEdge> dag,
-                                    MmaMetaManager mmaMetaManager) {
-    super(id, tableMetaModel, dag, mmaMetaManager);
+  public OdpsRestoreTablePrepareTask(
+      String id,
+      String jobId,
+      MetaSource.TableMetaModel tableMetaModel,
+      DirectedAcyclicGraph<Action, DefaultEdge> dag,
+      MmaMetaManager mmaMetaManager) {
+    super(id, jobId, dag, mmaMetaManager);
     this.tableMetaModel = Objects.requireNonNull(tableMetaModel);
-    actionExecutionContext.setTableMetaModel(this.tableMetaModel);
+    this.actionExecutionContext.setTableMetaModel(tableMetaModel);
   }
 
   @Override
   void updateMetadata() throws MmaException {
-    if (TaskProgress.PENDING.equals(progress) ||
-        TaskProgress.RUNNING.equals(progress) ||
-        TaskProgress.SUCCEEDED.equals(progress)) {
+    if (TaskProgress.PENDING.equals(progress)
+        || TaskProgress.RUNNING.equals(progress)
+        || TaskProgress.SUCCEEDED.equals(progress)) {
       return;
     }
-    MmaMetaManager.MigrationStatus status = MmaMetaManager.MigrationStatus.FAILED;
-    MmaMetaManagerDbImplUtils.RestoreTaskInfo restoreTaskInfo = getRestoreTaskInfo();
-    if (restoreTaskInfo != null) {
-      mmaMetaManager.updateStatusInRestoreDB(restoreTaskInfo, status);
-    } else {
-      mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-          tableMetaModel.tableName,
-          status);
-    }
+    MmaMetaManager.JobStatus status = MmaMetaManager.JobStatus.FAILED;
+    mmaMetaManager.updateStatus(
+        jobId,
+        MmaConfig.JobType.RESTORE.name(),
+        MmaConfig.ObjectType.TABLE.name(),
+        tableMetaModel.databaseName, tableMetaModel.tableName,
+        status);
   }
 }

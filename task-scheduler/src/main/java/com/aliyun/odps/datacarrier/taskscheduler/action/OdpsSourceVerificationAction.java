@@ -27,12 +27,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
 
 public class OdpsSourceVerificationAction extends OdpsSqlAction {
 
-  private static final Logger LOG = LogManager.getLogger(HiveSourceVerificationAction.class);
+  private static final Logger LOG = LogManager.getLogger(OdpsSourceVerificationAction.class);
 
   public OdpsSourceVerificationAction(String id) {
     super(id);
@@ -40,13 +39,13 @@ public class OdpsSourceVerificationAction extends OdpsSqlAction {
 
   @Override
   String getSql() {
-    return OdpsSqlUtils.getVerifySql(actionExecutionContext.getTableMetaModel(), false);
+    return OdpsSqlUtils.getVerifySql(
+        actionExecutionContext.getTableMetaModel(), false);
   }
 
   @Override
   Map<String, String> getSettings() {
-    return MmaServerConfig
-        .getInstance()
+    return actionExecutionContext
         .getOdpsConfig()
         .getSourceTableSettings()
         .getVerifySettings();
@@ -55,13 +54,12 @@ public class OdpsSourceVerificationAction extends OdpsSqlAction {
   @Override
   public void afterExecution() throws MmaException {
     try {
-      List<List<String>> rows = (List<List<String>>) future.get();
+      List<List<String>> rows = (List) future.get();
       actionExecutionContext.setSourceVerificationResult(rows);
       setProgress(ActionProgress.SUCCEEDED);
     } catch (Exception e) {
       LOG.error("Action failed, actionId: {}, stack trace: {}",
-                id,
-                ExceptionUtils.getFullStackTrace(e));
+                id, ExceptionUtils.getFullStackTrace(e));
       setProgress(ActionProgress.FAILED);
     }
   }

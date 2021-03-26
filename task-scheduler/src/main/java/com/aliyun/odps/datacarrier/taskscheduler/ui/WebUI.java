@@ -23,20 +23,37 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
+import com.aliyun.odps.datacarrier.taskscheduler.ui.api.AbstractRestfulApi;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.JettyUtils;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.JettyUtils.ServerInfo;
 
 public abstract class WebUI {
+
   private String basePath;
-  private ServerInfo serverInfo;
-  private List<WebUITab> tabs = new LinkedList<>();
-  private List<ServletContextHandler> handlers = new LinkedList<>();
+  private JettyUtils.ServerInfo serverInfo;
+  private List<WebUITab> tabs;
+  private List<ServletContextHandler> handlers;
+  private ServletContextHandler apiHandler;
 
   public WebUI(String basePath) {
-    this.basePath = Objects.requireNonNull(basePath);
+    this.basePath = basePath;
+    tabs = new LinkedList();
+    handlers = new LinkedList();
+    basePath = Objects.requireNonNull(basePath);
+    apiHandler = new ServletContextHandler();
+
+    String apiPath;
+    if ("".equals(basePath)) {
+      apiPath = "/api";
+    } else {
+      apiPath = basePath + "/api";
+    }
+    this.apiHandler.setContextPath(apiPath);
   }
+
 
   public String getBasePath() {
     return basePath;
@@ -65,12 +82,23 @@ public abstract class WebUI {
     handlers.add(handler);
   }
 
+  public void attachApi(AbstractRestfulApi api) {
+    ServletHolder holder = new ServletHolder(JettyUtils.createServlet(api));
+    apiHandler.addServlet(holder, api.getPrefix());
+  }
+
   public void addStaticHandler(String resourceBase, String path) {
     attachHandler(JettyUtils.createStaticHandler(resourceBase, path));
   }
 
+  public void setApiErrorHandler(ErrorHandler errorHandler) {
+    apiHandler.setErrorHandler(errorHandler);
+  }
+
   public void bind(String host, int port, int maxThreads, int minThreads) {
-    serverInfo = JettyUtils.startJettyServer(host, port, maxThreads, minThreads, handlers);
+    List<ServletContextHandler> allHandlers = new LinkedList<>(handlers);
+    allHandlers.add(apiHandler);
+    serverInfo = JettyUtils.startJettyServer(host, port, maxThreads, minThreads, allHandlers);
   }
 
   public void stop() throws Exception {

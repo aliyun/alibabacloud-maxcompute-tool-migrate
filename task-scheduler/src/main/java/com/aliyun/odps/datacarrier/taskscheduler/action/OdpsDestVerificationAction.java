@@ -28,11 +28,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
 
-public class OdpsDestVerificationAction extends OdpsSqlAction {
 
+public class OdpsDestVerificationAction extends OdpsSqlAction {
   private static final Logger LOG = LogManager.getLogger(OdpsDestVerificationAction.class);
 
   public OdpsDestVerificationAction(String id) {
@@ -46,9 +45,7 @@ public class OdpsDestVerificationAction extends OdpsSqlAction {
 
   @Override
   Map<String, String> getSettings() {
-    // TODO: should use table migration config
-    return MmaServerConfig
-        .getInstance()
+    return actionExecutionContext
         .getOdpsConfig()
         .getDestinationTableSettings()
         .getVerifySettings();
@@ -57,7 +54,7 @@ public class OdpsDestVerificationAction extends OdpsSqlAction {
   @Override
   public void afterExecution() throws MmaException {
     try {
-      List<List<String>> rows = (List<List<String>>) future.get();
+      List<List<String>> rows = (List) future.get();
 
       if (Level.DEBUG.equals(LOG.getLevel())) {
         for (List<String> row : rows) {
@@ -69,8 +66,7 @@ public class OdpsDestVerificationAction extends OdpsSqlAction {
       setProgress(ActionProgress.SUCCEEDED);
     } catch (Exception e) {
       LOG.error("Action failed, actionId: {}, stack trace: {}",
-                id,
-                ExceptionUtils.getFullStackTrace(e));
+                id, ExceptionUtils.getFullStackTrace(e));
       setProgress(ActionProgress.FAILED);
     }
   }

@@ -42,10 +42,10 @@ public class HiveSqlUtils {
     }
 
     sb.append("SELECT odps_data_dump_multi(\n")
-        .append("'").append(tableMetaModel.odpsProjectName).append("',\n")
-        .append("'").append(tableMetaModel.odpsTableName).append("',\n")
-        .append("'").append(String.join(",", odpsColumnNames)).append("',\n")
-        .append("'").append(String.join(",", odpsPartitionColumnNames)).append("',\n");
+      .append("'").append(tableMetaModel.odpsProjectName).append("',\n")
+      .append("'").append(tableMetaModel.odpsTableName).append("',\n")
+      .append("'").append(String.join(",", odpsColumnNames)).append("',\n")
+      .append("'").append(String.join(",", odpsPartitionColumnNames)).append("',\n");
 
     for (int i = 0; i < hiveColumnNames.size(); i++) {
       sb.append("`").append(hiveColumnNames.get(i)).append("`");
@@ -59,7 +59,7 @@ public class HiveSqlUtils {
     String databaseName = tableMetaModel.databaseName;
     String tableName = tableMetaModel.tableName;
     sb.append("FROM ")
-        .append(databaseName).append(".`").append(tableName).append("`").append("\n");
+      .append(databaseName).append(".`").append(tableName).append("`").append("\n");
     String whereCondition = getWhereCondition(tableMetaModel);
     sb.append(whereCondition);
     return sb.toString();
@@ -79,7 +79,7 @@ public class HiveSqlUtils {
 
     sb.append("COUNT(1) FROM\n");
     sb.append(tableMetaModel.databaseName)
-        .append(".`").append(tableMetaModel.tableName).append("`\n");
+      .append(".`").append(tableMetaModel.tableName).append("`\n");
 
     if (tableMetaModel.partitionColumns.size() > 0) {
 
@@ -123,8 +123,8 @@ public class HiveSqlUtils {
 
     sb.append("WHERE\n");
     for (int i = 0; i < tableMetaModel.partitions.size(); i++) {
-      String entry = getWhereConditionEntry(tableMetaModel.partitionColumns,
-                                            tableMetaModel.partitions.get(i));
+      String entry = getWhereConditionEntry(
+          tableMetaModel.partitionColumns, tableMetaModel.partitions.get(i));
       sb.append(entry);
 
       if (i != tableMetaModel.partitions.size() - 1) {
@@ -136,8 +136,9 @@ public class HiveSqlUtils {
     return sb.toString();
   }
 
-  private static String getWhereConditionEntry(List<MetaSource.ColumnMetaModel> partitionColumns,
-                                               MetaSource.PartitionMetaModel partitionMetaModel) {
+  private static String getWhereConditionEntry(
+      List<MetaSource.ColumnMetaModel> partitionColumns,
+      MetaSource.PartitionMetaModel partitionMetaModel) {
     if (partitionColumns == null || partitionMetaModel == null) {
       throw new IllegalArgumentException(
           "'partitionColumns' or 'partitionMetaModel' cannot be null");
@@ -150,7 +151,7 @@ public class HiveSqlUtils {
       String partitionValue = partitionMetaModel.partitionValues.get(i);
 
       sb.append(partitionColumn.columnName).append("=").append("cast('").append(partitionValue)
-          .append("' AS ").append(partitionColumn.type).append(")");
+        .append("' AS ").append(partitionColumn.type).append(")");
 
       if (i != partitionColumns.size() - 1) {
         sb.append(" AND ");

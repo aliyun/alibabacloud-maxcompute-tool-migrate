@@ -25,42 +25,40 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.datacarrier.taskscheduler.GsonUtils;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.OssConfig;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.OssExternalTableConfig;
 
 public class OdpsCreateOssExternalTableAction extends OdpsSqlAction {
-
   private static final Logger LOG = LogManager.getLogger(OdpsCreateOssExternalTableAction.class);
 
-  String ossFolder; // relative path from bucket, such as a/b/
+  private String ossFolder;
+
 
   public OdpsCreateOssExternalTableAction(String id, String ossFolder) {
     super(id);
-    this.ossFolder =  ossFolder;
+    this.ossFolder = ossFolder;
   }
 
   @Override
   String getSql() {
-    OssConfig ossConfig = MmaServerConfig.getInstance().getOssConfig();
+    MmaConfig.OssConfig ossConfig = this.actionExecutionContext.getOssConfig();
     OssExternalTableConfig ossExternalTableConfig = new OssExternalTableConfig(
         ossConfig.getOssEndpoint(),
         ossConfig.getOssBucket(),
         ossConfig.getOssRoleArn(),
         ossFolder);
 
-    LOG.info("OSS external table config: {}", GsonUtils.getFullConfigGson().toJson(ossExternalTableConfig));
+    LOG.debug("OSS external table config: {}",
+              GsonUtils.getFullConfigGson().toJson(ossExternalTableConfig));
 
     return OdpsSqlUtils.getCreateTableStatement(
-        actionExecutionContext.getTableMetaModel(),
-        ossExternalTableConfig);
+        actionExecutionContext.getTableMetaModel(), ossExternalTableConfig);
   }
 
   @Override
   Map<String, String> getSettings() {
-    return MmaServerConfig
-        .getInstance()
+    return actionExecutionContext
         .getOdpsConfig()
         .getDestinationTableSettings()
         .getDDLSettings();

@@ -19,9 +19,15 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Function;
-import com.aliyun.odps.NoSuchObjectException;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.Resource;
@@ -29,31 +35,23 @@ import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsFunctionInfo;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 
 public class OdpsUtils {
   private static final Logger LOG = LogManager.getLogger(OdpsUtils.class);
 
-  private static Odps odps;
-
-  static {
-    MmaConfig.OdpsConfig odpsConfig = MmaServerConfig.getInstance().getOdpsConfig();
-    odps = new Odps(new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey()));
+  private static Odps getOdps(MmaConfig.OdpsConfig odpsConfig) {
+    AliyunAccount aliyunAccount = new AliyunAccount(
+        odpsConfig.getAccessId(), odpsConfig.getAccessKey());
+    Odps odps = new Odps(aliyunAccount);
     odps.setEndpoint(odpsConfig.getEndpoint());
     odps.setDefaultProject(odpsConfig.getProjectName());
     odps.setUserAgent("MMA");
-  }
-
-  public static Odps getInstance() {
     return odps;
   }
 
-  public static Table getTable(String databaseName, String tableName) {
+  public static Table getTable(
+      MmaConfig.OdpsConfig odpsConfig, String databaseName, String tableName) {
+    Odps odps = getOdps(odpsConfig);
     try {
       if (odps.tables().exists(databaseName, tableName)) {
         return odps.tables().get(databaseName, tableName);
@@ -64,7 +62,9 @@ public class OdpsUtils {
     return null;
   }
 
-  public static Function getFunction(String databaseName, String functionName) {
+  public static Function getFunction(
+      MmaConfig.OdpsConfig odpsConfig, String databaseName, String functionName) {
+    Odps odps = getOdps(odpsConfig);
     try {
       if (odps.functions().exists(databaseName, functionName)) {
         return odps.functions().get(databaseName, functionName);
@@ -75,21 +75,32 @@ public class OdpsUtils {
     return null;
   }
 
-  public static void createFunction(String project, OdpsFunctionInfo functionInfo, boolean isUpdate) throws OdpsException {
+  public static void createFunction(
+      MmaConfig.OdpsConfig odpsConfig,
+      String project,
+      OdpsFunctionInfo functionInfo,
+      boolean isUpdate) throws OdpsException {
+    Odps odps = getOdps(odpsConfig);
     Function function = new Function();
-      function.setName(functionInfo.getFunctionName());
-      function.setClassPath(functionInfo.getClassName());
-      function.setResources(functionInfo.getUseList());
-      LOG.info("Create function {}.{} class {}, resources {}, update {}",
-          project, functionInfo.getFunctionName(), functionInfo.getClassName(), functionInfo.getUseList(), isUpdate);
-      if (odps.functions().exists(project, functionInfo.getFunctionName()) && isUpdate) {
-        odps.functions().update(project, function);
-      } else {
-        odps.functions().create(project, function);
-      }
+    function.setName(functionInfo.getFunctionName());
+    function.setClassPath(functionInfo.getClassName());
+    function.setResources(functionInfo.getUseList());
+    LOG.info("Create function {}.{} class {}, resources {}, update {}",
+             project,
+             functionInfo.getFunctionName(),
+             functionInfo.getClassName(),
+             functionInfo.getUseList(),
+             isUpdate);
+    if (odps.functions().exists(project, functionInfo.getFunctionName()) && isUpdate) {
+      odps.functions().update(project, function);
+    } else {
+      odps.functions().create(project, function);
+    }
   }
 
-  public static Resource getResource(String databaseName, String resourceName) {
+  public static Resource getResource(
+      MmaConfig.OdpsConfig odpsConfig, String databaseName, String resourceName) {
+    Odps odps = getOdps(odpsConfig);
     try {
       if (odps.resources().exists(databaseName, resourceName)) {
         return odps.resources().get(databaseName, resourceName);
@@ -100,31 +111,31 @@ public class OdpsUtils {
     return null;
   }
 
-  public static void addFileResource(String projectName, FileResource resource, String absoluteLocalFilePath, boolean isUpdate) throws OdpsException {
+  public static void addFileResource(
+      MmaConfig.OdpsConfig odpsConfig,
+      String projectName,
+      FileResource resource,
+      String absoluteLocalFilePath,
+      boolean isUpdate,
+      boolean deleteLocalFile) throws OdpsException {
+    Odps odps = getOdps(odpsConfig);
     File file = new File(absoluteLocalFilePath);
     if (file.exists()) {
-      FileInputStream inputStream = null;
-      try {
-        inputStream = new FileInputStream(file);
-        if (isUpdate) {
-          try {
-            odps.resources().update(projectName, resource, inputStream);
-          } catch (NoSuchObjectException e) {
-            inputStream.close();
-            inputStream = new FileInputStream(file);
-            odps.resources().create(projectName, resource, inputStream);
-          }
-        } else {
+      try (FileInputStream inputStream = new FileInputStream(file)) {
+        boolean exists = odps.resources().exists(resource.getName());
+        if (exists && isUpdate) {
+          odps.resources().update(projectName, resource, inputStream);
+        } else if (!exists) {
           odps.resources().create(projectName, resource, inputStream);
         }
       } catch (IOException e) {
         throw new OdpsException("Add resource " + resource.getName() + " to " + projectName + " failed cause upload file fail.", e);
-      } finally {
-        if (inputStream != null) {
-          try {
-            inputStream.close();
-          } catch (IOException e) {
-          }
+      }
+
+      if (deleteLocalFile) {
+        boolean deleted = file.delete();
+        if (!deleted) {
+          LOG.warn("Failed to delete temp file: " + absoluteLocalFilePath);
         }
       }
     } else {
@@ -132,15 +143,17 @@ public class OdpsUtils {
     }
   }
 
-  public static void addTableResource(String projectName, TableResource resource, boolean isUpdate) throws OdpsException {
-    if (!isUpdate) {
+  public static void addTableResource(
+      MmaConfig.OdpsConfig odpsConfig,
+      String projectName,
+      TableResource resource,
+      boolean isUpdate) throws OdpsException {
+    Odps odps = getOdps(odpsConfig);
+    boolean exists = odps.resources().exists(resource.getName());
+    if (exists && isUpdate) {
+      odps.resources().update(projectName, resource);
+    } else if (!exists) {
       odps.resources().create(projectName, resource);
-    } else {
-      try {
-        odps.resources().update(projectName, resource);
-      } catch (NoSuchObjectException e) {
-        odps.resources().create(projectName, resource);
-      }
     }
   }
 }

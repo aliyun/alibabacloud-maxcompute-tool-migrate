@@ -19,6 +19,9 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.aliyun.odps.ArchiveResource;
 import com.aliyun.odps.FileResource;
 import com.aliyun.odps.JarResource;
@@ -26,31 +29,34 @@ import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.PyResource;
 import com.aliyun.odps.Resource;
 import com.aliyun.odps.TableResource;
+import com.aliyun.odps.datacarrier.taskscheduler.Constants;
 import com.aliyun.odps.datacarrier.taskscheduler.GsonUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.OdpsUtils;
 import com.aliyun.odps.datacarrier.taskscheduler.OssUtils;
 import com.aliyun.odps.utils.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_META_FILE_NAME;
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_OBJECT_FILE_NAME;
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_RESOURCE_FOLDER;
 
 public class OdpsRestoreResourceAction extends OdpsRestoreAction {
+
   private static final Logger LOG = LogManager.getLogger(OdpsRestoreResourceAction.class);
 
-  public OdpsRestoreResourceAction(String id, MmaConfig.ObjectRestoreConfig restoreConfig) {
+
+  public OdpsRestoreResourceAction(
+      String id,
+      MmaConfig.ObjectRestoreConfig restoreConfig) {
     super(id, restoreConfig);
   }
 
   @Override
   public void restore() throws Exception {
-    String metaFileName = getRestoredFilePath(EXPORT_RESOURCE_FOLDER, EXPORT_META_FILE_NAME);
-    String content = OssUtils.readFile(metaFileName);
-    OdpsResourceInfo resourceInfo = GsonUtils.getFullConfigGson().fromJson(content, OdpsResourceInfo.class);
-    Resource resource = null;
+    String metaFileName = getRestoredFilePath(
+        Constants.EXPORT_RESOURCE_FOLDER, Constants.EXPORT_META_FILE_NAME);
+    String content = OssUtils.readFile(restoreConfig.getOssConfig(), metaFileName);
+    OdpsResourceInfo resourceInfo = GsonUtils.getFullConfigGson().fromJson(
+        content, OdpsResourceInfo.class);
+    Resource resource;
     switch (resourceInfo.getType()) {
       case ARCHIVE:
         resource = new ArchiveResource();
@@ -72,16 +78,32 @@ public class OdpsRestoreResourceAction extends OdpsRestoreAction {
         }
         resource = new TableResource(resourceInfo.getTableName(), null, spec);
         break;
+      default:
+        throw new MmaException("Unknown resource type: " + resourceInfo.getType());
     }
     resource.setName(resourceInfo.getAlias());
     resource.setComment(resourceInfo.getComment());
     if (Resource.Type.TABLE.equals(resourceInfo.getType())) {
-      OdpsUtils.addTableResource(getDestinationProject(), (TableResource) resource, isUpdate());
+      OdpsUtils.addTableResource(
+          restoreConfig.getOdpsConfig(),
+          getDestinationProject(),
+          (TableResource) resource,
+          isUpdate());
     } else {
-      String fileName = getRestoredFilePath(EXPORT_RESOURCE_FOLDER, EXPORT_OBJECT_FILE_NAME);
-      String localFilePath = OssUtils.downloadFile(fileName);
-      OdpsUtils.addFileResource(getDestinationProject(), (FileResource) resource, localFilePath, isUpdate());
+      String fileName = getRestoredFilePath(
+          Constants.EXPORT_RESOURCE_FOLDER, Constants.EXPORT_OBJECT_FILE_NAME);
+      String localFilePath = OssUtils.downloadFile(
+          restoreConfig.getOssConfig(), actionExecutionContext.getJobId(), fileName);
+
+      OdpsUtils.addFileResource(
+          restoreConfig.getOdpsConfig(),
+          getDestinationProject(),
+          (FileResource) resource,
+          localFilePath,
+          isUpdate(),
+          true);
     }
+
     LOG.info("Restore resource {} succeed", content);
   }
 

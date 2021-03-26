@@ -36,13 +36,14 @@ abstract class OdpsSqlAction extends AbstractAction {
   public void execute() throws MmaException {
     setProgress(ActionProgress.RUNNING);
 
-    this.future = ActionExecutorFactory
-        .getOdpsExecutor()
-        .execute(getSql(), getSettings(), id, (OdpsSqlActionInfo) actionInfo);
+    future = ActionExecutorFactory.getOdpsSqlExecutor().execute(
+        actionExecutionContext.getOdpsConfig(),
+        getSql(),
+        getSettings(), id, (OdpsSqlActionInfo) actionInfo);
   }
 
   @Override
-  public void stop() {
+  public void stop() throws MmaException {
   }
 
   abstract String getSql();

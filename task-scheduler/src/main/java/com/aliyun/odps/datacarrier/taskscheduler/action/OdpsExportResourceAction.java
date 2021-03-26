@@ -19,26 +19,25 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
-import com.aliyun.odps.FileResource;
-import com.aliyun.odps.PartitionSpec;
-import com.aliyun.odps.Resource;
-import com.aliyun.odps.TableResource;
-import com.aliyun.odps.datacarrier.taskscheduler.GsonUtils;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
-import com.aliyun.odps.datacarrier.taskscheduler.OdpsUtils;
-import com.aliyun.odps.datacarrier.taskscheduler.OssUtils;
+import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_RESOURCE_FOLDER;
+
+import java.io.InputStream;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.InputStream;
+import com.aliyun.odps.FileResource;
+import com.aliyun.odps.PartitionSpec;
+import com.aliyun.odps.Resource;
+import com.aliyun.odps.TableResource;
+import com.aliyun.odps.datacarrier.taskscheduler.Constants;
+import com.aliyun.odps.datacarrier.taskscheduler.GsonUtils;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
+import com.aliyun.odps.datacarrier.taskscheduler.OssUtils;
 
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_META_FILE_NAME;
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_OBJECT_FILE_NAME;
-import static com.aliyun.odps.datacarrier.taskscheduler.Constants.EXPORT_RESOURCE_FOLDER;
-
-public class OdpsExportResourceAction extends OdpsNoSqlAction {
+public class OdpsExportResourceAction extends DefaultAction {
   private static final Logger LOG = LogManager.getLogger(OdpsExportResourceAction.class);
 
   private String taskName;
@@ -50,13 +49,13 @@ public class OdpsExportResourceAction extends OdpsNoSqlAction {
     this.resource = resource;
   }
 
-   @Override
-  public void doAction() throws MmaException {
+  @Override
+  public Object call() throws MmaException {
     try {
       if (StringUtils.isEmpty(resource.getName())) {
         LOG.error("Invalid resource name {} for task {}", resource.getName(), id);
         setProgress(ActionProgress.FAILED);
-        return;
+        return null;
       }
       String tableName = null;
       String partitionSpec = null;
@@ -68,24 +67,40 @@ public class OdpsExportResourceAction extends OdpsNoSqlAction {
           partitionSpec = spec.toString();
         }
       }
-      OdpsResourceInfo resourceInfo =
-          new OdpsResourceInfo(resource.getName(), resource.getType(), resource.getComment(), tableName, partitionSpec);
-      String ossFileName = OssUtils.getOssPathToExportObject(taskName,
+
+      OdpsResourceInfo resourceInfo = new OdpsResourceInfo(
+          resource.getName(),
+          resource.getType(),
+          resource.getComment(),
+          tableName,
+          partitionSpec);
+
+      String ossFileName = OssUtils.getOssPathToExportObject(
+          taskName,
           EXPORT_RESOURCE_FOLDER,
           resource.getProject(),
           resource.getName(),
-          EXPORT_META_FILE_NAME);
-      OssUtils.createFile(ossFileName, GsonUtils.toJson(resourceInfo));
+          Constants.EXPORT_META_FILE_NAME);
+
+      OssUtils.createFile(
+          actionExecutionContext.getOssConfig(),
+          ossFileName,
+          GsonUtils.toJson(resourceInfo));
       if (!Resource.Type.TABLE.equals(resource.getType())) {
         FileResource fileResource = (FileResource) resource;
-        InputStream inputStream = OdpsUtils.getInstance().resources()
+        InputStream inputStream = actionExecutionContext
+            .getOdpsConfig()
+            .toOdps()
+            .resources()
             .getResourceAsStream(fileResource.getProject(), fileResource.getName());
-        ossFileName = OssUtils.getOssPathToExportObject(taskName,
-            EXPORT_RESOURCE_FOLDER,
+        ossFileName = OssUtils.getOssPathToExportObject(
+            taskName,
+            Constants.EXPORT_RESOURCE_FOLDER,
             resource.getProject(),
             resource.getName(),
-            EXPORT_OBJECT_FILE_NAME);
-        OssUtils.createFile(ossFileName, inputStream);
+            Constants.EXPORT_OBJECT_FILE_NAME);
+
+        OssUtils.createFile(actionExecutionContext.getOssConfig(), ossFileName, inputStream);
       }
       setProgress(ActionProgress.SUCCEEDED);
     } catch (Exception e) {
@@ -93,6 +108,8 @@ public class OdpsExportResourceAction extends OdpsNoSqlAction {
                 id, ExceptionUtils.getFullStackTrace(e));
       setProgress(ActionProgress.FAILED);
     }
+
+    return null;
   }
 
   @Override

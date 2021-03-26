@@ -47,8 +47,8 @@ public class Constants {
   public static final String DB_FILE_NAME = ".MmaMeta";
 
   // Types
+  public static final String VARCHAR_16 = "VARCHAR(16)";
   public static final String VARCHAR_255 = "VARCHAR(255)";
-  public static final String VARCHAR_768 = "VARCHAR(768)";
   public static final String VARCHAR_65535 = "VARCHAR(65535)";
   public static final String TEXT = "TEXT";
   public static final String INT = "INT";
@@ -56,110 +56,104 @@ public class Constants {
   public static final String BOOLEAN = "BOOLEAN";
 
   /**
-   * Schema: default, table: MMA_TBL_META
+   * Schema: default, table: MMA_OBJECT_META_TBL
    */
-  public static final String MMA_TBL_META_TBL_NAME = "MMA_TBL_META";
+  public static final String MMA_OBJECT_META_TBL_NAME = "MMA_OBJECT_META_TBL";
+  public static final String MMA_TBL_META_COL_UNIQUE_ID = "unique_id";
+  public static final String MMA_TBL_META_COL_JOB_TYPE = "job_type";
+  public static final String MMA_TBL_META_COL_OBJECT_TYPE = "object_type";
   public static final String MMA_TBL_META_COL_DB_NAME = "db_name";
-  public static final String MMA_TBL_META_COL_TBL_NAME = "table_name";
+  public static final String MMA_TBL_META_COL_OBJECT_NAME = "object_name";
   public static final String MMA_TBL_META_COL_IS_PARTITIONED = "is_partitioned";
   public static final String MMA_TBL_META_COL_MIGRATION_CONF = "migration_config";
   public static final String MMA_TBL_META_COL_STATUS = "status";
   public static final String MMA_TBL_META_COL_ATTEMPT_TIMES = "attempt_times";
+  /**
+   * Init value for column 'attempt_times'
+   */
+  public static final int MMA_TBL_META_INIT_VALUE_ATTEMPT_TIMES = 0;
   public static final String MMA_TBL_META_COL_LAST_MODIFIED_TIME = "last_modified_time";
-
+  /**
+   * N/A value for column 'last_modified_time'
+   */
+  public static final long MMA_TBL_META_NA_VALUE_LAST_MODIFIED_TIME = -1L;
   public static final Map<String, String> MMA_TBL_META_COL_TO_TYPE;
-  static {
+
+  public static final String MMA_OBJ_RESTORE_TBL_NAME = "MMA_DATABASE_RESTORE";
+  public static final String MMA_OBJ_RESTORE_COL_UNIQUE_ID = "unique_id";
+  public static final String MMA_OBJ_RESTORE_COL_OBJECT_TYPE = "object_type";
+  public static final String MMA_OBJ_RESTORE_COL_DB_NAME = "db_name";
+  public static final String MMA_OBJ_RESTORE_COL_OBJECT_NAME = "object_name";
+  public static final String MMA_OBJ_RESTORE_COL_JOB_CONFIG = "job_config";
+  public static final String MMA_OBJ_RESTORE_COL_STATUS = "status";
+  public static final String MMA_OBJ_RESTORE_COL_ATTEMPT_TIMES = "attempt_times";
+  public static final int MMA_OBJ_RESTORE_INIT_ATTEMPT_TIMES = 0;
+  public static final String MMA_OBJ_RESTORE_COL_LAST_MODIFIED_TIME = "last_modified_time";
+  public static final long MMA_OBJ_RESTORE_INIT_LAST_MODIFIED_TIMESTAMP = -1L;
+  public static final Map<String, String> MMA_OBJ_RESTORE_COL_TO_TYPE;
+
+  public static final String MMA_PT_META_SCHEMA_NAME_FMT = "MMA_PT_META_DB_%s";
+  public static final String MMA_PT_META_SCHEMA_NAME_PREFIX = "MMA_PT_META_DB_";
+  public static final String MMA_PT_META_TBL_NAME_FMT = "MMA_PT_META_TBL_%s";
+  public static final String MMA_PT_META_COL_UNIQUE_ID = "unique_id";
+  public static final String MMA_PT_META_COL_JOB_TYPE = "job_type";
+  public static final String MMA_PT_META_COL_PT_VALS = "pt_vals";
+  public static final String MMA_PT_META_COL_STATUS = "status";
+  public static final String MMA_PT_META_COL_ATTEMPT_TIMES = "attempt_times";
+  public static final int MMA_PT_META_INIT_ATTEMPT_TIMES = 0;
+  public static final String MMA_PT_META_COL_LAST_MODIFIED_TIME = "last_modified_time";
+  public static final long MMA_PT_MEAT_NA_LAST_MODIFIED_TIME = -1L;
+  public static final Map<String, String> MMA_PT_META_COL_TO_TYPE;
+
+  public static final String MMA_OBJ_TEMPORARY_TBL_NAME = "MMA_DATABASE_TEMPORARY_TABLE";
+  public static final String MMA_OBJ_TEMPORARY_COL_UNIQUE_ID = "unique_id";
+  public static final String MMA_OBJ_TEMPORARY_COL_PROJECT = "db";
+  public static final String MMA_OBJ_TEMPORARY_COL_TABLE = "tbl";
+  public static final Map<String, String> MMA_OBJ_TEMPORARY_TBL_COL_TO_TYPE;
+
+  static  {
     Map<String, String> temp = new LinkedHashMap<>();
+    temp.put(MMA_TBL_META_COL_UNIQUE_ID, VARCHAR_255);
+    temp.put(MMA_TBL_META_COL_JOB_TYPE, VARCHAR_16);
+    temp.put(MMA_TBL_META_COL_OBJECT_TYPE, VARCHAR_16);
     temp.put(MMA_TBL_META_COL_DB_NAME, VARCHAR_255);
-    temp.put(MMA_TBL_META_COL_TBL_NAME, VARCHAR_255);
+    temp.put(MMA_TBL_META_COL_OBJECT_NAME, VARCHAR_255);
     temp.put(MMA_TBL_META_COL_IS_PARTITIONED, BOOLEAN);
     temp.put(MMA_TBL_META_COL_MIGRATION_CONF, TEXT);
     temp.put(MMA_TBL_META_COL_STATUS, VARCHAR_255);
     temp.put(MMA_TBL_META_COL_ATTEMPT_TIMES, INT);
     temp.put(MMA_TBL_META_COL_LAST_MODIFIED_TIME, BIGINT);
     MMA_TBL_META_COL_TO_TYPE = Collections.unmodifiableMap(temp);
-  }
 
-  /**
-   * Init value for column 'attempt_times'
-   */
-  public static final int MMA_TBL_META_INIT_VALUE_ATTEMPT_TIMES = 0;
-  /**
-   * N/A value for column 'last_modified_time'
-   */
-  public static final long MMA_TBL_META_NA_VALUE_LAST_MODIFIED_TIME = -1L;
-
-  public static final String MMA_OBJ_RESTORE_TBL_NAME = "MMA_DATABASE_RESTORE";
-  public static final String MMA_OBJ_RESTORE_COL_UNIQUE_ID = "unique_id";
-  public static final String MMA_OBJ_RESTORE_COL_TYPE = "type";
-  public static final String MMA_OBJ_RESTORE_COL_DB_NAME = "db_name";
-  public static final String MMA_OBJ_RESTORE_COL_OBJECT_NAME = "object_name";
-  public static final String MMA_OBJ_RESTORE_COL_JOB_CONFIG = "job_config";
-  public static final String MMA_OBJ_RESTORE_COL_STATUS = "status";
-  public static final String MMA_OBJ_RESTORE_COL_ATTEMPT_TIMES = "attempt_times";
-  public static final String MMA_OBJ_RESTORE_COL_LAST_MODIFIED_TIME = "last_modified_time";
-
-  public static final Map<String, String> MMA_OBJ_RESTORE_COL_TO_TYPE;
-  static {
-    Map<String, String> temp = new LinkedHashMap<>();
-    temp.put(MMA_OBJ_RESTORE_COL_UNIQUE_ID, VARCHAR_255);       // unique_id
-    temp.put(MMA_OBJ_RESTORE_COL_TYPE, VARCHAR_255);            // type
-    temp.put(MMA_OBJ_RESTORE_COL_DB_NAME, VARCHAR_255);         // db_name
-    temp.put(MMA_OBJ_RESTORE_COL_OBJECT_NAME, VARCHAR_255);     // object_name
-    temp.put(MMA_OBJ_RESTORE_COL_JOB_CONFIG, TEXT);    // job_config
-    temp.put(MMA_OBJ_RESTORE_COL_STATUS, VARCHAR_255);          // status
-    temp.put(MMA_OBJ_RESTORE_COL_ATTEMPT_TIMES, INT);           // attempt_times
-    temp.put(MMA_OBJ_RESTORE_COL_LAST_MODIFIED_TIME, BIGINT);   // last_modified_time
+    temp = new LinkedHashMap<>();
+    temp.put(MMA_OBJ_RESTORE_COL_UNIQUE_ID, VARCHAR_255);
+    temp.put(MMA_OBJ_RESTORE_COL_OBJECT_TYPE, VARCHAR_16);
+    temp.put(MMA_OBJ_RESTORE_COL_DB_NAME, VARCHAR_255);
+    temp.put(MMA_OBJ_RESTORE_COL_OBJECT_NAME, VARCHAR_255);
+    temp.put(MMA_OBJ_RESTORE_COL_JOB_CONFIG, TEXT);
+    temp.put(MMA_OBJ_RESTORE_COL_STATUS, VARCHAR_255);
+    temp.put(MMA_OBJ_RESTORE_COL_ATTEMPT_TIMES, INT);
+    temp.put(MMA_OBJ_RESTORE_COL_LAST_MODIFIED_TIME, BIGINT);
     MMA_OBJ_RESTORE_COL_TO_TYPE = Collections.unmodifiableMap(temp);
-  }
-  public static final int MMA_OBJ_RESTORE_INIT_ATTEMPT_TIMES = 0;
-  public static final long MMA_OBJ_RESTORE_INIT_LAST_MODIFIED_TIMESTAMP = -1;
 
-  /**
-   * Schema: MMA_PT_META_DB_[db], table: MMA_PT_META_TBL_[tbl]
-   */
-  public static final String MMA_PT_META_SCHEMA_NAME_FMT = "MMA_PT_META_DB_%s";
-  public static final String MMA_PT_META_SCHEMA_NAME_PREFIX = "MMA_PT_META_DB_";
-  public static final String MMA_PT_META_TBL_NAME_FMT = "MMA_PT_META_TBL_%s";
-  public static final String MMA_PT_META_COL_PT_VALS = "pt_vals";
-  public static final String MMA_PT_META_COL_STATUS = "status";
-  public static final String MMA_PT_META_COL_ATTEMPT_TIMES = "attempt_times";
-  public static final String MMA_PT_META_COL_LAST_MODIFIED_TIME = "last_modified_time";
-  public static final Map<String, String> MMA_PT_META_COL_TO_TYPE;
-  static {
-    Map<String, String> temp = new LinkedHashMap<>();
-    // Since single partition column value is less than 128 bytes and the number of partition
-    // columns cannot exceeds 6, VARCHAR_768 is enough for column MMA_PT_META_COL_PT_VALS
-    temp.put(MMA_PT_META_COL_PT_VALS, VARCHAR_768);
+    temp = new LinkedHashMap<>();
+    temp.put(MMA_PT_META_COL_UNIQUE_ID, VARCHAR_255);
+    temp.put(MMA_PT_META_COL_JOB_TYPE, VARCHAR_16);
+    temp.put(MMA_PT_META_COL_PT_VALS, VARCHAR_255);
     temp.put(MMA_PT_META_COL_STATUS, VARCHAR_255);
     temp.put(MMA_PT_META_COL_ATTEMPT_TIMES, INT);
     temp.put(MMA_PT_META_COL_LAST_MODIFIED_TIME, BIGINT);
     MMA_PT_META_COL_TO_TYPE = Collections.unmodifiableMap(temp);
-  }
 
-  // table to record temporary tables created by mma, which should be dropped after mma server restart
-  public static final String MMA_OBJ_TEMPORARY_TBL_NAME = "MMA_DATABASE_TEMPORARY_TABLE";
-  public static final String MMA_OBJ_TEMPORARY_COL_UNIQUE_ID = "unique_id";
-  public static final String MMA_OBJ_TEMPORARY_COL_PROJECT = "db";
-  public static final String MMA_OBJ_TEMPORARY_COL_TABLE = "tbl";
-
-  public static final Map<String, String> MMA_OBJ_TEMPORARY_TBL_COL_TO_TYPE;
-  static {
-    Map<String, String> temp = new LinkedHashMap<>();
+    temp = new LinkedHashMap<>();
     temp.put(MMA_OBJ_TEMPORARY_COL_UNIQUE_ID, VARCHAR_255);
     temp.put(MMA_OBJ_TEMPORARY_COL_PROJECT, VARCHAR_255);
     temp.put(MMA_OBJ_TEMPORARY_COL_TABLE, VARCHAR_255);
     MMA_OBJ_TEMPORARY_TBL_COL_TO_TYPE = Collections.unmodifiableMap(temp);
   }
 
-  /**
-   * Init value for column 'attempt_times'
-   */
-  public static final int MMA_PT_META_INIT_ATTEMPT_TIMES = 0;
-  public static final long MMA_PT_MEAT_NA_LAST_MODIFIED_TIME = -1;
-
   public static final String OSS_ROOT_FOLDER = "odps_mma/";
-  public static final String EXPORT_OBJECT_ROOT_FOLDER = OSS_ROOT_FOLDER + "export_objects/";
+  public static final String EXPORT_OBJECT_ROOT_FOLDER = "odps_mma/export_objects/";
   public static final String EXPORT_FUNCTION_FOLDER = "functions/";
   public static final String EXPORT_RESOURCE_FOLDER = "resources/";
   public static final String EXPORT_TABLE_FOLDER = "tables/";

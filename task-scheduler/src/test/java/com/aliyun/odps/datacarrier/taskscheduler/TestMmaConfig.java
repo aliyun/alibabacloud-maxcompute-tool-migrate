@@ -233,7 +233,6 @@ public class TestMmaConfig {
     assertEquals("test_access_id", odpsConfig.getAccessId());
     assertEquals("test_access_key", odpsConfig.getAccessKey());
     assertEquals("test_end_point", odpsConfig.getEndpoint());
-    assertNull(odpsConfig.getTunnelEndpoint());
   }
 
   private void checkAdditionalTableConfig(MmaConfig.AdditionalTableConfig additionalTableConfig) {

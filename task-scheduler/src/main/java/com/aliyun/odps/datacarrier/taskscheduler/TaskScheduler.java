@@ -19,7 +19,6 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -40,13 +39,11 @@ import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProgress;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProvider;
 
 public class TaskScheduler {
-
   private static final Logger LOG = LogManager.getLogger(TaskScheduler.class);
 
   private static final int GET_PENDING_TASK_INTERVAL_MS = 8000;
   private static final int DEFAULT_SCHEDULING_INTERVAL_MS = 4000;
   private static final int DEFAULT_FINISHED_ACTION_HANDLING_INTERVAL_MS = 2000;
-
   private static final int DEFAULT_TASK_CACHE_SIZE = 1000;
 
   private volatile boolean keepRunning;
@@ -60,7 +57,6 @@ public class TaskScheduler {
   private final List<Task> failedTasks;
   private final CircularFifoBuffer succeededTasks;
   private final CircularFifoBuffer canceledTasks;
-
   private final List<Action> executingActions;
 
   public TaskScheduler(TaskProvider taskProvider) {
@@ -106,9 +102,6 @@ public class TaskScheduler {
   }
 
   public void run() {
-    // remove temporary tables created by restarted server
-    runningTasks.addAll(taskProvider.getTasksFromTemporaryTableDB(null));
-
     while (keepRunning) {
       List<Task> tasksToRemove = new LinkedList<>();
       synchronized (runningTasks) {
@@ -123,13 +116,11 @@ public class TaskScheduler {
 
       for (Task task : tasksToRemove) {
         LOG.info("Remove terminated task: {}, progress: {}",
-                 task.getId(),
-                 task.getProgress());
+                 task.getId(), task.getProgress());
         runningTasks.remove(task);
 
         switch (task.getProgress()) {
           case FAILED:
-            runningTasks.addAll(taskProvider.getTasksFromTemporaryTableDB(task.getOriginId()));
             synchronized (failedTasks) {
               failedTasks.add(task);
             }
@@ -160,11 +151,15 @@ public class TaskScheduler {
         LOG.error(ExceptionUtils.getStackTrace(e));
       }
     }
-    shutdown();
+
+    try {
+      shutdown();
+    } catch (MmaException e) {
+      LOG.warn(e);
+    }
   }
 
   private class SchedulingThread extends Thread {
-
     private int schedulingInterval = DEFAULT_SCHEDULING_INTERVAL_MS;
 
     SchedulingThread() {
@@ -177,10 +172,12 @@ public class TaskScheduler {
       while (keepRunning) {
         try {
           synchronized (runningTasks) {
+            if (!keepRunning) {
+              break;
+            }
             for (Task task : runningTasks) {
               List<Action> executableActions = task.getExecutableActions();
               for (Action action : executableActions) {
-                // TODO: fatal errors -> stop the scheduler; other errors -> handlers
                 if (action.tryAllocateResource()) {
                   action.execute();
                   executingActions.add(action);
@@ -191,7 +188,6 @@ public class TaskScheduler {
         } catch (Throwable ex) {
           LOG.error("Exception on scheduling thread", ex);
           ex.printStackTrace();
-          // interrupt handler thread in case it waiting on the queue
           break;
         }
 
@@ -207,7 +203,6 @@ public class TaskScheduler {
   }
 
   private class FinishedActionHandlingThread extends Thread {
-
     private int finishedActionHandlingInterval = DEFAULT_FINISHED_ACTION_HANDLING_INTERVAL_MS;
 
     FinishedActionHandlingThread() {
@@ -225,7 +220,6 @@ public class TaskScheduler {
                 LOG.info("Action {} execute finish", action.getId());
                 action.afterExecution();
               } catch (MmaException e) {
-                // TODO: fatal errors -> stop the scheduler; other errors -> handlers
                 LOG.error("Exception in after execution", e);
               } finally {
                 action.releaseResource();
@@ -258,7 +252,7 @@ public class TaskScheduler {
     return ret;
   }
 
-  public void shutdown() {
+  public void shutdown() throws MmaException {
     LOG.info("Shutdown task runners.");
 
     keepRunning = false;
@@ -273,7 +267,11 @@ public class TaskScheduler {
     } catch (InterruptedException ignore) {
     }
 
-    // TODO: stop tasks
+    synchronized (runningTasks) {
+      for (Task t : runningTasks) {
+        t.stop();
+      }
+    }
     ActionExecutorFactory.shutdown();
   }
 }

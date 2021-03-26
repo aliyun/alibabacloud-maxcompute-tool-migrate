@@ -19,35 +19,31 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.hadoop.hive.metastore.api.MetaException;
 
-import com.aliyun.odps.datacarrier.taskscheduler.DataSource;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.HiveConfig;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.OdpsConfig;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaServerConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 
 public class MetaSourceFactory {
+  public static MetaSource getHiveMetaSource(
+      MmaConfig.HiveConfig hiveConfig,
+      Map<String, String> hdfsConfig) throws MetaException {
 
-  public static MetaSource getMetaSource() throws MetaException {
-    DataSource dataSource = MmaServerConfig.getInstance().getDataSource();
-    if (DataSource.Hive.equals(dataSource)) {
-      HiveConfig hiveConfig = MmaServerConfig.getInstance().getHiveConfig();
-      Map<String, String> hdfsConfig = MmaServerConfig.getInstance().getHdfsConfig();
-      return new HiveMetaSource(hiveConfig.getHmsThriftAddr(),
-                                hdfsConfig,
-                                hiveConfig.getKrbPrincipal(),
-                                hiveConfig.getKeyTab(),
-                                hiveConfig.getKrbSystemProperties());
-    } else if (DataSource.ODPS.equals(dataSource)) {
-      OdpsConfig odpsConfig = MmaServerConfig.getInstance().getOdpsConfig();
-      return new OdpsMetaSource(odpsConfig.getAccessId(),
-                                odpsConfig.getAccessKey(),
-                                odpsConfig.getEndpoint(),
-                                odpsConfig.getProjectName());
-    } else {
-      throw new IllegalArgumentException("Unsupported datasource: " + dataSource);
-    }
+    return new HiveMetaSource(
+        hiveConfig.getHmsThriftAddr(),
+        (hdfsConfig != null) ? hdfsConfig: Collections.emptyMap(),
+        hiveConfig.getKrbPrincipal(),
+        hiveConfig.getKeyTab(),
+        hiveConfig.getKrbSystemProperties());
+  }
+
+  public static MetaSource getOdpsMetaSource(MmaConfig.OdpsConfig odpsConfig) {
+    return new OdpsMetaSource(
+        odpsConfig.getAccessId(),
+        odpsConfig.getAccessKey(),
+        odpsConfig.getEndpoint(),
+        odpsConfig.getProjectName());
   }
 }

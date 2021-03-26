@@ -19,40 +19,46 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.action;
 
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
-import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class AddMigrationJobAction extends OdpsNoSqlAction {
+import com.aliyun.odps.datacarrier.taskscheduler.DataSource;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
+
+public class AddMigrationJobAction extends DefaultAction {
   private static final Logger LOG = LogManager.getLogger(AddMigrationJobAction.class);
 
   private MmaConfig.TableMigrationConfig config;
   private MmaMetaManager mmaMetaManager;
 
-  public AddMigrationJobAction(String id,
-                               MmaConfig.TableMigrationConfig config,
-                               MmaMetaManager mmaMetaManager) {
+  public AddMigrationJobAction(
+      String id,
+      MmaConfig.TableMigrationConfig config,
+      MmaMetaManager mmaMetaManager) {
     super(id);
     this.config = config;
     this.mmaMetaManager = mmaMetaManager;
   }
 
+
   @Override
-  public void doAction() throws MmaException {
+  public Object call() throws MmaException {
     try {
-      mmaMetaManager.addMigrationJob(config);
       LOG.info("Add migration job {}", MmaConfig.TableMigrationConfig.toJson(config));
+      mmaMetaManager.addMigrationJob(
+          DataSource.ODPS,
+          actionExecutionContext.getJobId(),
+          config);
     } catch (Exception e) {
       LOG.error("Action {} Exception when create table migration job, config {}",
-          id, MmaConfig.TableMigrationConfig.toJson(config), e);
-      throw new MmaException("Create table migration task for " + id, e);
+                id, MmaConfig.TableMigrationConfig.toJson(config), e);
+      throw new MmaException("Create table migration job for " + id, e);
     }
+    return null;
   }
 
   @Override
-  public String getName() {
-    return "Preparation";
-  }
+  public String getName() { return "Add migration job"; }
 }

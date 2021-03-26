@@ -19,32 +19,29 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
-import com.aliyun.odps.utils.StringUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.PartitionMetaModel;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.utils.StringUtils;
 
 public class OdpsSqlUtils {
-
   static final Logger LOG = LogManager.getLogger(OdpsSqlUtils.class);
 
   public static String getDropTableStatement(String db, String tb) {
     return "DROP TABLE IF EXISTS " + db + ".`" + tb + "`;\n";
   }
 
-  public static String getCreateTableStatement(MetaSource.TableMetaModel tableMetaModel) {
+  public static String getCreateTableStatement(TableMetaModel tableMetaModel) {
     return getCreateTableStatement(tableMetaModel, null);
   }
 
-  public static String getCreateTableStatement(MetaSource.TableMetaModel tableMetaModel,
-                                               ExternalTableConfig externalTableConfig) {
+  public static String getCreateTableStatement(
+      TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
     StringBuilder sb = new StringBuilder();
     if (externalTableConfig != null) {
       sb.append("CREATE EXTERNAL TABLE IF NOT EXISTS ");
@@ -52,18 +49,18 @@ public class OdpsSqlUtils {
       sb.append("CREATE TABLE IF NOT EXISTS ");
     }
     sb.append(tableMetaModel.odpsProjectName).append(".")
-        .append("`").append(tableMetaModel.odpsTableName).append("`");
+      .append("`").append(tableMetaModel.odpsTableName).append("`");
     sb.append(getCreateTableStatementWithoutDatabaseName(tableMetaModel, externalTableConfig));
     return sb.toString();
   }
 
-  public static String getCreateTableStatementWithoutDatabaseName(MetaSource.TableMetaModel tableMetaModel,
-                                                                  ExternalTableConfig externalTableConfig) {
+  public static String getCreateTableStatementWithoutDatabaseName(
+      TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
     StringBuilder sb = new StringBuilder("(\n");
     for (int i = 0; i < tableMetaModel.columns.size(); i++) {
       MetaSource.ColumnMetaModel columnMetaModel = tableMetaModel.columns.get(i);
       sb.append("    `").append(columnMetaModel.odpsColumnName).append("` ")
-          .append(columnMetaModel.odpsType);
+        .append(columnMetaModel.odpsType);
 
       if (columnMetaModel.comment != null) {
         sb.append(" COMMENT '").append(columnMetaModel.comment).append("'");
@@ -83,9 +80,10 @@ public class OdpsSqlUtils {
     if (tableMetaModel.partitionColumns.size() > 0) {
       sb.append("\nPARTITIONED BY (\n");
       for (int i = 0; i < tableMetaModel.partitionColumns.size(); i++) {
-        MetaSource.ColumnMetaModel partitionColumnMetaModel = tableMetaModel.partitionColumns.get(i);
+        MetaSource.ColumnMetaModel partitionColumnMetaModel =
+            tableMetaModel.partitionColumns.get(i);
         sb.append("    `").append(partitionColumnMetaModel.odpsColumnName).append("` ")
-            .append(partitionColumnMetaModel.odpsType);
+          .append(partitionColumnMetaModel.odpsType);
 
         if (partitionColumnMetaModel.comment != null) {
           sb.append(" COMMENT '").append(partitionColumnMetaModel.comment).append("'");
@@ -113,36 +111,33 @@ public class OdpsSqlUtils {
     return sb.toString();
   }
 
-  private static String getCreateOssExternalTableCondition(MetaSource.TableMetaModel tableMetaModel,
-                                                           ExternalTableConfig externalTableConfig) {
+  private static String getCreateOssExternalTableCondition(
+      TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
     StringBuilder sb = new StringBuilder();
-    OssExternalTableConfig ossExternalTableConfig = (OssExternalTableConfig) externalTableConfig;
+    OssExternalTableConfig ossExternalTableConfig = (OssExternalTableConfig)externalTableConfig;
 
-    if (!StringUtils.isNullOrEmpty(ossExternalTableConfig.getRoleRan())) {
-      tableMetaModel.serDeProperties.put("odps.properties.rolearn",
-                                         ossExternalTableConfig.getRoleRan());
-    }
-
-    sb.append("ROW FORMAT serde 'org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe'\n");
-    if (MapUtils.isNotEmpty(tableMetaModel.serDeProperties)) {
-      sb.append("WITH SERDEPROPERTIES (").append("\n");
-      List<String> propertyStrings = new LinkedList<>();
-      for (Map.Entry<String, String> property : tableMetaModel.serDeProperties.entrySet()) {
-        if (!StringEscapeUtils.escapeJava(property.getValue()).startsWith("\\u")) {
-          String propertyString = String.format("'%s'='%s'",
-              StringEscapeUtils.escapeJava(property.getKey()),
-              StringEscapeUtils.escapeJava(property.getValue()));
-          propertyStrings.add(propertyString);
-        }
-      }
-      sb.append(String.join(",\n", propertyStrings)).append(")\n");
-    }
+//    if (!StringUtils.isNullOrEmpty(ossExternalTableConfig.getRoleRan())) {
+//      tableMetaModel.serDeProperties.put("odps.properties.rolearn",
+//                                         ossExternalTableConfig.getRoleRan());
+//    }
+//
+//    sb.append("ROW FORMAT serde 'org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe'\n");
+//    if (MapUtils.isNotEmpty(tableMetaModel.serDeProperties)) {
+//      sb.append("WITH SERDEPROPERTIES (").append("\n");
+//      List<String> propertyStrings = new LinkedList<>();
+//      for (Map.Entry<String, String> property : tableMetaModel.serDeProperties.entrySet()) {
+//        if (!StringEscapeUtils.escapeJava(property.getValue()).startsWith("\\u")) {
+//          String propertyString = String.format("'%s'='%s'",
+//                                                StringEscapeUtils.escapeJava(property.getKey()),
+//                                                StringEscapeUtils.escapeJava(property.getValue()));
+//          propertyStrings.add(propertyString);
+//        }
+//      }
+//      sb.append(String.join(",\n", propertyStrings)).append(")\n");
+//    }
 
     // TODO: support other formats
-    sb.append("STORED AS INPUTFORMAT\n");
-    sb.append("'org.apache.hadoop.hive.ql.io.RCFileInputFormat'\n");
-    sb.append("OUTPUTFORMAT\n");
-    sb.append("'org.apache.hadoop.hive.ql.io.RCFileOutputFormat'\n");
+    sb.append("STORED AS TEXTFILE\n");
     sb.append("LOCATION '").append(externalTableConfig.getLocation()).append("';\n");
     return sb.toString();
   }
@@ -154,7 +149,7 @@ public class OdpsSqlUtils {
    * @return Drop partition statement for multiple partitions
    * @throws IllegalArgumentException when input represents a non partitioned table
    */
-  public static String getDropPartitionStatement(MetaSource.TableMetaModel tableMetaModel) {
+  public static String getDropPartitionStatement(TableMetaModel tableMetaModel) {
     if (tableMetaModel.partitionColumns.size() == 0) {
       throw new IllegalArgumentException("Not a partitioned table");
     }
@@ -171,12 +166,12 @@ public class OdpsSqlUtils {
 
     sb.append("ALTER TABLE\n");
     sb.append(tableMetaModel.odpsProjectName)
-        .append(".`").append(tableMetaModel.odpsTableName).append("`\n");
+      .append(".`").append(tableMetaModel.odpsTableName).append("`\n");
     sb.append("DROP IF EXISTS");
     for (int i = 0; i < tableMetaModel.partitions.size(); i++) {
-      MetaSource.PartitionMetaModel partitionMetaModel = tableMetaModel.partitions.get(i);
-      String odpsPartitionSpec = getPartitionSpec(tableMetaModel.partitionColumns,
-                                                  partitionMetaModel);
+      PartitionMetaModel partitionMetaModel = tableMetaModel.partitions.get(i);
+      String odpsPartitionSpec = getPartitionSpec(
+          tableMetaModel.partitionColumns, partitionMetaModel);
       sb.append("\nPARTITION (").append(odpsPartitionSpec).append(")");
       if (i != tableMetaModel.partitions.size() - 1) {
         sb.append(",");
@@ -194,7 +189,7 @@ public class OdpsSqlUtils {
    * @return Add partition statement for multiple partitions
    * @throws IllegalArgumentException when input represents a non partitioned table
    */
-   public static String getAddPartitionStatement(MetaSource.TableMetaModel tableMetaModel) {
+   public static String getAddPartitionStatement(TableMetaModel tableMetaModel) {
     if (tableMetaModel.partitionColumns.size() == 0) {
       throw new IllegalArgumentException("Not a partitioned table");
     }
@@ -211,7 +206,7 @@ public class OdpsSqlUtils {
 
     sb.append("ALTER TABLE\n");
     sb.append(tableMetaModel.odpsProjectName)
-        .append(".`").append(tableMetaModel.odpsTableName).append("`\n");
+      .append(".`").append(tableMetaModel.odpsTableName).append("`\n");
     sb.append(getAddPartitionStatementWithoutDatabaseName(tableMetaModel));
     return sb.toString();
   }
@@ -228,11 +223,11 @@ public class OdpsSqlUtils {
     return sb.toString();
   }
 
-  public static String getInsertOverwriteTableStatement(MetaSource.TableMetaModel tableMetaModel) {
+  public static String getInsertOverwriteTableStatement(TableMetaModel tableMetaModel) {
     StringBuilder sb = new StringBuilder();
     sb.append("INSERT OVERWRITE TABLE ")
-        .append(tableMetaModel.odpsProjectName)
-        .append(".`").append(tableMetaModel.odpsTableName).append("`\n");
+      .append(tableMetaModel.odpsProjectName)
+      .append(".`").append(tableMetaModel.odpsTableName).append("`\n");
     if (!tableMetaModel.partitionColumns.isEmpty()) {
       sb.append("PARTITION (");
       for (int i = 0; i < tableMetaModel.partitionColumns.size(); i++) {
@@ -245,18 +240,19 @@ public class OdpsSqlUtils {
       sb.append(")\n");
     }
     sb.append("SELECT * FROM ")
-        .append(tableMetaModel.databaseName)
-        .append(".`").append(tableMetaModel.tableName).append("`").append("\n");
+      .append(tableMetaModel.databaseName)
+      .append(".`").append(tableMetaModel.tableName).append("`").append("\n");
     sb.append(getWhereCondition(tableMetaModel));
     sb.append(";\n");
     return sb.toString();
   }
 
-  public static String getVerifySql(MetaSource.TableMetaModel tableMetaModel) {
+  public static String getVerifySql(TableMetaModel tableMetaModel) {
     return getVerifySql(tableMetaModel, true);
   }
 
-  public static String getVerifySql(MetaSource.TableMetaModel tableMetaModel, boolean verifyDestinationTable) {
+  public static String getVerifySql(
+      TableMetaModel tableMetaModel, boolean verifyDestinationTable) {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
 
@@ -313,10 +309,8 @@ public class OdpsSqlUtils {
   }
 
   public static String getDDLSql(MetaSource.TableMetaModel tableMetaModel) {
-    return "SHOW CREATE TABLE " + tableMetaModel.databaseName
-           + ".`" + tableMetaModel.tableName + "`;\n";
+    return "SHOW CREATE TABLE " + tableMetaModel.databaseName + ".`" + tableMetaModel.tableName + "`;\n";
   }
-
 
   public static String getDropViewStatement(String db, String tbl) {
     return "DROP VIEW IF EXISTS " + db + ".`" + tbl + "`;\n";
@@ -326,7 +320,8 @@ public class OdpsSqlUtils {
     return "CREATE VIEW IF NOT EXISTS " + db + ".`" + tbl + "` AS " + viewText + ";\n";
   }
 
-  public static String getAddResourceStatement(String resourceType, String filePath, String resourceName, String comment) {
+  public static String getAddResourceStatement(
+      String resourceType, String filePath, String resourceName, String comment) {
     String result = "ADD " + resourceType + " " + filePath + " AS " + resourceName;
     if (!StringUtils.isNullOrEmpty(comment)) {
       result = result + " COMMENT '" + comment + "'";
@@ -334,21 +329,13 @@ public class OdpsSqlUtils {
     return result + ";\n";
   }
 
-  public static String getCreateFunctionStatement(String name,
-                                                  String classPath,
-                                                  List<String> resources) {
-    return "CREATE FUNCTION " + name + " as '" + classPath +
-        "' USING '" + String.join(",", resources) + "';\n";
+  public static String getCreateFunctionStatement(
+      String name, String classPath, List<String> resources) {
+    return "CREATE FUNCTION " + name + " as '" + classPath + "' USING '" +
+        String.join(",", resources) + "';\n";
   }
 
-  /**
-   * Get oss folder to store external table data
-   * @param ossConfig oss config
-   * @param ossFilePath relative path from bucket, such as a/b/
-   * @return
-   */
-  public static String getOssTablePath(MmaConfig.OssConfig ossConfig,
-                                       String ossFilePath) {
+  public static String getOssTablePath(MmaConfig.OssConfig ossConfig, String ossFilePath) {
     // aliyun doc : https://help.aliyun.com/document_detail/72776.html?spm=5176.10695662.1996646101.searchclickresult.3f543a59Eh6owJ
     // if use sts, Location format is:
     //    LOCATION 'oss://${endpoint}/${bucket}/${userfilePath}/'
@@ -361,7 +348,9 @@ public class OdpsSqlUtils {
     String ossPrefix = "oss://";
     StringBuilder locationBuilder = new StringBuilder(ossPrefix);
     if (StringUtils.isNullOrEmpty(ossConfig.getOssRoleArn())) {
-      locationBuilder.append(ossConfig.getOssAccessId()).append(":").append(ossConfig.getOssAccessKey()).append("@");
+      locationBuilder.append(ossConfig.getOssAccessId())
+                     .append(":")
+                     .append(ossConfig.getOssAccessKey()).append("@");
     }
     String ossEndpoint = ossConfig.getOssEndpoint().startsWith(ossPrefix) ?
         ossConfig.getOssEndpoint().substring(ossPrefix.length()) : ossConfig.getOssEndpoint();
@@ -381,8 +370,8 @@ public class OdpsSqlUtils {
     return locationBuilder.toString();
   }
 
-  private static String getPartitionSpec(List<MetaSource.ColumnMetaModel> partitionColumns,
-                                         MetaSource.PartitionMetaModel partitionMetaModel) {
+  private static String getPartitionSpec(
+      List<MetaSource.ColumnMetaModel> partitionColumns, PartitionMetaModel partitionMetaModel) {
     StringBuilder sb = new StringBuilder();
 
     for (int i = 0; i < partitionColumns.size(); i++) {
@@ -443,8 +432,8 @@ public class OdpsSqlUtils {
 
     sb.append("WHERE\n");
     for (int i = 0; i < tableMetaModel.partitions.size(); i++) {
-      String entry = getWhereConditionEntry(tableMetaModel.partitionColumns,
-                                            tableMetaModel.partitions.get(i));
+      String entry = getWhereConditionEntry(
+          tableMetaModel.partitionColumns, tableMetaModel.partitions.get(i));
       sb.append(entry);
 
       if (i != tableMetaModel.partitions.size() - 1) {
@@ -454,8 +443,9 @@ public class OdpsSqlUtils {
     return sb.toString();
   }
 
-  private static String getWhereConditionEntry(List<MetaSource.ColumnMetaModel> partitionColumns,
-                                               MetaSource.PartitionMetaModel partitionMetaModel) {
+  private static String getWhereConditionEntry(
+      List<MetaSource.ColumnMetaModel> partitionColumns,
+      PartitionMetaModel partitionMetaModel) {
     if (partitionColumns == null || partitionMetaModel == null) {
       throw new IllegalArgumentException(
           "'partitionColumns' or 'partitionMetaModel' cannot be null");

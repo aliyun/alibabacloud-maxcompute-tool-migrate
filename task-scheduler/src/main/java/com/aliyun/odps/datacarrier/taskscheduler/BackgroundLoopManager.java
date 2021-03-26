@@ -19,12 +19,12 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class BackgroundLoopManager {
   private static final Logger LOG = LogManager.getLogger(BackgroundLoopManager.class);
@@ -33,26 +33,31 @@ public class BackgroundLoopManager {
   private Thread backgroundLoop;
   private Set<BackgroundWorkItem> items = ConcurrentHashMap.newKeySet();
 
-  public void start() {
-    startBackgroundLoop();
-  }
 
-  public boolean addWorkItem(BackgroundWorkItem item) {
-    return items.add(item);
-  }
+  public void start() { startBackgroundLoop(); }
+
+
+
+  public boolean addWorkItem(BackgroundWorkItem item) { return this.items.add(item); }
+
 
   private void startBackgroundLoop() {
-    LOG.info(this.getClass().getName() + " start background loop");
-    this.backgroundLoop = new Thread(this.getClass().getName() + " background thread") {
+    LOG.info(getClass().getName() + " start background loop");
+    backgroundLoop = new Thread(getClass().getName() + " background thread") {
       @Override
       public void run() {
         while (!Thread.currentThread().isInterrupted()) {
+          LOG.info("BackgroundWorkItem count {}", items.size());
           Iterator<BackgroundWorkItem> iter = items.iterator();
           while (iter.hasNext()) {
             BackgroundWorkItem item = iter.next();
-            item.execute();
-            if (item.finished()) {
-              iter.remove();
+            try {
+              item.execute();
+              if (item.finished()) {
+                iter.remove();
+              }
+            } catch (Exception e) {
+              LOG.error("Execute BackgroundWorkItem failed", e);
             }
           }
           try {
@@ -63,6 +68,7 @@ public class BackgroundLoopManager {
         }
       }
     };
-    this.backgroundLoop.start();
+    backgroundLoop.setDaemon(true);
+    backgroundLoop.start();
   }
 }

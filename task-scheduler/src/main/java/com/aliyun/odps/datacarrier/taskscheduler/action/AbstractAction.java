@@ -32,16 +32,14 @@ import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.action.info.AbstractActionInfo;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.Resource;
 import com.aliyun.odps.datacarrier.taskscheduler.resource.ResourceAllocator;
-import com.aliyun.odps.datacarrier.taskscheduler.task.AbstractTask.ActionProgressListener;
+import com.aliyun.odps.datacarrier.taskscheduler.task.AbstractTask;
 import com.aliyun.odps.datacarrier.taskscheduler.task.ActionExecutionContext;
 
 public abstract class AbstractAction implements Action {
-
-  static final Logger LOG = LogManager.getLogger(AbstractAction.class);
+  private static final Logger LOG = LogManager.getLogger(AbstractAction.class);
 
   private ActionProgress progress;
-  private ActionProgressListener actionProgressListener;
-
+  private AbstractTask.ActionProgressListener actionProgressListener;
   private Long startTime;
   private Long endTime;
 
@@ -132,18 +130,14 @@ public abstract class AbstractAction implements Action {
 
   void setProgress(ActionProgress progress) throws MmaException {
     LOG.info("Update action progress, id: {}, cur progress: {}, new progress: {}",
-             id,
-             this.progress,
-             progress);
+             id, progress, progress);
 
-    // Update start time
     if (ActionProgress.PENDING.equals(this.progress) && ActionProgress.RUNNING.equals(progress)) {
       startTime = System.currentTimeMillis();
     }
 
     this.progress = Objects.requireNonNull(progress);
 
-    // Update end time
     if (isTerminated()) {
       endTime = System.currentTimeMillis();
     }
@@ -157,7 +151,7 @@ public abstract class AbstractAction implements Action {
         || ActionProgress.SUCCEEDED.equals(progress);
   }
 
-  public void setActionProgressListener(ActionProgressListener actionProgressListener) {
+  public void setActionProgressListener(AbstractTask.ActionProgressListener actionProgressListener) {
     this.actionProgressListener = Objects.requireNonNull(actionProgressListener);
   }
 
@@ -168,5 +162,13 @@ public abstract class AbstractAction implements Action {
   @Override
   public String toString() {
     return id;
+  }
+
+  @Override
+  public void stop() throws MmaException {
+    setProgress(ActionProgress.CANCELED);
+    if (this.future != null) {
+      this.future.cancel(true);
+    }
   }
 }

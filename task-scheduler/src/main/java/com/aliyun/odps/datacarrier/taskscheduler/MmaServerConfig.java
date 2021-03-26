@@ -21,64 +21,102 @@ package com.aliyun.odps.datacarrier.taskscheduler;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig.MetaDBConfig;
 
 public class MmaServerConfig {
   private static final Logger LOG = LogManager.getLogger(MmaServerConfig.class);
 
-  private static final Map<String, String> DEFAULT_UI_CONFIG;
-  public static final String MMA_UI_ENABLED = "MMA_UI_ENABLED";
-  public static final String MMA_UI_HOST = "MMA_UI_HOST";
-  private static final String DEFAULT_MMA_UI_HOST_VALUE = "0.0.0.0";
-  public static final String MMA_UI_PORT = "MMA_UI_PORT";
-  private static final String DEFAULT_MMA_UI_PORT_VALUE = "18888";
-  public static final String MMA_UI_MAX_THREADS = "MMA_UI_MAX_THREADS";
-  private static final String DEFAULT_MMA_UI_MAX_THREADS = "60";
-  public static final String MMA_UI_MIN_THREADS = "MMA_UI_MIN_THREADS";
-  private static final String DEFAULT_MMA_UI_MIN_THREADS = "10";
+  private static final String ENV_VAR_MMA_META_DB_TYPE = "MMA_META_DB_TYPE";
+  private static final String ENV_VAR_MMA_META_DB_USER = "MMA_META_DB_USER";
+  private static final String ENV_VAR_MMA_META_DB_PASSWORD = "MMA_META_DB_PASSWORD";
+  private static final String ENV_VAR_MMA_META_DB_JDBC_URL = "MMA_META_DB_JDBC_URL";
+
+  private static final String ENV_VAR_MMA_API_SECURITY_ENABLED = "MMA_API_SECURITY_ENABLED";
+  private static final String ENV_VAR_MMA_API_PRIVATE_KEY_PATH = "MMA_API_PRIVATE_KEY_PATH";
+  private static final String ENV_VAR_MMA_API_PUBLIC_KEY_PATH = "MMA_API_PUBLIC_KEY_PATH";
+
+  public static final String MMA_UI_ENABLED = "mma.ui.enabled";
+  public static final String MMA_UI_ENABLED_DEFAULT_VALUE = "true";
+  public static final String MMA_UI_HOST = "mma.ui.host";
+  public static final String MMA_UI_HOST_DEFAULT_VALUE = "0.0.0.0";
+  public static final String MMA_UI_PORT = "mma.ui.port";
+  public static final String MMA_UI_PORT_DEFAULT_VALUE = "18888";
+  public static final String MMA_UI_THREADS_MAX = "mma.ui.threads.max";
+  public static final String MMA_UI_THREADS_MAX_DEFAULT_VALUE = "60";
+  public static final String MMA_UI_THREADS_MIN = "mma.ui.threads.min";
+  public static final String MMA_UI_THREADS_MIN_DEFAULT_VALUE = "10";
+
+
+  public static final String MMA_API_SECURITY_ENABLED = "mma.api.security.enabled";
+  public static final String MMA_API_SECURITY_ENABLED_DEFAULT_VALUE = "false";
+  public static final String MMA_API_PRIVATE_KEY_PATH = "mma.api.security.privateKey.path";
+  public static final String MMA_API_PUBLIC_KEY_PATH = "mma.api.security.publicKey.path";
+
+  private static final Map<String, String> DEFAULT_API_CONFIG = new HashMap<>();
+  private static final Map<String, String> DEFAULT_UI_CONFIG = new HashMap<>();
 
   static {
-    DEFAULT_UI_CONFIG = new HashMap<>();
-    DEFAULT_UI_CONFIG.put(MMA_UI_ENABLED, "true");
-    DEFAULT_UI_CONFIG.put(MMA_UI_HOST, DEFAULT_MMA_UI_HOST_VALUE);
-    DEFAULT_UI_CONFIG.put(MMA_UI_PORT, DEFAULT_MMA_UI_PORT_VALUE);
-    DEFAULT_UI_CONFIG.put(MMA_UI_MAX_THREADS, DEFAULT_MMA_UI_MAX_THREADS);
-    DEFAULT_UI_CONFIG.put(MMA_UI_MIN_THREADS, DEFAULT_MMA_UI_MIN_THREADS);
+    DEFAULT_UI_CONFIG.put(
+        MMA_UI_ENABLED,
+        MMA_UI_ENABLED_DEFAULT_VALUE);
+    DEFAULT_UI_CONFIG.put(
+        MMA_UI_HOST,
+        MMA_UI_HOST_DEFAULT_VALUE);
+    DEFAULT_UI_CONFIG.put(
+        MMA_UI_PORT,
+        MMA_UI_PORT_DEFAULT_VALUE);
+    DEFAULT_UI_CONFIG.put(
+        MMA_UI_THREADS_MAX,
+        MMA_UI_THREADS_MAX_DEFAULT_VALUE);
+    DEFAULT_UI_CONFIG.put(
+        MMA_UI_THREADS_MIN,
+        MMA_UI_THREADS_MIN_DEFAULT_VALUE);
+
+    DEFAULT_API_CONFIG.put(
+        MMA_API_SECURITY_ENABLED,
+        MMA_API_SECURITY_ENABLED_DEFAULT_VALUE);
   }
 
   private static MmaServerConfig instance;
-
   private DataSource dataSource;
   private MmaConfig.OssConfig ossConfig;
   private MmaConfig.HiveConfig hiveConfig;
   private MmaConfig.OdpsConfig odpsConfig;
-  private MmaConfig.MetaDBConfig metaDBConfig;
+  private MmaConfig.MetaDbConfig metaDbConfig;
   private MmaEventConfig eventConfig;
   private Map<String, String> resourceConfig;
   private Map<String, String> uiConfig;
+  private Map<String, String> apiConfig;
   private Map<String, String> hdfsConfig;
 
-  MmaServerConfig(DataSource dataSource,
-                  MmaConfig.OssConfig ossConfig,
-                  MmaConfig.HiveConfig hiveConfig,
-                  MmaConfig.OdpsConfig odpsConfig,
-                  MmaConfig.MetaDBConfig metaDBConfig,
-                  MmaEventConfig eventConfig,
-                  Map<String, String> resourceConfig,
-                  Map<String, String> uiConfig) {
+  MmaServerConfig() {
+    this.dataSource = DataSource.Hive;
+    this.ossConfig = null;
+    this.hiveConfig = null;
+    this.odpsConfig = null;
+    this.metaDbConfig = new MmaConfig.MetaDbConfig();
+    this.apiConfig = DEFAULT_API_CONFIG;
+  }
+
+  MmaServerConfig(
+      DataSource dataSource,
+      MmaConfig.OssConfig ossConfig,
+      MmaConfig.HiveConfig hiveConfig,
+      MmaConfig.OdpsConfig odpsConfig,
+      MmaConfig.MetaDbConfig metaDbConfig,
+      MmaEventConfig eventConfig,
+      Map<String, String> resourceConfig,
+      Map<String, String> uiConfig) {
     this.dataSource = dataSource;
     this.ossConfig = ossConfig;
     this.hiveConfig = hiveConfig;
     this.odpsConfig = odpsConfig;
-    this.metaDBConfig = metaDBConfig;
+    this.metaDbConfig = metaDbConfig;
     this.eventConfig = eventConfig;
     this.resourceConfig = resourceConfig;
     this.uiConfig = uiConfig;
@@ -96,12 +134,12 @@ public class MmaServerConfig {
     return hiveConfig;
   }
 
-  public MmaConfig.MetaDBConfig getMetaDBConfig() {
-    return metaDBConfig;
+  public MmaConfig.MetaDbConfig getMetaDbConfig() {
+    return metaDbConfig;
   }
 
-  public void setMetaDBConfig(MetaDBConfig metaDBConfig) {
-    this.metaDBConfig = metaDBConfig;
+  public void setMetaDbConfig(MmaConfig.MetaDbConfig metaDbConfig) {
+    this.metaDbConfig = metaDbConfig;
   }
 
   public MmaConfig.OssConfig getOssConfig() {
@@ -132,6 +170,10 @@ public class MmaServerConfig {
     return temp;
   }
 
+  public Map<String, String> getApiConfig() {
+    return new HashMap<>(apiConfig);
+  }
+
   public String toJson() {
     return GsonUtils.getFullConfigGson().toJson(this);
   }
@@ -139,56 +181,105 @@ public class MmaServerConfig {
   public boolean validate() {
     boolean valid = true;
 
-    switch (this.dataSource) {
-      case Hive:
-        if (!this.hiveConfig.validate()) {
-          valid = false;
-          LOG.error("Validate MetaConfiguration failed due to {}", this.hiveConfig);
-        }
-        break;
-      case OSS:
-        if (!this.ossConfig.validate()) {
-          valid = false;
-          LOG.error("Validate MetaConfiguration failed due to {}", this.ossConfig);
-        }
-        break;
-      case ODPS:
-        break;
-      default:
-          throw new IllegalArgumentException("Unsupported datasource");
-    }
-
-    if (!odpsConfig.validate()) {
+    if (dataSource == null) {
       valid = false;
-      LOG.error("Validate MetaConfiguration failed due to {}", this.odpsConfig);
+      LOG.error("Validate MMA server config failed because datasource is not configured");
     }
-
-    if (metaDBConfig == null) {
-      String connectionUrl = "jdbc:h2:file:" +
-          Paths.get(Paths.get(System.getenv("MMA_HOME")).toString(), Constants.DB_FILE_NAME).toAbsolutePath() +
-          ";AUTO_SERVER=TRUE";
-      metaDBConfig = new MmaConfig.MetaDBConfig("h2", connectionUrl, "mma", "mma", 50);
-    } else if (!metaDBConfig.validate()) {
+    if (metaDbConfig == null) {
       valid = false;
-      LOG.error("Validate MetaConfiguration failed due to {}", this.metaDBConfig);
+      LOG.error("Validate MMA server config failed because MMA meta DB is not configured");
+    } else if (!metaDbConfig.validate()) {
+      valid = false;
+      LOG.error("Validate MetaConfiguration failed due to {}", metaDbConfig);
     }
 
     return valid;
   }
 
-  public synchronized static void init(Path path) throws IOException {
-    if (!path.toFile().exists()) {
-      throw new IllegalArgumentException("File not found: " + path);
+  public static void init(Path path) throws IOException {
+    instance = new MmaServerConfig();
+
+    loadFromEnvVar();
+    loadFromFile(path);
+
+    if (!instance.validate()) {
+      throw new IllegalArgumentException(
+          "Invalid MmaServerConfig, see mma/log/mma_server.LOG for detailed reason");
+    }
+  }
+
+
+  private static void loadFromFile(Path path) throws IOException {
+    if (path == null || !path.toFile().exists()) {
+      return;
     }
 
     String content = DirUtils.readFile(path);
-    MmaServerConfig mmaServerConfig =
-        GsonUtils.getFullConfigGson().fromJson(content, MmaServerConfig.class);
-    if (mmaServerConfig.validate()) {
-      instance = mmaServerConfig;
-    } else {
-      throw new IllegalArgumentException(
-          "Invalid MmaServerConfig, see mma/log/mma_server.LOG for detailed reason");
+    MmaServerConfig config = GsonUtils.getFullConfigGson().fromJson(content, MmaServerConfig.class);
+
+    if (config.getDataSource() != null) {
+      instance.dataSource = config.getDataSource();
+    }
+    if (config.getOssConfig() != null) {
+      instance.ossConfig = config.getOssConfig();
+    }
+    if (config.getHiveConfig() != null) {
+      instance.hiveConfig = config.getHiveConfig();
+    }
+    if (config.getOdpsConfig() != null) {
+      instance.odpsConfig = config.getOdpsConfig();
+    }
+    if (config.getEventConfig() != null) {
+      instance.eventConfig = config.getEventConfig();
+    }
+    if (config.getResourceConfig() != null) {
+      instance.resourceConfig = config.getResourceConfig();
+    }
+    if (config.getUIConfig() != null) {
+      instance.uiConfig = config.getUIConfig();
+    }
+    if (config.getApiConfig() != null) {
+      instance.apiConfig.putAll(config.getApiConfig());
+    }
+    if (config.getHdfsConfig() != null) {
+      instance.hdfsConfig = config.getHdfsConfig();
+    }
+  }
+
+  private static void loadFromEnvVar() {
+    String metaDbType = System.getenv(ENV_VAR_MMA_META_DB_TYPE);
+    if (metaDbType != null) {
+      instance.getMetaDbConfig().setDbType(metaDbType);
+    }
+
+    String metaDbUser = System.getenv(ENV_VAR_MMA_META_DB_USER);
+    if (metaDbUser != null) {
+      instance.getMetaDbConfig().setUser(metaDbUser);
+    }
+
+    String metaDbPassword = System.getenv(ENV_VAR_MMA_META_DB_PASSWORD);
+    if (metaDbPassword != null) {
+      instance.getMetaDbConfig().setPassword(metaDbPassword);
+    }
+
+    String metaDbJdbcUrl = System.getenv(ENV_VAR_MMA_META_DB_JDBC_URL);
+    if (metaDbJdbcUrl != null) {
+      instance.getMetaDbConfig().setJdbcUrl(metaDbJdbcUrl);
+    }
+
+    String mmaSecurityEnabled = System.getenv(ENV_VAR_MMA_API_SECURITY_ENABLED);
+    if (mmaSecurityEnabled != null) {
+      instance.apiConfig.put(MMA_API_SECURITY_ENABLED, mmaSecurityEnabled);
+    }
+
+    String mmaApiPublicKeyPath = System.getenv(ENV_VAR_MMA_API_PUBLIC_KEY_PATH);
+    if (mmaApiPublicKeyPath != null) {
+      instance.apiConfig.put(MMA_API_PUBLIC_KEY_PATH, mmaApiPublicKeyPath);
+    }
+
+    String mmaApiPrivateKeyPath = System.getenv(ENV_VAR_MMA_API_PRIVATE_KEY_PATH);
+    if (mmaApiPrivateKeyPath != null) {
+      instance.apiConfig.put(MMA_API_PRIVATE_KEY_PATH, mmaApiPrivateKeyPath);
     }
   }
 

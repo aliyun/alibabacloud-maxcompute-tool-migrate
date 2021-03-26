@@ -25,44 +25,52 @@ import java.util.stream.Collectors;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
+import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
+import com.aliyun.odps.datacarrier.taskscheduler.action.ActionProgress;
+import com.aliyun.odps.datacarrier.taskscheduler.action.VerificationAction;
+import com.aliyun.odps.datacarrier.taskscheduler.action.info.VerificationActionInfo;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaEventManager;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaTaskFailedEvent;
 import com.aliyun.odps.datacarrier.taskscheduler.event.MmaTaskSucceedEvent;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.TableMetaModel;
-
-import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
-import com.aliyun.odps.datacarrier.taskscheduler.action.ActionProgress;
-import com.aliyun.odps.datacarrier.taskscheduler.action.VerificationAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.info.VerificationActionInfo;
-import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
 
 public class MigrationTask extends AbstractTask {
 
-  private TableMetaModel tableMetaModel;
+  private MetaSource.TableMetaModel tableMetaModel;
+  // TODO: String?
+  private String jobType;
 
   public MigrationTask(
       String id,
+      String jobId,
+      String jobType,
       MetaSource.TableMetaModel tableMetaModel,
       DirectedAcyclicGraph<Action, DefaultEdge> dag,
       MmaMetaManager mmaMetaManager) {
-    super(id, dag, mmaMetaManager);
-    actionExecutionContext.setTableMetaModel(Objects.requireNonNull(tableMetaModel));
+    super(id, jobId, dag, mmaMetaManager);
+    this.jobType = jobType;
+    this.actionExecutionContext.setTableMetaModel(Objects.requireNonNull(tableMetaModel));
   }
 
-  @Override
+@Override
   void updateMetadata() throws MmaException {
     this.tableMetaModel = actionExecutionContext.getTableMetaModel();
     if (!tableMetaModel.partitionColumns.isEmpty()) {
       if (TaskProgress.SUCCEEDED.equals(progress)) {
-        mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-                                    tableMetaModel.tableName,
-                                    tableMetaModel.partitions
-                                        .stream()
-                                        .map(p -> p.partitionValues)
-                                        .collect(Collectors.toList()),
-                                    MmaMetaManager.MigrationStatus.SUCCEEDED);
+        mmaMetaManager.updateStatus(
+            jobId,
+            jobType,
+            MmaConfig.ObjectType.TABLE.name(),
+            tableMetaModel.databaseName,
+            tableMetaModel.tableName,
+            this.tableMetaModel.partitions
+                .stream()
+                .map(p -> p.partitionValues)
+                .collect(Collectors.toList()),
+            MmaMetaManager.JobStatus.SUCCEEDED);
         MmaTaskSucceedEvent e = new MmaTaskSucceedEvent(id, tableMetaModel.partitions.size());
         MmaEventManager.getInstance().send(e);
       } else if (TaskProgress.FAILED.equals(progress)) {
@@ -87,45 +95,64 @@ public class MigrationTask extends AbstractTask {
             && ActionProgress.FAILED.equals(verificationAction.getProgress())) {
           VerificationActionInfo verificationActionInfo =
               (VerificationActionInfo) verificationAction.getActionInfo();
-          mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-                                      tableMetaModel.tableName,
-                                      verificationActionInfo.getSucceededPartitions(),
-                                      MmaMetaManager.MigrationStatus.SUCCEEDED);
-          mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-                                      tableMetaModel.tableName,
-                                      verificationActionInfo.getFailedPartitions(),
-                                      MmaMetaManager.MigrationStatus.FAILED);
+          mmaMetaManager.updateStatus(
+              jobId,
+              jobType,
+              MmaConfig.ObjectType.TABLE.name(),
+              tableMetaModel.databaseName,
+              tableMetaModel.tableName,
+              verificationActionInfo.getSucceededPartitions(),
+              MmaMetaManager.JobStatus.SUCCEEDED);
+          mmaMetaManager.updateStatus(
+              jobId,
+              jobType,
+              MmaConfig.ObjectType.TABLE.name(),
+              tableMetaModel.databaseName,
+              tableMetaModel.tableName,
+              verificationActionInfo.getFailedPartitions(),
+              MmaMetaManager.JobStatus.FAILED);
         } else {
-          mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-                                      tableMetaModel.tableName,
-                                      tableMetaModel.partitions
-                                          .stream()
-                                          .map(p -> p.partitionValues)
-                                          .collect(Collectors.toList()),
-                                      MmaMetaManager.MigrationStatus.FAILED);
+          mmaMetaManager.updateStatus(
+              jobId,
+              jobType,
+              MmaConfig.ObjectType.TABLE.name(),
+              tableMetaModel.databaseName,
+              tableMetaModel.tableName,
+              tableMetaModel.partitions
+                  .stream()
+                  .map(p -> p.partitionValues)
+                  .collect(Collectors.toList()),
+              MmaMetaManager.JobStatus.FAILED);
         }
       }
-    } else {
-      if (TaskProgress.SUCCEEDED.equals(progress)) {
-        MmaTaskSucceedEvent e = new MmaTaskSucceedEvent(id);
-        MmaEventManager.getInstance().send(e);
+    } else if (TaskProgress.SUCCEEDED.equals(progress)) {
+      MmaTaskSucceedEvent e = new MmaTaskSucceedEvent(id);
+      MmaEventManager.getInstance().send(e);
 
-        mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-                                    tableMetaModel.tableName,
-                                    MmaMetaManager.MigrationStatus.SUCCEEDED);
-      } else if (TaskProgress.FAILED.equals(progress)) {
-        MmaTaskFailedEvent e = new MmaTaskFailedEvent(
-            id,
-            dag.vertexSet()
-               .stream()
-               .filter(a -> ActionProgress.FAILED.equals(a.getProgress()))
-               .map(Action::getName).collect(Collectors.toList()));
-        MmaEventManager.getInstance().send(e);
+      mmaMetaManager.updateStatus(
+          jobId,
+          jobType,
+          MmaConfig.ObjectType.TABLE.name(),
+          tableMetaModel.databaseName,
+          tableMetaModel.tableName,
+          MmaMetaManager.JobStatus.SUCCEEDED);
+    } else if (TaskProgress.FAILED.equals(progress)) {
+      MmaTaskFailedEvent e = new MmaTaskFailedEvent(
+          id,
+          dag.vertexSet()
+             .stream()
+             .filter(a -> ActionProgress.FAILED.equals(a.getProgress()))
+             .map(Action::getName)
+             .collect(Collectors.toList()));
+      MmaEventManager.getInstance().send(e);
 
-        mmaMetaManager.updateStatus(tableMetaModel.databaseName,
-                                    tableMetaModel.tableName,
-                                    MmaMetaManager.MigrationStatus.FAILED);
-      }
+      mmaMetaManager.updateStatus(
+          jobId,
+          jobType,
+          MmaConfig.ObjectType.TABLE.name(),
+          tableMetaModel.databaseName,
+          tableMetaModel.tableName,
+          MmaMetaManager.JobStatus.FAILED);
     }
   }
 }

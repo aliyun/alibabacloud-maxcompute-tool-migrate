@@ -39,8 +39,7 @@ public class OdpsAddPartitionAction extends OdpsSqlAction {
 
   @Override
   Map<String, String> getSettings() {
-    return MmaServerConfig
-        .getInstance()
+    return actionExecutionContext
         .getOdpsConfig()
         .getDestinationTableSettings()
         .getDDLSettings();

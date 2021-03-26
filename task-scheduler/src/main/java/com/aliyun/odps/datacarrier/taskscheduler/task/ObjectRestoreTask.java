@@ -19,8 +19,6 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.task;
 
-import static com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImplUtils.RestoreTaskInfo;
-
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -28,46 +26,55 @@ import org.apache.logging.log4j.Logger;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
 import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 
-public class ObjectExportAndRestoreTask extends AbstractTask {
-  private static final Logger LOG = LogManager.getLogger(ObjectExportAndRestoreTask.class);
+public class ObjectRestoreTask extends AbstractTask {
+  private static final Logger LOG = LogManager.getLogger(ObjectRestoreTask.class);
 
+  private final String objectType;
   private final MetaSource.TableMetaModel tableMetaModel;
-  private RestoreTaskInfo restoreTaskInfo;
 
-  public ObjectExportAndRestoreTask(String id,
-                                    MetaSource.TableMetaModel tableMetaModel,
-                                    DirectedAcyclicGraph<Action, DefaultEdge> dag,
-                                    MmaMetaManager mmaMetaManager) {
-    super(id, dag, mmaMetaManager);
+  public ObjectRestoreTask(
+      String id,
+      String jobId,
+      String objectType,
+      MetaSource.TableMetaModel tableMetaModel,
+      DirectedAcyclicGraph<Action, DefaultEdge> dag,
+      MmaMetaManager mmaMetaManager) {
+    super(id, jobId, dag, mmaMetaManager);
+    this.objectType = objectType;
     this.tableMetaModel = Objects.requireNonNull(tableMetaModel);
-    actionExecutionContext.setTableMetaModel(this.tableMetaModel);
-  }
-
-  public void setRestoreTaskInfo(RestoreTaskInfo restoreTaskInfo) {
-    this.restoreTaskInfo = restoreTaskInfo;
-  }
-
-  public RestoreTaskInfo getRestoreTaskInfo() {
-    return restoreTaskInfo;
+    this.actionExecutionContext.setTableMetaModel(tableMetaModel);
   }
 
   @Override
   void updateMetadata() throws MmaException {
-    if (TaskProgress.PENDING.equals(progress) || TaskProgress.RUNNING.equals(progress)) {
+    if (TaskProgress.PENDING.equals(progress)
+        || TaskProgress.RUNNING.equals(progress)) {
       return;
     }
-    MmaMetaManager.MigrationStatus status = TaskProgress.SUCCEEDED.equals(progress) ?
-        MmaMetaManager.MigrationStatus.SUCCEEDED :
-        MmaMetaManager.MigrationStatus.FAILED;
-    if (restoreTaskInfo != null) {
-      mmaMetaManager.updateStatusInRestoreDB(restoreTaskInfo, status);
-    } else {
-      mmaMetaManager.updateStatus(tableMetaModel.databaseName,
+    MmaMetaManager.JobStatus status = TaskProgress.SUCCEEDED.equals(progress) ?
+        MmaMetaManager.JobStatus.SUCCEEDED : MmaMetaManager.JobStatus.FAILED;
+
+    if (MmaConfig.ObjectType.DATABASE.name().equalsIgnoreCase(objectType)) {
+      mmaMetaManager.updateStatus(
+          jobId,
+          MmaConfig.JobType.RESTORE.name(),
+          objectType,
+          tableMetaModel.databaseName,
+          "",
+          status);
+    }
+    else {
+      this.mmaMetaManager.updateStatusInRestoreDB(
+          jobId,
+          MmaConfig.JobType.RESTORE.name(),
+          objectType,
+          tableMetaModel.databaseName,
           tableMetaModel.tableName,
           status);
     }

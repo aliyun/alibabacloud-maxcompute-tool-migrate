@@ -20,7 +20,6 @@
 package com.aliyun.odps.datacarrier.taskscheduler.ui.utils;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
@@ -40,8 +39,8 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import com.aliyun.odps.datacarrier.taskscheduler.MmaServer;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUIPage;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.api.AbstractRestfulApi;
 
 public class JettyUtils {
   private static final Logger LOG = LogManager.getLogger(JettyUtils.class);
@@ -90,6 +89,40 @@ public class JettyUtils {
     };
   }
 
+  public static HttpServlet createServlet(final AbstractRestfulApi api) {
+    return new HttpServlet() {
+      @Override
+      protected void doGet(
+          HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType(String.format("%s;charset=utf-8", new Object[] { "application/json" }));
+        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.getWriter().print(api.handleGet(req));
+      }
+
+      @Override
+      protected void doPost(
+          HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType(String.format("%s;charset=utf-8", new Object[] { "application/json" }));
+        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.getWriter().print(api.handlePost(req));
+      }
+
+      @Override
+      protected void doDelete(
+          HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType(String.format("%s;charset=utf-8", new Object[] { "application/json" }));
+        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.getWriter().print(api.handleDelete(req));
+      }
+    };
+  }
+
   public static ServletContextHandler createServletHandler(
       String path,
       WebUIPage page,
@@ -113,7 +146,6 @@ public class JettyUtils {
       HttpServlet servlet,
       String basePath) {
     String prefixedPath;
-
     if ("".equals(basePath) && "/".equals(path)) {
       prefixedPath = path;
     } else {
@@ -143,6 +175,7 @@ public class JettyUtils {
     return contextHandler;
   }
 
+
   public static ServletContextHandler createRedirectHandler(
       String srcPath,
       String destPath,
@@ -151,15 +184,18 @@ public class JettyUtils {
 
     HttpServlet httpServlet = new HttpServlet() {
       @Override
-      protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-          throws ServletException, IOException {
+      protected void doGet(
+          HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        LOG.debug("Enter redirect handler");
+        LOG.debug("HTTP method: {}", req.getMethod());
+        LOG.debug("Request URI: {}", req.getRequestURI());
         doRequest(req, resp);
       }
 
-      private void doRequest(HttpServletRequest request, HttpServletResponse response)
-          throws IOException {
-        String newUrl = new URL(new URL(request.getRequestURL().toString()),
-                                prefixedDestPath).toString();
+      private void doRequest(
+          HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String newUrl =
+            new URL(new URL(request.getRequestURL().toString()), prefixedDestPath).toString();
         response.sendRedirect(newUrl);
       }
     };
@@ -172,14 +208,13 @@ public class JettyUtils {
       int port,
       int maxThreads,
       int minThreads,
-      List<ServletContextHandler> handlers){
-
+      List<ServletContextHandler> handlers) {
     QueuedThreadPool pool = new QueuedThreadPool(maxThreads, minThreads);
     pool.setDaemon(true);
     Server server = new Server(pool);
     ContextHandlerCollection collection = new ContextHandlerCollection();
     for (ServletContextHandler handler : handlers) {
-      LOG.info("Found available context path: {}", handler.getContextPath());
+      LOG.debug("Found available context path: {}", handler.getContextPath());
       collection.addHandler(handler);
     }
     server.setHandler(collection);

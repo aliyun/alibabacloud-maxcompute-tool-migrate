@@ -23,15 +23,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.datacarrier.taskscheduler.action.info.VerificationActionInfo;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
+import com.aliyun.odps.datacarrier.taskscheduler.action.info.VerificationActionInfo;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 
-public class VerificationAction extends AbstractAction {
-
+public class VerificationAction extends DefaultAction {
   private static final Logger LOG = LogManager.getLogger(VerificationAction.class);
 
   public VerificationAction(String id) {
@@ -40,7 +40,7 @@ public class VerificationAction extends AbstractAction {
   }
 
   @Override
-  public void execute() throws MmaException {
+  public Object call() throws MmaException {
     setProgress(ActionProgress.RUNNING);
 
     List<List<String>> sourceVerificationResult =
@@ -54,86 +54,84 @@ public class VerificationAction extends AbstractAction {
     boolean isPartitioned = partitionColumnCount != 0;
     actionInfo.setIsPartitioned(isPartitioned);
 
-
     if (sourceVerificationResult == null || destVerificationResult == null) {
       LOG.error("ActionId: {}, source/dest verification results not found", id);
       passed = false;
-    } else {
-      if (!isPartitioned) {
-        assert sourceVerificationResult.size() == 1;
-        assert sourceVerificationResult.get(0).size() == 1;
-        assert destVerificationResult.size() == 1;
-        assert sourceVerificationResult.get(0).size() == 1;
+    } else if (!isPartitioned) {
+      assert sourceVerificationResult.size() == 1;
+      assert sourceVerificationResult.get(0).size() == 1;
+      assert destVerificationResult.size() == 1;
+      assert sourceVerificationResult.get(0).size() == 1;
 
-        Long source = Long.valueOf(sourceVerificationResult.get(0).get(0));
-        Long dest = Long.valueOf(destVerificationResult.get(0).get(0));
-        passed = source.equals(dest);
-        if (!passed) {
+      Long source = Long.valueOf((String)((List)sourceVerificationResult.get(0)).get(0));
+      Long dest = Long.valueOf((String)((List)destVerificationResult.get(0)).get(0));
+      passed = source.equals(dest);
+      if (!passed) {
+        LOG.error("ActionId: {}, verification failed, source: {}, dest: {}",
+                  id, source, dest);
+      } else {
+        LOG.info("ActionId: {}, verification succeeded, source: {}, dest: {}",
+                 id, source, dest);
+      }
+    } else {
+      List<List<String>> succeededPartitions = new LinkedList<>();
+      List<List<String>> failedPartitions = new LinkedList<>();
+
+      for (MetaSource.PartitionMetaModel partitionMetaModel :
+          actionExecutionContext.getTableMetaModel().partitions) {
+
+        List<String> partitionValues = partitionMetaModel.partitionValues;
+        List<String> sourceRecordCount = sourceVerificationResult
+            .stream()
+            .filter(r -> partitionValues.equals(r.subList(0, partitionColumnCount)))
+            .map(r -> r.get(partitionColumnCount))
+            .collect(Collectors.toList());
+        List<String> destRecordCount = destVerificationResult
+            .stream()
+            .filter(r -> partitionValues.equals(r.subList(0, partitionColumnCount)))
+            .map(r -> r.get(partitionColumnCount))
+            .collect(Collectors.toList());
+
+        // When partition is empty, foundInSource and foundInDest are both false.
+        if (sourceRecordCount.isEmpty() && destRecordCount.isEmpty()) {
+          LOG.warn("ActionId: {}, ignored Empty partition: {}, ", id, partitionValues);
+          succeededPartitions.add(partitionValues);
+          continue;
+        }  if (sourceRecordCount.isEmpty()) {
+          LOG.warn("ActionId: {}, ignored unexpected partition: {}", id, partitionValues);
+          succeededPartitions.add(partitionValues);
+          continue;
+        }  if (destRecordCount.isEmpty()) {
+          LOG.error("ActionId: {}, dest partition not found, partition: {}",
+                    id, partitionValues);
+          failedPartitions.add(partitionValues);
+          passed = false;
+          continue;
+        }
+        Long source = Long.valueOf(sourceRecordCount.get(0));
+        Long dest = Long.valueOf(destRecordCount.get(0));
+        if (!dest.equals(source)) {
           LOG.error("ActionId: {}, verification failed, source: {}, dest: {}",
                     id, source, dest);
-        } else {
-          LOG.info("ActionId: {}, verification succeeded, source: {}, dest: {}",
-                   id, source, dest);
+          passed = false;
+          failedPartitions.add(partitionValues);
+          continue;
         }
-      } else {
-        List<List<String>> succeededPartitions = new LinkedList<>();
-        List<List<String>> failedPartitions = new LinkedList<>();
-
-        for (PartitionMetaModel partitionMetaModel :
-            actionExecutionContext.getTableMetaModel().partitions) {
-
-          List<String> partitionValues = partitionMetaModel.partitionValues;
-          List<String> sourceRecordCount = sourceVerificationResult
-              .stream()
-              .filter(r -> partitionValues.equals(r.subList(0, partitionColumnCount)))
-              .map(r -> r.get(partitionColumnCount))
-              .collect(Collectors.toList());
-          List<String> destRecordCount = destVerificationResult
-              .stream()
-              .filter(r -> partitionValues.equals(r.subList(0, partitionColumnCount)))
-              .map(r -> r.get(partitionColumnCount))
-              .collect(Collectors.toList());
-
-          // When partition is empty, foundInSource and foundInDest are both false.
-          if (sourceRecordCount.isEmpty() && destRecordCount.isEmpty()) {
-            LOG.warn("ActionId: {}, ignored Empty partition: {}, ", id, partitionValues);
-            succeededPartitions.add(partitionValues);
-          } else if (sourceRecordCount.isEmpty()) {
-            LOG.warn("ActionId: {}, ignored unexpected partition: {}", id, partitionValues);
-            succeededPartitions.add(partitionValues);
-          } else if (destRecordCount.isEmpty()) {
-            LOG.error("ActionId: {}, dest partition not found, partition: {}",
-                      id, partitionValues);
-            failedPartitions.add(partitionValues);
-            passed = false;
-          } else {
-            Long source = Long.valueOf(sourceRecordCount.get(0));
-            Long dest = Long.valueOf(destRecordCount.get(0));
-            if (!dest.equals(source)) {
-              LOG.error("ActionId: {}, verification failed, source: {}, dest: {}",
-                        id, source, dest);
-              passed = false;
-              failedPartitions.add(partitionValues);
-            } else {
-              LOG.info("ActionId: {}, verification succeeded, source: {}, dest: {}",
-                        id, source, dest);
-              succeededPartitions.add(partitionValues);
-            }
-          }
-        }
-
-        actionInfo.setSucceededPartitions(succeededPartitions);
-        actionInfo.setFailedPartitions(failedPartitions);
+        LOG.info("ActionId: {}, verification succeeded, source: {}, dest: {}",
+                 id, source, dest);
+        succeededPartitions.add(partitionValues);
       }
+
+      actionInfo.setSucceededPartitions(succeededPartitions);
+      actionInfo.setFailedPartitions(failedPartitions);
     }
 
     if (passed) {
-      actionInfo.setPassed(true);
-      setProgress(ActionProgress.SUCCEEDED);
+      actionInfo.setPassed(Boolean.TRUE);
     } else {
-      actionInfo.setPassed(false);
-      setProgress(ActionProgress.FAILED);
+      actionInfo.setPassed(Boolean.FALSE);
     }
+    return null;
   }
 
   @Override
@@ -142,15 +140,18 @@ public class VerificationAction extends AbstractAction {
   }
 
   @Override
-  public void afterExecution() {
-  }
-
-  @Override
-  public boolean executionFinished() {
-    return true;
-  }
-
-  @Override
-  public void stop() {
+  public void afterExecution() throws MmaException {
+    try {
+      future.get();
+      if (((VerificationActionInfo) actionInfo).passed().booleanValue()) {
+        setProgress(ActionProgress.SUCCEEDED);
+      } else {
+        setProgress(ActionProgress.FAILED);
+      }
+    } catch (Exception e) {
+      LOG.error("Action failed, actionId: {}, stack trace: {}",
+                id, ExceptionUtils.getFullStackTrace(e));
+      setProgress(ActionProgress.FAILED);
+    }
   }
 }

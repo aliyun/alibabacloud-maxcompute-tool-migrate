@@ -138,7 +138,7 @@ public class HiveTypeTransformer implements TypeTransformer {
       TypeTransformResult keyTypeTransformResult = toOdpsTypeV2(keyType);
       TypeTransformResult valueTypeTransformResult = toOdpsTypeV2(valueType);
       transformedType = "MAP<" + keyTypeTransformResult.getTransformedType() + "," +
-                        valueTypeTransformResult.getTransformedType() + ">";
+          valueTypeTransformResult.getTransformedType() + ">";
     } else if (hiveType.matches(STRUCT)) {
       Pattern pattern = Pattern.compile(STRUCT);
       Matcher matcher = pattern.matcher(hiveType);

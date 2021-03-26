@@ -31,35 +31,49 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 import com.aliyun.odps.datacarrier.taskscheduler.ColorsGenerator;
+import com.aliyun.odps.datacarrier.taskscheduler.MmaConfig;
 import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
-import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 import com.aliyun.odps.datacarrier.taskscheduler.action.AbstractAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.ActionProgress;
 import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
-
+import com.aliyun.odps.datacarrier.taskscheduler.action.ActionProgress;
+import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 
 public abstract class AbstractTask implements Task {
+
+  public class ActionProgressListener {
+    private AbstractTask task;
+    public ActionProgressListener(AbstractTask task) {
+      this.task = Objects.requireNonNull(task);
+    }
+
+    public void onActionProgressChanged(ActionProgress newProgress) throws MmaException {
+      this.task.updateTaskProgress(newProgress);
+    }
+  }
+
   private static final Logger LOG = LogManager.getLogger(AbstractTask.class);
 
   String id;
+  String jobId;
   TaskProgress progress = TaskProgress.PENDING;
   Long startTime;
   Long endTime;
   DirectedAcyclicGraph<Action, DefaultEdge> dag;
-  ActionExecutionContext actionExecutionContext = new ActionExecutionContext();
+  ActionExecutionContext actionExecutionContext;
   private ActionProgressListener actionProgressListener = new ActionProgressListener(this);
 
   MmaMetaManager mmaMetaManager;
 
   public AbstractTask(
       String id,
+      String jobId,
       DirectedAcyclicGraph<Action, DefaultEdge> dag,
       MmaMetaManager mmaMetaManager) {
-
     this.id = Objects.requireNonNull(id);
+    this.jobId = Objects.requireNonNull(jobId);
     this.dag = Objects.requireNonNull(dag);
     this.mmaMetaManager = Objects.requireNonNull(mmaMetaManager);
-
+    this.actionExecutionContext = new ActionExecutionContext(jobId);
     setActionProgressListener();
     setActionExecutionContext();
   }
@@ -95,17 +109,11 @@ public abstract class AbstractTask implements Task {
         || TaskProgress.FAILED.equals(progress);
   }
 
-  /**
-   * Get task progress.
-   */
   @Override
   public TaskProgress getProgress() {
     return progress;
   }
 
-  /**
-   * Get executable actions.
-   */
   @Override
   public List<Action> getExecutableActions() {
     List<Action> ret = new LinkedList<>();
@@ -131,9 +139,8 @@ public abstract class AbstractTask implements Task {
    * Update task progress, triggered by an action progress update
    * @param actionNewProgress the new action progress that triggers this update
    */
-  private synchronized void updateTaskProgress(ActionProgress actionNewProgress)
-      throws MmaException {
-
+  private synchronized void updateTaskProgress(
+      ActionProgress actionNewProgress) throws MmaException {
     boolean taskProgressChanged = false;
     TaskProgress currentProgress = progress;
 
@@ -149,18 +156,16 @@ public abstract class AbstractTask implements Task {
           progress = TaskProgress.FAILED;
           taskProgressChanged = true;
         } else if (ActionProgress.SUCCEEDED.equals(actionNewProgress)) {
-          boolean allActionsSucceeded = dag.vertexSet()
+          boolean allActionsSucceeded = dag
+              .vertexSet()
               .stream()
               .allMatch(v -> ActionProgress.SUCCEEDED.equals(v.getProgress()));
           if (allActionsSucceeded) {
             progress = TaskProgress.SUCCEEDED;
             taskProgressChanged = true;
           }
+          break;
         }
-        break;
-      case FAILED:
-      case SUCCEEDED:
-      default:
     }
 
     if (taskProgressChanged) {
@@ -171,7 +176,6 @@ public abstract class AbstractTask implements Task {
         startTime = System.currentTimeMillis();
       }
 
-      // Update end time
       if (isTerminated()) {
         endTime = System.currentTimeMillis();
       }
@@ -180,9 +184,11 @@ public abstract class AbstractTask implements Task {
     }
   }
 
-  /**
-   * Update metadata, triggered by an task progress update
-   */
+  @Override
+  public String getJobId() {
+    return this.jobId;
+  }
+
   abstract void updateMetadata() throws MmaException;
 
   @Override
@@ -190,24 +196,22 @@ public abstract class AbstractTask implements Task {
     return id;
   }
 
-  @Override
-  public String getOriginId() {
-    int index = id.indexOf(".part#");
-    return index == -1 ? id : id.substring(0, index);
+  public void setOdpsConfig(MmaConfig.OdpsConfig odpsConfig) {
+    actionExecutionContext.setOdpsConfig(odpsConfig);
   }
 
-  /**
-   * Return a simple description of this task
-   * @return Description of this task
-   */
+  public void setOssConfig(MmaConfig.OssConfig ossConfig) {
+    this.actionExecutionContext.setOssConfig(ossConfig);
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(id).append(" ");
+    sb.append(this.id).append(" ");
 
-    Iterator<Action> iterator = dag.iterator();
+    Iterator<Action> iterator = this.dag.iterator();
     while (iterator.hasNext()) {
-      Action a = iterator.next();
+      Action a = (Action)iterator.next();
       if (ActionProgress.SUCCEEDED.equals(a.getProgress())) {
         sb.append(ColorsGenerator.printGreen(a.getId()));
       } else if (ActionProgress.FAILED.equals(a.getProgress())) {
@@ -222,20 +226,10 @@ public abstract class AbstractTask implements Task {
   }
 
   @Override
-  public void stop() {
-    // TODO: set status to canceled
-    // TODO: stop all actions
-  }
-
-  public class ActionProgressListener {
-    private AbstractTask task;
-
-    public ActionProgressListener(AbstractTask task) {
-      this.task = Objects.requireNonNull(task);
-    }
-
-    public void onActionProgressChanged(ActionProgress newProgress) throws MmaException {
-      task.updateTaskProgress(newProgress);
+  public void stop() throws MmaException {
+    this.progress = TaskProgress.CANCELED;
+    for (Action a : this.dag) {
+      a.stop();
     }
   }
 }

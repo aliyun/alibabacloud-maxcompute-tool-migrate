@@ -19,6 +19,10 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,15 +30,22 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.collections.MapUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.Odps;
+import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MetaSource;
 import com.aliyun.odps.utils.StringUtils;
+import com.google.gson.annotations.Expose;
 
 // TODO: Split this class into several classes
 
 public class MmaConfig {
-  
-  public interface Config {
+  private static final Logger LOG = LogManager.getLogger(MmaConfig.class);
+
+  public static interface Config
+  {
     boolean validate();
   }
 
@@ -180,15 +191,16 @@ public class MmaConfig {
     private Map<String, String> globalSettings;
     private SQLSettingConfig sourceTableSettings;
 
-    public HiveConfig(String jdbcConnectionUrl,
-                      String user,
-                      String password,
-                      String hmsThriftAddr,
-                      String krbPrincipal,
-                      String keyTab,
-                      List<String> krbSystemProperties,
-                      Map<String, String> globalSettings,
-                      SQLSettingConfig sourceTableSettings) {
+    public HiveConfig(
+        String jdbcConnectionUrl,
+        String user,
+        String password,
+        String hmsThriftAddr,
+        String krbPrincipal,
+        String keyTab,
+        List<String> krbSystemProperties,
+        Map<String, String> globalSettings,
+        SQLSettingConfig sourceTableSettings) {
       this.jdbcConnectionUrl = jdbcConnectionUrl;
       this.user = user;
       this.password = password;
@@ -268,21 +280,15 @@ public class MmaConfig {
     private String accessKey;
     private String endpoint;
     private String projectName;
-    private String tunnelEndpoint;
     private Map<String, String> globalSettings;
     private SQLSettingConfig sourceTableSettings;
     private SQLSettingConfig destinationTableSettings;
 
-    public OdpsConfig(String accessId,
-                      String accessKey,
-                      String endpoint,
-                      String projectName,
-                      String tunnelEndpoint) {
+    public OdpsConfig(String accessId, String accessKey, String endpoint, String projectName) {
       this.accessId = accessId;
       this.accessKey = accessKey;
       this.endpoint = endpoint;
       this.projectName = projectName;
-      this.tunnelEndpoint = tunnelEndpoint;
     }
 
     public String getAccessId() {
@@ -301,11 +307,6 @@ public class MmaConfig {
       return projectName;
     }
 
-    public String getTunnelEndpoint() {
-      return tunnelEndpoint;
-    }
-
-    // TODO: not used
     public Map<String, String> getGlobalSettings() {
       return globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings;
     }
@@ -332,6 +333,15 @@ public class MmaConfig {
       return destinationTableSettings;
     }
 
+    public Odps toOdps() {
+      AliyunAccount aliyunAccount = new AliyunAccount(accessId, accessKey);
+      Odps odps = new Odps(aliyunAccount);
+      odps.setDefaultProject(this.projectName);
+      odps.setEndpoint(this.endpoint);
+
+      return odps;
+    }
+
     @Override
     public boolean validate() {
       return (!StringUtils.isNullOrEmpty(accessId) &&
@@ -340,7 +350,6 @@ public class MmaConfig {
               !StringUtils.isNullOrEmpty(projectName));
     }
 
-    // TODO: handle null
     @Override
     public String toString() {
       return "OdpsConfig {"
@@ -348,7 +357,6 @@ public class MmaConfig {
           + ", accessKey='" + Objects.toString(accessKey, "null") + '\''
           + ", endpoint='" + Objects.toString(endpoint, "null") + '\''
           + ", projectName='" + Objects.toString(projectName, "null") + '\''
-          + ", tunnelEndpoint='" + Objects.toString(tunnelEndpoint, "null") + '\''
           + ", globalSettings=" + Objects.toString(globalSettings, "null")
           + ", sourceTableSettings=" + Objects.toString(sourceTableSettings, "null")
           + ", destinationTableSettings=" + Objects.toString(destinationTableSettings, "null")
@@ -356,18 +364,34 @@ public class MmaConfig {
     }
   }
 
-  public static class MetaDBConfig implements Config {
+  public static class MetaDbConfig implements Config {
+    @Expose
     private String dbType;
+    @Expose
     private String jdbcUrl;
+    @Expose
     private String user;
+    @Expose
     private String password;
+    @Expose
     private int maxPoolSize;
 
-    public MetaDBConfig(String dbType,
-                        String jdbcUrl,
-                        String user,
-                        String password,
-                        int maxPoolSize) {
+    public MetaDbConfig() {
+      dbType = "h2";
+      String mmaHome = System.getenv("MMA_HOME");
+      Path parentDir = Paths.get(mmaHome, new String[0]);
+      jdbcUrl = "jdbc:h2:file:" + Paths.get(parentDir.toString(), new String[] { ".MmaMeta" }).toAbsolutePath() + ";AUTO_SERVER=TRUE";
+      user = "mma";
+      password = "mma";
+      maxPoolSize = 50;
+    }
+
+    public MetaDbConfig(
+        String dbType,
+        String jdbcUrl,
+        String user,
+        String password,
+        int maxPoolSize) {
       this.dbType = dbType.toLowerCase();
       this.jdbcUrl = jdbcUrl;
       this.user = user;
@@ -377,6 +401,10 @@ public class MmaConfig {
 
     public String getDbType() {
       return dbType;
+    }
+
+    public void setDbType(String dbType) {
+      this.dbType = dbType;
     }
 
     public String getDriverClass() {
@@ -392,37 +420,63 @@ public class MmaConfig {
       return jdbcUrl;
     }
 
+    public void setJdbcUrl(String jdbcUrl) {
+      this.jdbcUrl = jdbcUrl;
+    }
+
     public String getUser() {
       return user;
+    }
+
+    public void setUser(String user) {
+      this.user = user;
     }
 
     public String getPassword() {
       return password;
     }
 
+    public void setPassword(String password) {
+      this.password = password;
+    }
+
     public int getMaxPoolSize() {
       return maxPoolSize;
     }
 
+    public void setMaxPoolSize(int maxPoolSize) {
+      this.maxPoolSize = maxPoolSize;
+    }
+
     @Override
     public boolean validate() {
-      if (StringUtils.isNullOrEmpty(user)) {
-        user = System.getenv("META_DB_USER");
-      }
-      if (StringUtils.isNullOrEmpty(password)) {
-        password = System.getenv("META_DB_PASSWORD");
-      }
-      if (StringUtils.isNullOrEmpty(jdbcUrl)) {
-        jdbcUrl = System.getenv("META_DB_JDBC_URL");
-      }
       if (StringUtils.isNullOrEmpty(dbType) ||
           StringUtils.isNullOrEmpty(jdbcUrl) ||
           StringUtils.isNullOrEmpty(user) ||
-          StringUtils.isNullOrEmpty(password) ||
-          maxPoolSize <= 0) {
+          StringUtils.isNullOrEmpty(password) || maxPoolSize <= 0) {
+        LOG.error("Required fields 'dbType', 'jdbcUrl', 'user', 'password', 'maxPoolSize' is null or invalid value");
+        return false;
+      }
+
+      try {
+        Class.forName(getDriverClass());
+      } catch (ClassNotFoundException e) {
+        LOG.error("Driver class not found", getDriverClass());
+        return false;
+      }
+
+      try {
+        DriverManager.getConnection(jdbcUrl, user, password);
+      } catch (SQLException e) {
+        LOG.error("Failed to create connection", e);
         return false;
       }
       return true;
+    }
+
+    @Override
+    public String toString() {
+      return GsonUtils.getFullConfigGson().toJson(this);
     }
   }
 
@@ -449,9 +503,10 @@ public class MmaConfig {
     private String destProjectStorage;
     private AdditionalTableConfig additionalTableConfig;
 
-    public DatabaseMigrationConfig (String sourceDatabaseName,
-                                    String destProjectName,
-                                    AdditionalTableConfig additionalTableConfig) {
+    public DatabaseMigrationConfig (
+        String sourceDatabaseName,
+        String destProjectName,
+        AdditionalTableConfig additionalTableConfig) {
       this.sourceDatabaseName = sourceDatabaseName;
       this.destProjectName = destProjectName;
       this.destProjectStorage = null;
@@ -482,28 +537,32 @@ public class MmaConfig {
     }
   }
 
-  public static class DatabaseExportConfig implements Config {
+  public static class DatabaseBackupConfig implements Config {
+
     private String databaseName;
-    private List<ObjectType> exportTypes;
-    private String taskName;
+    private List<ObjectType> objectTypes;
+    private String backupName;
     private AdditionalTableConfig additionalTableConfig;
 
-    DatabaseExportConfig(String databaseName, List<ObjectType> types, String taskName) {
+    DatabaseBackupConfig(
+        String databaseName,
+        List<ObjectType> objectTypes,
+        String backupName) {
       this.databaseName = databaseName;
-      this.exportTypes = types;
-      this.taskName = taskName;
+      this.objectTypes = objectTypes;
+      this.backupName = backupName;
     }
 
     public String getDatabaseName() {
       return databaseName;
     }
 
-    public List<ObjectType> getExportTypes() {
-      return exportTypes;
+    public List<ObjectType> getObjectTypes() {
+      return objectTypes;
     }
 
-    public String getTaskName() {
-      return taskName;
+    public String getBackupName() {
+      return backupName;
     }
 
     public AdditionalTableConfig getAdditionalTableConfig() {
@@ -516,49 +575,52 @@ public class MmaConfig {
 
     @Override
     public boolean validate() {
-      return !StringUtils.isNullOrEmpty(databaseName) &&
-             !StringUtils.isNullOrEmpty(taskName) &&
-             exportTypes != null;
+      return (!StringUtils.isNullOrEmpty(databaseName)
+          && !StringUtils.isNullOrEmpty(backupName)
+          && objectTypes != null);
     }
   }
 
   public static class DatabaseRestoreConfig implements Config {
-    private String originDatabaseName; // database which contains exported objects
-    private String destinationDatabaseName; // database which contains restored objects
-    private List<ObjectType> restoreTypes;
-    private String taskName;
+    private String sourceDatabaseName;
+    private String destinationDatabaseName;
+    private List<ObjectType> objectTypes;
+    private String backupName;
     private boolean update = true;
     private AdditionalTableConfig additionalTableConfig;
     private Map<String, String> settings;
+    private OdpsConfig odpsConfig;
+    private OssConfig ossConfig;
 
-    DatabaseRestoreConfig(String originDatabaseName,
-                          String destinationDatabaseName,
-                          List<ObjectType> types,
-                          boolean update,
-                          String taskName,
-                          Map<String, String> settings) {
-      this.originDatabaseName = originDatabaseName;
+    public DatabaseRestoreConfig(
+        String sourceDatabaseName,
+        String destinationDatabaseName,
+        List<ObjectType> types,
+        boolean update,
+        String backupName,
+        Map<String, String> settings) {
+      this.sourceDatabaseName = sourceDatabaseName;
       this.destinationDatabaseName = destinationDatabaseName;
-      this.restoreTypes = types;
-      this.taskName = taskName;
+      this.objectTypes = types;
+      this.backupName = backupName;
       this.update = update;
       this.settings = settings;
     }
 
-    public String getOriginDatabaseName() {
-      return originDatabaseName;
+    public String getSourceDatabaseName() {
+      return sourceDatabaseName;
     }
 
     public String getDestinationDatabaseName() {
       return destinationDatabaseName;
     }
 
-    public List<ObjectType> getRestoreTypes() {
-      return restoreTypes;
+    public List<ObjectType> getObjectTypes() {
+      return objectTypes;
     }
 
-    public String getTaskName() {
-      return taskName;
+    public String getBackupName() {
+      return backupName;
     }
 
     public boolean isUpdate() {
@@ -571,6 +633,22 @@ public class MmaConfig {
 
     public Map<String, String> getSettings() {
       return settings;
+    }
+
+    public OdpsConfig getOdpsConfig() {
+      return odpsConfig;
+    }
+
+    public OssConfig getOssConfig() {
+      return ossConfig;
+    }
+
+    public void setOdpsConfig(OdpsConfig odpsConfig) {
+      this.odpsConfig = odpsConfig;
+    }
+
+    public void setOssConfig(OssConfig ossConfig) {
+      this.ossConfig = ossConfig;
     }
 
     public void setAdditionalTableConfig(AdditionalTableConfig additionalTableConfig) {
@@ -587,14 +665,15 @@ public class MmaConfig {
 
     @Override
     public boolean validate() {
-      return !StringUtils.isNullOrEmpty(originDatabaseName) &&
-             !StringUtils.isNullOrEmpty(destinationDatabaseName) &&
-             !StringUtils.isNullOrEmpty(taskName) &&
-             restoreTypes != null;
+      return (!StringUtils.isNullOrEmpty(sourceDatabaseName)
+          && !StringUtils.isNullOrEmpty(destinationDatabaseName)
+          && !StringUtils.isNullOrEmpty(backupName)
+          && objectTypes != null);
     }
   }
 
   public static class TableMigrationConfig implements Config {
+    private DataSource dataSource;
     private String sourceDatabaseName;
     private String sourceTableName;
     private String destProjectName;
@@ -604,28 +683,37 @@ public class MmaConfig {
     private List<String> beginPartition;
     private List<String> endPartition;
     private AdditionalTableConfig additionalTableConfig;
+    private HiveConfig hiveConfig;
+    private OdpsConfig odpsConfig;
 
-    public TableMigrationConfig (String sourceDataBaseName,
-                                 String sourceTableName,
-                                 String destProjectName,
-                                 String destTableName,
-                                 AdditionalTableConfig additionalTableConfig) {
-      this(sourceDataBaseName,
-           sourceTableName,
-           destProjectName,
-           destTableName,
-           null,
-           null,
-           additionalTableConfig);
+    public TableMigrationConfig(
+        DataSource dataSource,
+        String sourceDataBaseName,
+        String sourceTableName,
+        String destProjectName,
+        String destTableName,
+        AdditionalTableConfig additionalTableConfig) {
+      this(
+          dataSource,
+          sourceDataBaseName,
+          sourceTableName,
+          destProjectName,
+          destTableName,
+          null,
+          null,
+          additionalTableConfig);
     }
 
-    public TableMigrationConfig (String sourceDatabaseName,
-                                 String sourceTableName,
-                                 String destProjectName,
-                                 String destTableName,
-                                 String destTableStorage,
-                                 List<List<String>> partitionValuesList,
-                                 AdditionalTableConfig additionalTableConfig) {
+    public TableMigrationConfig(
+        DataSource dataSource,
+        String sourceDatabaseName,
+        String sourceTableName,
+        String destProjectName,
+        String destTableName,
+        String destTableStorage,
+        List<List<String>> partitionValuesList,
+        AdditionalTableConfig additionalTableConfig) {
+      this.dataSource = dataSource;
       this.sourceDatabaseName = sourceDatabaseName;
       this.sourceTableName = sourceTableName;
       this.destProjectName = destProjectName;
@@ -685,21 +773,42 @@ public class MmaConfig {
       }
     }
 
+
     public void setAdditionalTableConfig(AdditionalTableConfig additionalTableConfig) {
       this.additionalTableConfig = additionalTableConfig;
     }
 
+    public void setHiveConfig(HiveConfig hiveConfig) {
+      this.hiveConfig = hiveConfig;
+    }
+
+//    public void setHdfsConfig(HdfsConfig hdfsConfig) { this.hdfsConfig = hdfsConfig; }
+
+    public void setOdpsConfig(OdpsConfig odpsConfig) {
+      this.odpsConfig = odpsConfig;
+    }
+
+    public HiveConfig getHiveConfig() {
+      return hiveConfig;
+    }
+
+//    public HdfsConfig getHdfsConfig() { return this.hdfsConfig; }
+
+    public OdpsConfig getOdpsConfig() {
+      return this.odpsConfig;
+    }
+
     public void apply(MetaSource.TableMetaModel tableMetaModel) {
-      // TODO: use typeCustomizedConversion and columnNameCustomizedConversion
-      tableMetaModel.odpsProjectName = destProjectName;
-      tableMetaModel.odpsTableName = destTableName;
-      tableMetaModel.odpsTableStorage = destTableStorage;
-      // TODO: should not init a hive type transformer here, looking for better design
-      TypeTransformer typeTransformer = null;
-      DataSource dataSource = MmaServerConfig.getInstance().getDataSource();
-      if (DataSource.Hive.equals(dataSource)) {
+      TypeTransformer typeTransformer;
+      tableMetaModel.odpsProjectName =
+          (this.destProjectName == null) ? null : this.destProjectName.toLowerCase();
+      tableMetaModel.odpsTableName =
+          (this.destTableName == null) ? null : this.destTableName.toLowerCase();
+      tableMetaModel.odpsTableStorage = this.destTableStorage;
+
+      if (DataSource.Hive.equals(this.dataSource)) {
         typeTransformer = new HiveTypeTransformer();
-      } else if (DataSource.ODPS.equals(dataSource)) {
+      } else if (DataSource.ODPS.equals(this.dataSource)) {
         typeTransformer = new OdpsTypeTransformer(!StringUtils.isNullOrEmpty(destTableStorage));
       } else {
         throw new IllegalArgumentException("Unsupported datasource type: " + dataSource.name());
@@ -733,15 +842,16 @@ public class MmaConfig {
 
     @Override
     public boolean validate() {
-      if (!(!StringUtils.isNullOrEmpty(sourceDatabaseName)
-          && !StringUtils.isNullOrEmpty(destProjectName)
-          // when backup all tables in this project to OSS, sourceTableName and destTableName will be empty
-          && (StringUtils.isNullOrEmpty(sourceTableName) == StringUtils.isNullOrEmpty(destTableName))
-          && (partitionValuesList == null || partitionValuesList.stream().noneMatch(List::isEmpty))
-          && (additionalTableConfig == null || additionalTableConfig.validate()))) {
+      if (StringUtils.isNullOrEmpty(sourceDatabaseName)
+          || StringUtils.isNullOrEmpty(destProjectName)
+          // when backup a database, sourceTableName and destTableName will be empty
+          || StringUtils.isNullOrEmpty(sourceTableName) != StringUtils.isNullOrEmpty(destTableName)
+          || (partitionValuesList != null && partitionValuesList.stream().anyMatch(List::isEmpty))
+          || (additionalTableConfig != null && !additionalTableConfig.validate())) {
         return false;
       }
-      if (StringUtils.isNullOrEmpty(sourceTableName) && StringUtils.isNullOrEmpty(destTableStorage)) {
+      if (StringUtils.isNullOrEmpty(sourceTableName)
+          && StringUtils.isNullOrEmpty(destTableStorage)) {
         return false;
       }
       return true;
@@ -752,26 +862,35 @@ public class MmaConfig {
     TABLE,
     VIEW,
     RESOURCE,
-    FUNCTION;
+    FUNCTION,
+    DATABASE
   }
 
-  // Table/View/Resource/Function backup config
-  public static class ObjectExportConfig extends TableMigrationConfig {
+  public static class ObjectBackupConfig extends TableMigrationConfig {
     private String databaseName;
     private String objectName;
     private ObjectType objectType;
-    private String taskName;
+    private String backupName;
+    private OssConfig ossConfig;
 
-    ObjectExportConfig(String databaseName,
-                       String objectName,
-                       ObjectType type,
-                       String taskName,
-                       AdditionalTableConfig additionalTableConfig) {
-      super(databaseName, objectName, databaseName, objectName + "_" + taskName, additionalTableConfig);
+    public ObjectBackupConfig(
+        DataSource dataSource,
+        String databaseName,
+        String objectName,
+        ObjectType type,
+        String backupName,
+        AdditionalTableConfig additionalTableConfig) {
+      super(
+          dataSource,
+          databaseName,
+          objectName,
+          databaseName,
+          objectName + "_" + backupName,
+          additionalTableConfig);
       this.databaseName = databaseName;
       this.objectName = objectName;
       this.objectType = type;
-      this.taskName = taskName;
+      this.backupName = backupName;
     }
 
     public String getDatabaseName() {
@@ -786,56 +905,58 @@ public class MmaConfig {
       return objectType;
     }
 
-    public String getTaskName() {
-      return taskName;
+    public String getBackupName() {
+      return this.backupName;
     }
 
-    public static ObjectExportConfig fromJson(String json) {
-      return GsonUtils.getFullConfigGson().fromJson(json, ObjectExportConfig.class);
+    public OssConfig getOssConfig() {
+      return this.ossConfig;
     }
 
-    public static String toJson(ObjectExportConfig config) {
+    public void setOssConfig(OssConfig ossConfig) {
+      this.ossConfig = ossConfig;
+    }
+
+    public static ObjectBackupConfig fromJson(String json) {
+      return GsonUtils.getFullConfigGson().fromJson(json, ObjectBackupConfig.class);
+    }
+
+    public static String toJson(ObjectBackupConfig config) {
       return GsonUtils.getFullConfigGson().toJson(config);
-    }
-
-    @Override
-    public boolean validate() {
-      return !StringUtils.isNullOrEmpty(databaseName) &&
-             !StringUtils.isNullOrEmpty(objectName) &&
-             !StringUtils.isNullOrEmpty(taskName) &&
-              objectType != null;
     }
   }
 
-  public static class ObjectRestoreConfig extends TableMigrationConfig {
-    private String originDatabaseName;
+  public static class ObjectRestoreConfig {
+    private String sourceDatabaseName;
     private String destinationDatabaseName;
     private String objectName;
     private ObjectType objectType;
     private boolean update;
-    private String taskName;
+    private String backupName;
     private Map<String, String> settings;
+    private OdpsConfig odpsConfig;
+    private OssConfig ossConfig;
 
-    public ObjectRestoreConfig(String originDatabaseName,
-                               String destinationDatabaseName,
-                               String objectName,
-                               ObjectType type,
-                               boolean update,
-                               String taskName,
-                               AdditionalTableConfig additionalTableConfig,
-                               Map<String, String> settings) {
-      super(originDatabaseName, objectName, null, null, additionalTableConfig);
-      this.originDatabaseName = originDatabaseName;
+    public ObjectRestoreConfig(
+        String sourceDatabaseName,
+        String destinationDatabaseName,
+        String objectName,
+        ObjectType objectType,
+        boolean update,
+        String backupName,
+        Map<String, String> settings) {
+
+      this.sourceDatabaseName = sourceDatabaseName;
       this.destinationDatabaseName = destinationDatabaseName;
       this.objectName = objectName;
-      this.objectType = type;
+      this.objectType = objectType;
       this.update = update;
-      this.taskName = taskName;
+      this.backupName = backupName;
       this.settings = settings;
     }
 
-    public String getOriginDatabaseName() {
-      return originDatabaseName;
+    public String getSourceDatabaseName() {
+      return sourceDatabaseName;
     }
 
     public String getDestinationDatabaseName() {
@@ -854,12 +975,28 @@ public class MmaConfig {
       return update;
     }
 
-    public String getTaskName() {
-      return taskName;
+    public String getBackupName() {
+      return backupName;
     }
 
     public Map<String, String> getSettings() {
       return settings;
+    }
+
+    public OdpsConfig getOdpsConfig() {
+      return odpsConfig;
+    }
+
+    public void setOdpsConfig(OdpsConfig odpsConfig) {
+      this.odpsConfig = odpsConfig;
+    }
+
+    public OssConfig getOssConfig() {
+      return ossConfig;
+    }
+
+    public void setOssConfig(OssConfig ossConfig) {
+      this.ossConfig = ossConfig;
     }
 
     public static ObjectRestoreConfig fromJson(String json) {
@@ -868,15 +1005,6 @@ public class MmaConfig {
 
     public static String toJson(ObjectRestoreConfig config) {
       return GsonUtils.getFullConfigGson().toJson(config);
-    }
-
-    @Override
-    public boolean validate() {
-      return !StringUtils.isNullOrEmpty(originDatabaseName) &&
-             !StringUtils.isNullOrEmpty(destinationDatabaseName) &&
-             !StringUtils.isNullOrEmpty(objectName) &&
-             !StringUtils.isNullOrEmpty(taskName) &&
-              objectType != null;
     }
   }
 
@@ -924,39 +1052,20 @@ public class MmaConfig {
    * Used to record job description and transfer from MmaClient to MmaServer
    */
   public static class JobConfig {
-    private JobType jobType;
-    private String databaseName;
-    private String name; // name of table to be migrated or resource/function to be backup
     private String description;
     private AdditionalTableConfig additionalTableConfig;
 
-    public JobConfig(String databaseName, String name, JobType type,
-                     String desc, AdditionalTableConfig additionalTableConfig) {
-      this.jobType = type;
-      this.databaseName = databaseName;
-      this.name = name;
+    public JobConfig(String desc, AdditionalTableConfig additionalTableConfig) {
       this.description = desc;
       this.additionalTableConfig = additionalTableConfig;
     }
 
-    public JobType getJobType() {
-      return this.jobType;
-    }
-
-    public String getDatabaseName() {
-      return this.databaseName;
-    }
-
-    public String getName() {
-      return this.name;
-    }
-
     public String getDescription() {
-      return this.description;
+      return description;
     }
 
     public AdditionalTableConfig getAdditionalTableConfig() {
-      return this.additionalTableConfig;
+      return additionalTableConfig;
     }
   }
 }

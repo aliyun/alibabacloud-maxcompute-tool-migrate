@@ -19,6 +19,13 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler.meta;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.aliyun.odps.Column;
 import com.aliyun.odps.Function;
 import com.aliyun.odps.Odps;
@@ -32,23 +39,22 @@ import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.type.TypeInfo;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-public class OdpsMetaSource implements MetaSource {
-
+public class OdpsMetaSource
+    implements MetaSource
+{
   private static final Logger LOG = LogManager.getLogger(OdpsMetaSource.class);
+
 
   private Odps odps;
 
-  public OdpsMetaSource(String accessId,
-                        String accessKey,
-                        String endpoint,
-                        String defaultProject) {
+
+
+  public OdpsMetaSource(
+      String accessId,
+      String accessKey,
+      String endpoint,
+      String defaultProject) {
     Account account = new AliyunAccount(accessId, accessKey);
     odps = new Odps(account);
     odps.setUserAgent("MMA");
@@ -64,10 +70,10 @@ public class OdpsMetaSource implements MetaSource {
   }
 
   @Override
-  public List<String> listDatabases(){
+  public List<String> listDatabases() {
     List<String> databases = new ArrayList<>();
     Iterator<Project> iterator = odps.projects().iterator(null);
-    while (iterator.hasNext()){
+    while (iterator.hasNext()) {
       databases.add(iterator.next().getName());
     }
     return databases;
@@ -104,7 +110,6 @@ public class OdpsMetaSource implements MetaSource {
     return views;
   }
 
-
   public List<String> listFunctions(String databaseName) {
     List<String> functions = new ArrayList<>();
     Iterator<Function> iterator = odps.functions().iterator(databaseName);
@@ -139,19 +144,20 @@ public class OdpsMetaSource implements MetaSource {
   }
 
   @Override
-  public TableMetaModel getTableMeta(String databaseName, String tableName) {
-    return getTableMetaInternal(databaseName, tableName ,true);
+  public MetaSource.TableMetaModel getTableMeta(
+      String databaseName, String tableName) {
+    return getTableMetaInternal(databaseName, tableName, true);
   }
 
   @Override
-  public TableMetaModel getTableMetaWithoutPartitionMeta(String databaseName,
-                                                         String tableName) {
-    return getTableMetaInternal(databaseName, tableName ,false);
+  public MetaSource.TableMetaModel getTableMetaWithoutPartitionMeta(
+      String databaseName, String tableName) {
+    return getTableMetaInternal(databaseName, tableName, false);
   }
 
   @Override
-  public boolean hasPartition(String databaseName, String tableName, List<String> partitionValues)
-      throws OdpsException {
+  public boolean hasPartition(
+      String databaseName, String tableName, List<String> partitionValues) throws OdpsException {
     if (!odps.tables().exists(databaseName, tableName)) {
       return false;
     }
@@ -177,7 +183,7 @@ public class OdpsMetaSource implements MetaSource {
     for (Partition partition : table.getPartitions()) {
       List<String> partitionValues = new ArrayList<>();
       PartitionSpec partitionSpec = partition.getPartitionSpec();
-      for(String key : partitionSpec.keys()) {
+      for (String key : partitionSpec.keys()) {
         partitionValues.add(partitionSpec.get(key));
       }
       allPartitionValues.add(partitionValues);
@@ -186,12 +192,11 @@ public class OdpsMetaSource implements MetaSource {
   }
 
   @Override
-  public PartitionMetaModel getPartitionMeta(String databaseName,
-                                             String tableName,
-                                             List<String> partitionValues) {
-    Table table = odps.tables().get(databaseName, tableName);
-    TableMetaModel tableMetaModel = getTableMetaInternal(table, true);
-    List<ColumnMetaModel> partitionColumns = tableMetaModel.partitionColumns;
+  public MetaSource.PartitionMetaModel getPartitionMeta(
+      String databaseName, String tableName, List<String> partitionValues) {
+    Table table = this.odps.tables().get(databaseName, tableName);
+    MetaSource.TableMetaModel tableMetaModel = getTableMetaInternal(table, true);
+    List<MetaSource.ColumnMetaModel> partitionColumns = tableMetaModel.partitionColumns;
     PartitionSpec partitionSpec = new PartitionSpec();
     for (int partIndex = 0; partIndex < partitionValues.size(); partIndex++) {
       partitionSpec.set(partitionColumns.get(partIndex).columnName, partitionValues.get(partIndex));
@@ -200,27 +205,27 @@ public class OdpsMetaSource implements MetaSource {
     return getPartitionMetaModelInternal(partition);
   }
 
+
   @Override
   public void shutdown() {
-    odps = null;
+    this.odps = null;
   }
 
-  private TableMetaModel getTableMetaInternal(String databaseName,
-                                              String tableName,
-                                              boolean withPartition) {
+  private MetaSource.TableMetaModel getTableMetaInternal(
+      String databaseName, String tableName, boolean withPartition) {
     Table table = odps.tables().get(databaseName, tableName);
     return getTableMetaInternal(table, withPartition);
   }
 
-  private TableMetaModel getTableMetaInternal(Table table, boolean withPartition) {
-    TableMetaModel tableMetaModel = new TableMetaModel();
+  private MetaSource.TableMetaModel getTableMetaInternal(Table table, boolean withPartition) {
+    MetaSource.TableMetaModel tableMetaModel = new MetaSource.TableMetaModel();
     tableMetaModel.databaseName = table.getProject();
     tableMetaModel.tableName = table.getName();
     tableMetaModel.comment = table.getComment();
     tableMetaModel.location = table.getLocation();
     tableMetaModel.size = table.getSize();
-    tableMetaModel.createTime = table.getCreatedTime().getTime() / 1000;
-    tableMetaModel.lastModifiedTime = table.getLastDataModifiedTime().getTime() / 1000;
+    tableMetaModel.createTime = table.getCreatedTime().getTime() / 1000L;
+    tableMetaModel.lastModifiedTime = table.getLastDataModifiedTime().getTime() / 1000L;
 
     if (table.getSerDeProperties() != null) {
       tableMetaModel.serDeProperties.putAll(table.getSerDeProperties());
@@ -241,8 +246,8 @@ public class OdpsMetaSource implements MetaSource {
     return tableMetaModel;
   }
 
-  private ColumnMetaModel getColumnMetaModelInternal(Column column) {
-    ColumnMetaModel columnMetaModel = new ColumnMetaModel();
+  private MetaSource.ColumnMetaModel getColumnMetaModelInternal(Column column) {
+    MetaSource.ColumnMetaModel columnMetaModel = new MetaSource.ColumnMetaModel();
     columnMetaModel.columnName = column.getName();
     TypeInfo columnTypeInfo = column.getTypeInfo();
     columnMetaModel.type = columnTypeInfo.getTypeName();
@@ -251,15 +256,14 @@ public class OdpsMetaSource implements MetaSource {
     return columnMetaModel;
   }
 
-  private PartitionMetaModel getPartitionMetaModelInternal(Partition partition) {
-    PartitionMetaModel partitionMetaModel = new PartitionMetaModel();
-    partitionMetaModel.createTime = partition.getCreatedTime().getTime() / 1000;
-    partitionMetaModel.lastModifiedTime = partition.getLastDataModifiedTime().getTime() / 1000;
+  private MetaSource.PartitionMetaModel getPartitionMetaModelInternal(Partition partition) {
+    MetaSource.PartitionMetaModel partitionMetaModel = new MetaSource.PartitionMetaModel();
+    partitionMetaModel.createTime = partition.getCreatedTime().getTime() / 1000L;
+    partitionMetaModel.lastModifiedTime = partition.getLastDataModifiedTime().getTime() / 1000L;
     PartitionSpec partitionSpec = partition.getPartitionSpec();
     for (String key : partitionSpec.keys()) {
       partitionMetaModel.partitionValues.add(partitionSpec.get(key));
     }
     return partitionMetaModel;
   }
-
 }

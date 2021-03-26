@@ -29,12 +29,12 @@ public interface MmaClient {
   void createMigrationJobs(MmaMigrationConfig mmaMigrationConfig) throws MmaException;
 
   List<MmaConfig.JobConfig> listJobs(
-      MmaMetaManager.MigrationStatus status)
+      MmaMetaManager.JobStatus status)
       throws MmaException;
 
   void removeMigrationJob(String db, String tbl) throws MmaException;
 
-  MmaMetaManager.MigrationStatus getMigrationJobStatus(
+  MmaMetaManager.JobStatus getMigrationJobStatus(
       String db,
       String tbl)
       throws MmaException;

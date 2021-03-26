@@ -17,28 +17,46 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.taskscheduler.action;
+package com.aliyun.odps.datacarrier.taskscheduler.config;
 
-import com.aliyun.odps.datacarrier.taskscheduler.MmaException;
-import com.aliyun.odps.datacarrier.taskscheduler.action.executor.ActionExecutorFactory;
-import com.aliyun.odps.datacarrier.taskscheduler.action.info.OdpsSqlActionInfo;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
-public abstract class OdpsNoSqlAction extends AbstractAction {
+public class JobInfoOutputsV1
+{
+  @Expose
+  @SerializedName("JobId")
+  String jobId;
 
-  public OdpsNoSqlAction(String id) {
-    super(id);
-    actionInfo = new OdpsSqlActionInfo();
+  @Expose
+  @SerializedName("Status")
+  String status;
+
+  @Expose
+  @SerializedName("Progress")
+  Double progress;
+
+  public String getJobId() {
+    return this.jobId;
   }
 
-  @Override
-  public void execute() throws MmaException {
-    setProgress(ActionProgress.RUNNING);
-    future = ActionExecutorFactory.getOdpsExecutor().execute(this);
+  public void setJobId(String jobId) {
+    this.jobId = jobId;
   }
 
-  public abstract void doAction() throws MmaException;
+  public Double getProgress() {
+    return this.progress;
+  }
 
-  @Override
-  public void stop() {
+  public void setProgress(Double progress) {
+    this.progress = progress;
+  }
+
+  public String getStatus() {
+    return this.status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
   }
 }
