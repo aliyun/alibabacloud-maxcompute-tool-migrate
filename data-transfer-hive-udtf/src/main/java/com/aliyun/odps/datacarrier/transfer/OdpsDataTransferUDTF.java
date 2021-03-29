@@ -320,8 +320,8 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       }
     }
 
-    System.out.println("[Data-carrier] total bytes: " + bytesTransferred);
-    System.out.println("[Data-carrier] upload speed (in KB): " + bytesTransferred / (System.currentTimeMillis() - startTime));
+    print("total bytes: " + bytesTransferred);
+    print("upload speed (in KB): " + bytesTransferred / (System.currentTimeMillis() - startTime));
 
     forwardObj[0] = numRecordTransferred;
     forward(forwardObj);
