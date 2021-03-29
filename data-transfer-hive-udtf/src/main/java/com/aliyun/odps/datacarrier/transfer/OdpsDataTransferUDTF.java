@@ -23,6 +23,7 @@ import com.aliyun.odps.Odps;
 import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.AliyunAccount;
+import com.aliyun.odps.commons.proto.ProtobufRecordStreamWriter;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.data.RecordWriter;
 import com.aliyun.odps.datacarrier.transfer.converter.HiveObjectConverter;
@@ -89,6 +90,8 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   /**
    * Metrics
    */
+  private long startTime = System.currentTimeMillis();
+  private long bytesTransferred = 0L;
   private Long numRecordTransferred = 0L;
   private Object[] forwardObj = new Object[1];
 
@@ -230,7 +233,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       throws TunnelException, IOException, HiveException {
     // Close current record writer
     if (currentUploadSession != null) {
+      long bytes = ((TunnelBufferedWriter) recordWriter).getTotalBytes();
       recordWriter.close();
+      bytesTransferred += bytes;
     }
 
     currentUploadSession = getOrCreateUploadSession(partitionSpec);
@@ -299,7 +304,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       int retry = 5;
       while (true) {
         try {
+          long bytes = ((TunnelBufferedWriter) recordWriter).getTotalBytes();
           recordWriter.close();
+          bytesTransferred += bytes;
           break;
         } catch (Exception e) {
           System.out.println("[Data-carrier] Record writer failed to close, retry: " + retry);
@@ -332,6 +339,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
         }
       }
     }
+
+    System.out.println("[Data-carrier] total bytes: " + bytesTransferred);
+    System.out.println("[Data-carrier] upload speed (in KB): " + bytesTransferred / (System.currentTimeMillis() - startTime));
 
     forwardObj[0] = numRecordTransferred;
     forward(forwardObj);
