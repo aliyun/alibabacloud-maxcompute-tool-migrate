@@ -81,6 +81,8 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   /**
    * Metrics
    */
+  private long startTime = System.currentTimeMillis();
+  private long bytesTransferred = 0L;
   private Long numRecordTransferred = 0L;
   private Object[] forwardObj = new Object[1];
 
@@ -213,7 +215,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       throws TunnelException, IOException, HiveException {
     // Close current record writer
     if (currentUploadSession != null) {
+      long bytes = ((TunnelBufferedWriter) recordWriter).getTotalBytes();
       recordWriter.close();
+      bytesTransferred += bytes;
     }
 
     currentUploadSession = getOrCreateUploadSession(partitionSpec);
@@ -275,7 +279,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       int retry = 5;
       while (true) {
         try {
+          long bytes = ((TunnelBufferedWriter) recordWriter).getTotalBytes();
           recordWriter.close();
+          bytesTransferred += bytes;
           break;
         } catch (Exception e) {
           print("Failed to close record writer, retry: " + retry);
@@ -308,6 +314,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
         }
       }
     }
+
+    print("total bytes: " + bytesTransferred);
+    print("upload speed (in KB): " + bytesTransferred / (System.currentTimeMillis() - startTime));
 
     forwardObj[0] = numRecordTransferred;
     forward(forwardObj);
