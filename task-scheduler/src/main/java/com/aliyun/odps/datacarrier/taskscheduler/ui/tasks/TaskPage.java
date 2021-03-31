@@ -54,13 +54,13 @@ import com.aliyun.odps.datacarrier.taskscheduler.task.Task;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.ActionGraph;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.PagedDataSource;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.PagedTable;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUIPage;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUITab;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.UIUtils;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiPage;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiTab;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.UiUtils;
 import j2html.attributes.Attribute;
 import j2html.tags.DomContent;
 
-public class TaskPage extends WebUIPage {
+public class TaskPage extends WebUiPage {
   private static final Logger LOG = LogManager.getLogger(TaskPage.class);
 
 
@@ -159,8 +159,8 @@ public class TaskPage extends WebUIPage {
     public DomContent getRow(ActionTableRowData rowData) {
       return tr(
           td(a(rowData.name).withHref(actionPageLink(rowData.id)).withClass("name-link")),
-          td(UIUtils.formatDate(rowData.startTime)),
-          td(UIUtils.formatDuration(rowData.startTime, rowData.endTime)),
+          td(UiUtils.formatDate(rowData.startTime)),
+          td(UiUtils.formatDuration(rowData.startTime, rowData.endTime)),
           td(rowData.actionProgress.name())
       );
     }
@@ -184,7 +184,7 @@ public class TaskPage extends WebUIPage {
     }
   }
 
-  private WebUITab parent;
+  private WebUiTab parent;
   private TaskScheduler taskScheduler;
 
   public TaskPage(String prefix, TasksTab parent, TaskScheduler taskScheduler) {
@@ -288,11 +288,11 @@ public class TaskPage extends WebUIPage {
                 ),
                 li(
                     strong("Start time: "),
-                    span(UIUtils.formatDate(task.getStartTime()))
+                    span(UiUtils.formatDate(task.getStartTime()))
                 ),
                 li(
                     strong("Duration: "),
-                    span(UIUtils.formatDuration(task.getStartTime(), task.getEndTime()))
+                    span(UiUtils.formatDuration(task.getStartTime(), task.getEndTime()))
                 )
                 // TODO: show progress, data size, included partitions, etc.
             ).withClass("unstyled")
@@ -321,7 +321,7 @@ public class TaskPage extends WebUIPage {
         )
     );
 
-    return UIUtils.basicMmaPage(title, content, parent);
+    return UiUtils.basicMmaPage(title, content, parent);
   }
 
   private DomContent getDagVis(Task task) {

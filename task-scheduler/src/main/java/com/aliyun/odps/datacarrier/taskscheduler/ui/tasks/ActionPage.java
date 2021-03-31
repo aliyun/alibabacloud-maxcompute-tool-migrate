@@ -38,17 +38,17 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
 import com.aliyun.odps.datacarrier.taskscheduler.TaskScheduler;
 import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
 import com.aliyun.odps.datacarrier.taskscheduler.task.Task;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUIPage;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUITab;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.UIUtils;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiPage;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiTab;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.UiUtils;
 import j2html.tags.DomContent;
 
-public class ActionPage extends WebUIPage {
+public class ActionPage extends WebUiPage {
 
-  private WebUITab parent;
+  private WebUiTab parent;
   private TaskScheduler taskScheduler;
 
-  public ActionPage(String prefix, WebUITab parent, TaskScheduler taskScheduler) {
+  public ActionPage(String prefix, WebUiTab parent, TaskScheduler taskScheduler) {
     super(prefix);
     this.parent = parent;
     this.taskScheduler = taskScheduler;
@@ -131,10 +131,10 @@ public class ActionPage extends WebUIPage {
     listEntries.add(
         li(
             strong("Duration: "),
-            span(UIUtils.formatDuration(action.getStartTime(), action.getEndTime()))
+            span(UiUtils.formatDuration(action.getStartTime(), action.getEndTime()))
         )
     );
-    DomContent info = UIUtils.actionInfoTable(action);
+    DomContent info = UiUtils.actionInfoTable(action);
     if (info != null) {
       listEntries.add(
           li(
@@ -153,6 +153,6 @@ public class ActionPage extends WebUIPage {
         )
     );
 
-    return UIUtils.basicMmaPage(title, content, parent);
+    return UiUtils.basicMmaPage(title, content, parent);
   }
 }

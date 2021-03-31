@@ -51,7 +51,16 @@ public class MmaServerConfig {
   public static final String MMA_UI_THREADS_MIN = "mma.ui.threads.min";
   public static final String MMA_UI_THREADS_MIN_DEFAULT_VALUE = "10";
 
-
+  public static final String MMA_API_ENABLED = "mma.api.enabled";
+  public static final String MMA_API_ENABLED_DEFAULT_VALUE = "true";
+  public static final String MMA_API_HOST = "mma.api.host";
+  public static final String MMA_API_HOST_DEFAULT_VALUE = "0.0.0.0";
+  public static final String MMA_API_PORT = "mma.api.port";
+  public static final String MMA_API_PORT_DEFAULT_VALUE = "18889";
+  public static final String MMA_API_THREADS_MAX = "mma.api.threads.max";
+  public static final String MMA_API_THREADS_MAX_DEFAULT_VALUE = "60";
+  public static final String MMA_API_THREADS_MIN = "mma.api.threads.min";
+  public static final String MMA_API_THREADS_MIN_DEFAULT_VALUE = "10";
   public static final String MMA_API_SECURITY_ENABLED = "mma.api.security.enabled";
   public static final String MMA_API_SECURITY_ENABLED_DEFAULT_VALUE = "false";
   public static final String MMA_API_PRIVATE_KEY_PATH = "mma.api.security.privateKey.path";
@@ -78,8 +87,23 @@ public class MmaServerConfig {
         MMA_UI_THREADS_MIN_DEFAULT_VALUE);
 
     DEFAULT_API_CONFIG.put(
+        MMA_API_ENABLED,
+        MMA_API_ENABLED_DEFAULT_VALUE);
+    DEFAULT_API_CONFIG.put(
         MMA_API_SECURITY_ENABLED,
         MMA_API_SECURITY_ENABLED_DEFAULT_VALUE);
+    DEFAULT_API_CONFIG.put(
+        MMA_API_HOST,
+        MMA_API_HOST_DEFAULT_VALUE);
+    DEFAULT_API_CONFIG.put(
+        MMA_API_PORT,
+        MMA_API_PORT_DEFAULT_VALUE);
+    DEFAULT_API_CONFIG.put(
+        MMA_API_THREADS_MAX,
+        MMA_API_THREADS_MAX_DEFAULT_VALUE);
+    DEFAULT_API_CONFIG.put(
+        MMA_API_THREADS_MIN,
+        MMA_API_THREADS_MIN_DEFAULT_VALUE);
   }
 
   private static MmaServerConfig instance;
@@ -163,7 +187,7 @@ public class MmaServerConfig {
       return DEFAULT_UI_CONFIG;
     }
 
-    // Merge with default ui config, make sure necessary configurations exist
+    // Merge with default UI config, make sure necessary configurations exist
     Map<String, String> temp = new HashMap<>(DEFAULT_UI_CONFIG);
     temp.putAll(uiConfig);
 
@@ -171,7 +195,15 @@ public class MmaServerConfig {
   }
 
   public Map<String, String> getApiConfig() {
-    return new HashMap<>(apiConfig);
+    if (apiConfig == null) {
+      return DEFAULT_API_CONFIG;
+    }
+
+    // Merge with default API config, make sure necessary configurations exist
+    Map<String, String> temp = new HashMap<>(DEFAULT_API_CONFIG);
+    temp.putAll(apiConfig);
+
+    return temp;
   }
 
   public String toJson() {
@@ -243,6 +275,9 @@ public class MmaServerConfig {
     }
     if (config.getHdfsConfig() != null) {
       instance.hdfsConfig = config.getHdfsConfig();
+    }
+    if (config.getMetaDbConfig() != null) {
+      instance.metaDbConfig = config.getMetaDbConfig();
     }
   }
 

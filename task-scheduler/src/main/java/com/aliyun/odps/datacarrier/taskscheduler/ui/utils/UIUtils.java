@@ -48,11 +48,11 @@ import com.aliyun.odps.datacarrier.taskscheduler.action.info.AbstractActionInfo;
 import com.aliyun.odps.datacarrier.taskscheduler.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.datacarrier.taskscheduler.action.info.OdpsSqlActionInfo;
 import com.aliyun.odps.datacarrier.taskscheduler.action.info.VerificationActionInfo;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUITab;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiTab;
 import com.aliyun.odps.utils.StringUtils;
 import j2html.tags.DomContent;
 
-public class UIUtils {
+public class UiUtils {
   private static final DateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
   public String decodeURLParameter(String urlParam) throws UnsupportedEncodingException {
@@ -257,7 +257,7 @@ public class UIUtils {
     return basePath + "/" + resource + "/";
   }
 
-  public static String basicMmaPage(String title, List<DomContent> content, WebUITab activeTab) {
+  public static String basicMmaPage(String title, List<DomContent> content, WebUiTab activeTab) {
     List<DomContent> tags = new LinkedList<>();
 
     tags.add(

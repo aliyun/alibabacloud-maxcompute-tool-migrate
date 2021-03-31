@@ -21,6 +21,7 @@ package com.aliyun.odps.datacarrier.taskscheduler.ui.utils;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -39,7 +40,8 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUIPage;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaJettyServer;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiPage;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.api.AbstractRestfulApi;
 
 public class JettyUtils {
@@ -75,7 +77,7 @@ public class JettyUtils {
     }
   }
 
-  public static HttpServlet createServlet(WebUIPage page) {
+  public static HttpServlet createServlet(WebUiPage page) {
     return new HttpServlet() {
       @Override
       protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -125,7 +127,7 @@ public class JettyUtils {
 
   public static ServletContextHandler createServletHandler(
       String path,
-      WebUIPage page,
+      WebUiPage page,
       String basePath) {
     String prefixedPath;
     if ("".equals(basePath) && "/".equals(path)) {
@@ -208,10 +210,19 @@ public class JettyUtils {
       int port,
       int maxThreads,
       int minThreads,
+      ServletContextHandler handler) {
+    return startJettyServer(host, port, maxThreads, minThreads, Collections.singletonList(handler));
+  }
+
+  public static ServerInfo startJettyServer(
+      String host,
+      int port,
+      int maxThreads,
+      int minThreads,
       List<ServletContextHandler> handlers) {
     QueuedThreadPool pool = new QueuedThreadPool(maxThreads, minThreads);
     pool.setDaemon(true);
-    Server server = new Server(pool);
+    MmaJettyServer server = new MmaJettyServer(pool);
     ContextHandlerCollection collection = new ContextHandlerCollection();
     for (ServletContextHandler handler : handlers) {
       LOG.debug("Found available context path: {}", handler.getContextPath());
@@ -226,8 +237,6 @@ public class JettyUtils {
       server.addConnector(connector);
 
       server.start();
-
-      LOG.info("MMA UI started at: {}", server.getURI());
     } catch (Exception e) {
       e.printStackTrace();
     }

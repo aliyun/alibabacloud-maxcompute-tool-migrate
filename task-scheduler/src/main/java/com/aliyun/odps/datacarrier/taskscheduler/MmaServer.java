@@ -12,7 +12,8 @@ import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManager;
 import com.aliyun.odps.datacarrier.taskscheduler.meta.MmaMetaManagerDbImpl;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProgress;
 import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProvider;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaUI;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaApi;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaUi;
 
 public class MmaServer {
   private static final Logger LOG = LogManager.getLogger(MmaServer.class);
@@ -26,7 +27,8 @@ public class MmaServer {
 
   private TaskScheduler taskScheduler;
   private MmaMetaManager mmaMetaManager = new MmaMetaManagerDbImpl(true);
-  private MmaUI ui;
+  private MmaUi ui;
+  private MmaApi api;
 
   private SummaryReportingThread summaryReportingThread;
 
@@ -46,10 +48,24 @@ public class MmaServer {
       int port = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_PORT));
       int maxThreads = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_THREADS_MAX));
       int minThreads = Integer.parseInt(uiConfig.get(MmaServerConfig.MMA_UI_THREADS_MIN));
-      ui = new MmaUI("", mmaMetaManager, taskScheduler);
+      ui = new MmaUi("", mmaMetaManager, taskScheduler);
       ui.bind(host, port, maxThreads, minThreads);
+      LOG.info("MMA UI is running at " + host + ":" + port);
     } else {
-      LOG.info("MMA UI disabled");
+      LOG.info("MMA UI is disabled");
+    }
+
+    Map<String, String> apiConfig = MmaServerConfig.getInstance().getApiConfig();
+    LOG.info("API config: {}", apiConfig.toString());
+    boolean apiEnabled = Boolean.parseBoolean(apiConfig.get(MmaServerConfig.MMA_API_ENABLED));
+    if (apiEnabled) {
+      String host = apiConfig.get(MmaServerConfig.MMA_API_HOST);
+      int port = Integer.parseInt(apiConfig.get(MmaServerConfig.MMA_API_PORT));
+      int maxThreads = Integer.parseInt(apiConfig.get(MmaServerConfig.MMA_API_THREADS_MAX));
+      int minThreads = Integer.parseInt(apiConfig.get(MmaServerConfig.MMA_API_THREADS_MIN));
+      api = new MmaApi("", mmaMetaManager, taskScheduler);
+      api.bind(host, port, maxThreads, minThreads);
+      LOG.info("MMA API is running at " + host + ":" + port);
     }
   }
 
@@ -81,7 +97,13 @@ public class MmaServer {
     try {
       ui.stop();
     } catch (Exception e) {
-      LOG.warn(e);
+      LOG.error(e);
+    }
+
+    try {
+      api.stop();
+    } catch (Exception e) {
+      LOG.error(e);
     }
   }
 

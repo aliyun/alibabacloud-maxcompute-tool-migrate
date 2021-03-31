@@ -22,12 +22,12 @@ package com.aliyun.odps.datacarrier.taskscheduler.ui;
 import java.util.LinkedList;
 import java.util.List;
 
-public class WebUITab {
-  private WebUI parent;
-  private List<WebUIPage> pages = new LinkedList<>();
+public class WebUiTab {
+  private WebUi parent;
+  private List<WebUiPage> pages = new LinkedList<>();
   private String prefix;
 
-  public WebUITab(WebUI parent, String prefix) {
+  public WebUiTab(WebUi parent, String prefix) {
     this.parent = parent;
     this.prefix = prefix;
   }
@@ -40,15 +40,15 @@ public class WebUITab {
     return parent.getBasePath();
   }
 
-  public List<WebUITab> getHeaderTabs() {
+  public List<WebUiTab> getHeaderTabs() {
     return parent.getTabs();
   }
 
-  public List<WebUIPage> getPages() {
+  public List<WebUiPage> getPages() {
     return pages;
   }
 
-  public void attachPage(WebUIPage page) {
+  public void attachPage(WebUiPage page) {
     page.setPrefix(prefix + "/" + page.getPrefix());
     pages.add(page);
   }

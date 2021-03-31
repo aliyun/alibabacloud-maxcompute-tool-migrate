@@ -31,13 +31,13 @@ import com.aliyun.odps.datacarrier.taskscheduler.ui.api.PublicKeyApi;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.tasks.TasksTab;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.JettyUtils;
 
-public class MmaUI extends WebUI {
-  private static final Logger LOG = LogManager.getLogger(MmaUI.class);
+public class MmaUi extends WebUi {
+  private static final Logger LOG = LogManager.getLogger(MmaUi.class);
 
   private static final String STATIC_RESOURCE_DIR =
       "com/aliyun/odps/datacarrier/taskscheduler/ui/static";
 
-  public MmaUI(
+  public MmaUi(
       String basePath,
       MmaMetaManager mmaMetaManager,
       TaskScheduler taskScheduler) throws MmaException {
@@ -46,9 +46,5 @@ public class MmaUI extends WebUI {
     attachTab(tasksTab);
     addStaticHandler(STATIC_RESOURCE_DIR, "/static");
     attachHandler(JettyUtils.createRedirectHandler("/", "/tasks/", basePath));
-
-    attachApi(new JobApi("/jobs", mmaMetaManager, taskScheduler));
-    attachApi(new PublicKeyApi("/publickey"));
-    setApiErrorHandler(new ApiErrorHandler());
   }
 }

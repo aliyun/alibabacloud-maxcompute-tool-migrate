@@ -365,22 +365,17 @@ public class MmaConfig {
   }
 
   public static class MetaDbConfig implements Config {
-    @Expose
     private String dbType;
-    @Expose
     private String jdbcUrl;
-    @Expose
     private String user;
-    @Expose
     private String password;
-    @Expose
     private int maxPoolSize;
 
     public MetaDbConfig() {
       dbType = "h2";
       String mmaHome = System.getenv("MMA_HOME");
-      Path parentDir = Paths.get(mmaHome, new String[0]);
-      jdbcUrl = "jdbc:h2:file:" + Paths.get(parentDir.toString(), new String[] { ".MmaMeta" }).toAbsolutePath() + ";AUTO_SERVER=TRUE";
+      Path parentDir = Paths.get(mmaHome);
+      jdbcUrl = "jdbc:h2:file:" + Paths.get(parentDir.toString(), ".MmaMeta").toAbsolutePath() + ";AUTO_SERVER=TRUE";
       user = "mma";
       password = "mma";
       maxPoolSize = 50;

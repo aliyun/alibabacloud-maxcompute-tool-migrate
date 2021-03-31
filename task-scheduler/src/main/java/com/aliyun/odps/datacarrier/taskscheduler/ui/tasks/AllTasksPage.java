@@ -25,39 +25,27 @@ import static j2html.TagCreator.td;
 import static j2html.TagCreator.th;
 import static j2html.TagCreator.tr;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DirectedAcyclicGraph;
 
 import com.aliyun.odps.datacarrier.taskscheduler.TaskScheduler;
-import com.aliyun.odps.datacarrier.taskscheduler.action.Action;
-import com.aliyun.odps.datacarrier.taskscheduler.action.HiveSourceVerificationAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.HiveUdtfDataTransferAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsCreateTableAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsDestVerificationAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.OdpsDropTableAction;
-import com.aliyun.odps.datacarrier.taskscheduler.action.VerificationAction;
 import com.aliyun.odps.datacarrier.taskscheduler.task.Task;
-import com.aliyun.odps.datacarrier.taskscheduler.task.TaskProgress;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.PagedDataSource;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.PagedTable;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUIPage;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUITab;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.UIUtils;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiPage;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiTab;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.UiUtils;
 import j2html.tags.DomContent;
 
-public class AllTasksPage extends WebUIPage {
+public class AllTasksPage extends WebUiPage {
   private static final Logger LOG = LogManager.getLogger(AllTasksPage.class);
 
   private static class TaskTableRowData {
@@ -148,8 +136,8 @@ public class AllTasksPage extends WebUIPage {
           td(
               a(rowData.id).withHref(taskPageLink(rowData.id)).withClass("name-link")
           ),
-          td(UIUtils.formatDate(rowData.startTime)),
-          td(UIUtils.formatDuration(rowData.startTime, rowData.endTime))
+          td(UiUtils.formatDate(rowData.startTime)),
+          td(UiUtils.formatDuration(rowData.startTime, rowData.endTime))
       );
     }
 
@@ -171,10 +159,10 @@ public class AllTasksPage extends WebUIPage {
     }
   }
 
-  private WebUITab parent;
+  private WebUiTab parent;
   private TaskScheduler taskScheduler;
 
-  public AllTasksPage(String prefix, WebUITab parent, TaskScheduler taskScheduler) {
+  public AllTasksPage(String prefix, WebUiTab parent, TaskScheduler taskScheduler) {
     super(prefix);
     this.parent = Objects.requireNonNull(parent);
     this.taskScheduler = Objects.requireNonNull(taskScheduler);
@@ -264,6 +252,6 @@ public class AllTasksPage extends WebUIPage {
             canceledTasks
         )
     );
-    return UIUtils.basicMmaPage("Tasks", content, parent);
+    return UiUtils.basicMmaPage("Tasks", content, parent);
   }
 }

@@ -20,12 +20,12 @@
 package com.aliyun.odps.datacarrier.taskscheduler.ui.tasks;
 
 import com.aliyun.odps.datacarrier.taskscheduler.TaskScheduler;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUI;
-import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUITab;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUi;
+import com.aliyun.odps.datacarrier.taskscheduler.ui.WebUiTab;
 
-public class TasksTab extends WebUITab {
+public class TasksTab extends WebUiTab {
 
-  public TasksTab(WebUI parent, String prefix, TaskScheduler taskScheduler) {
+  public TasksTab(WebUi parent, String prefix, TaskScheduler taskScheduler) {
     super(parent, prefix);
     attachPage(new AllTasksPage("", this, taskScheduler));
     attachPage(new TaskPage("task", this, taskScheduler));

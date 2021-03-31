@@ -30,28 +30,18 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.api.AbstractRestfulApi;
 import com.aliyun.odps.datacarrier.taskscheduler.ui.utils.JettyUtils;
 
-public abstract class WebUI {
+public abstract class WebUi {
 
   private String basePath;
   private JettyUtils.ServerInfo serverInfo;
-  private List<WebUITab> tabs;
+  private List<WebUiTab> tabs;
   private List<ServletContextHandler> handlers;
-  private ServletContextHandler apiHandler;
 
-  public WebUI(String basePath) {
+  public WebUi(String basePath) {
     this.basePath = basePath;
-    tabs = new LinkedList();
-    handlers = new LinkedList();
+    tabs = new LinkedList<>();
+    handlers = new LinkedList<>();
     basePath = Objects.requireNonNull(basePath);
-    apiHandler = new ServletContextHandler();
-
-    String apiPath;
-    if ("".equals(basePath)) {
-      apiPath = "/api";
-    } else {
-      apiPath = basePath + "/api";
-    }
-    this.apiHandler.setContextPath(apiPath);
   }
 
 
@@ -59,7 +49,7 @@ public abstract class WebUI {
     return basePath;
   }
 
-  public List<WebUITab> getTabs() {
+  public List<WebUiTab> getTabs() {
     return tabs;
   }
 
@@ -71,33 +61,23 @@ public abstract class WebUI {
     handlers.add(handler);
   }
 
-  public void attachTab(WebUITab tab) {
+  public void attachTab(WebUiTab tab) {
     tab.getPages().forEach(this::attachPage);
     tabs.add(tab);
   }
 
-  public void attachPage(WebUIPage page) {
+  public void attachPage(WebUiPage page) {
     String pagePath = "/" + page.getPrefix();
     ServletContextHandler handler = JettyUtils.createServletHandler(pagePath, page, basePath);
     handlers.add(handler);
-  }
-
-  public void attachApi(AbstractRestfulApi api) {
-    ServletHolder holder = new ServletHolder(JettyUtils.createServlet(api));
-    apiHandler.addServlet(holder, api.getPrefix());
   }
 
   public void addStaticHandler(String resourceBase, String path) {
     attachHandler(JettyUtils.createStaticHandler(resourceBase, path));
   }
 
-  public void setApiErrorHandler(ErrorHandler errorHandler) {
-    apiHandler.setErrorHandler(errorHandler);
-  }
-
   public void bind(String host, int port, int maxThreads, int minThreads) {
     List<ServletContextHandler> allHandlers = new LinkedList<>(handlers);
-    allHandlers.add(apiHandler);
     serverInfo = JettyUtils.startJettyServer(host, port, maxThreads, minThreads, allHandlers);
   }
 

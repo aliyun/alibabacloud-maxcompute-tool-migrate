@@ -32,12 +32,13 @@ import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 
+import com.aliyun.odps.datacarrier.taskscheduler.ui.MmaUi;
 import com.google.gson.JsonObject;
 
 
 public class ApiErrorHandler extends ErrorHandler {
 
-  private static final Logger LOG = LogManager.getLogger(com.aliyun.odps.datacarrier.taskscheduler.ui.MmaUI.class);
+  private static final Logger LOG = LogManager.getLogger(MmaUi.class);
 
   @Override
   public void handle(

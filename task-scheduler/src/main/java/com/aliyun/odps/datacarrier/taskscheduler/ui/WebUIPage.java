@@ -21,10 +21,10 @@ package com.aliyun.odps.datacarrier.taskscheduler.ui;
 
 import javax.servlet.http.HttpServletRequest;
 
-public abstract class WebUIPage {
+public abstract class WebUiPage {
   private String prefix;
 
-  public WebUIPage(String prefix) {
+  public WebUiPage(String prefix) {
     this.prefix = prefix;
   }
 
