@@ -4,4 +4,4 @@ export MMA_HOME=$(dirname ${DIR})
 
 java -Dlog4j.configurationFile="$MMA_HOME/res/mma_client_log4j2.xml" \
      -cp "$MMA_HOME/lib/*" \
-     com.aliyun.odps.datacarrier.taskscheduler.MmaClientMain "$@"
+     com.aliyun.odps.mma.client.MmaClientMain "$@"

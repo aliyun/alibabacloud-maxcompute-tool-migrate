@@ -91,9 +91,9 @@ def prepare_data():
         commands.append(insert_overwrite_partitioned_tbl_statement(
             "TEST_SEQUENCEFILE_PARTITIONED_10x1K", random_string(5), random_bigint(), 1000))
 
-    for i in range(100):
+    for i in range(10000):
         commands.append(insert_overwrite_partitioned_tbl_statement(
-            "TEST_PARTITIONED_100x10K", random_string(5), random_bigint(), 10000))
+            "TEST_PARTITIONED_10Kx10K", random_string(5), random_bigint(), 10000))
 
     # add special partitions
     commands.append(insert_overwrite_partitioned_tbl_statement("TEST_TEXT_PARTITIONED_10x1K",
