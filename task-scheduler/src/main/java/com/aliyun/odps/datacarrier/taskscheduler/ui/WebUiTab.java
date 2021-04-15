@@ -17,35 +17,39 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.taskscheduler.action;
+package com.aliyun.odps.datacarrier.taskscheduler.ui;
 
-import java.util.Map;
+import java.util.LinkedList;
+import java.util.List;
 
-import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
+public class WebUiTab {
+  private WebUi parent;
+  private List<WebUiPage> pages = new LinkedList<>();
+  private String prefix;
 
-public class OdpsInsertOverwriteDataTransferAction extends OdpsSqlAction {
-  public OdpsInsertOverwriteDataTransferAction(String id) {
-    super(id);
+  public WebUiTab(WebUi parent, String prefix) {
+    this.parent = parent;
+    this.prefix = prefix;
   }
 
-  @Override
-  String getSql() {
-    return OdpsSqlUtils.getInsertOverwriteTableStatement(
-        actionExecutionContext.getTableMetaModel());
+  public String getPrefix() {
+    return prefix;
   }
 
-  @Override
-  Map<String, String> getSettings() {
-    Map<String, String> settings =  actionExecutionContext
-        .getOdpsConfig()
-        .getSourceTableSettings()
-        .getMigrationSettings();
-    settings.putIfAbsent("odps.sql.allow.fullscan", "true");
-    return settings;
+  public String getBasePath() {
+    return parent.getBasePath();
   }
 
-  @Override
-  public String getName() {
-    return "Data transmission";
+  public List<WebUiTab> getHeaderTabs() {
+    return parent.getTabs();
+  }
+
+  public List<WebUiPage> getPages() {
+    return pages;
+  }
+
+  public void attachPage(WebUiPage page) {
+    page.setPrefix(prefix + "/" + page.getPrefix());
+    pages.add(page);
   }
 }

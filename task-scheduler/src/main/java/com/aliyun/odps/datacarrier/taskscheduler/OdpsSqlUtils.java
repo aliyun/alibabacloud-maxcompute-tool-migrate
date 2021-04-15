@@ -114,31 +114,33 @@ public class OdpsSqlUtils {
   private static String getCreateOssExternalTableCondition(
       TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
     StringBuilder sb = new StringBuilder();
-    OssExternalTableConfig ossExternalTableConfig = (OssExternalTableConfig)externalTableConfig;
-
+//    OssExternalTableConfig ossExternalTableConfig = (OssExternalTableConfig) externalTableConfig;
+//
 //    if (!StringUtils.isNullOrEmpty(ossExternalTableConfig.getRoleRan())) {
 //      tableMetaModel.serDeProperties.put("odps.properties.rolearn",
 //                                         ossExternalTableConfig.getRoleRan());
 //    }
 //
-//    sb.append("ROW FORMAT serde 'org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe'\n");
-//    if (MapUtils.isNotEmpty(tableMetaModel.serDeProperties)) {
+//    sb.append("ROW FORMAT serde 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'\n");
+//    if (tableMetaModel.serDeProperties != null && !tableMetaModel.serDeProperties.isEmpty()) {
 //      sb.append("WITH SERDEPROPERTIES (").append("\n");
 //      List<String> propertyStrings = new LinkedList<>();
-//      for (Map.Entry<String, String> property : tableMetaModel.serDeProperties.entrySet()) {
-//        if (!StringEscapeUtils.escapeJava(property.getValue()).startsWith("\\u")) {
-//          String propertyString = String.format("'%s'='%s'",
-//                                                StringEscapeUtils.escapeJava(property.getKey()),
-//                                                StringEscapeUtils.escapeJava(property.getValue()));
-//          propertyStrings.add(propertyString);
-//        }
+//      for (Entry<String, String> property : tableMetaModel.serDeProperties.entrySet()) {
+//        String propertyString = String.format(
+//            "'%s'='%s'",
+//            StringEscapeUtils.escapeJava(property.getKey()),
+//            StringEscapeUtils.escapeJava(property.getValue()));
+//        propertyStrings.add(propertyString);
 //      }
 //      sb.append(String.join(",\n", propertyStrings)).append(")\n");
 //    }
 
-    // TODO: support other formats
-    sb.append("STORED AS TEXTFILE\n");
-    sb.append("LOCATION '").append(externalTableConfig.getLocation()).append("';\n");
+    // TODO: support other formats & compression methods
+    sb.append("\nSTORED AS PARQUET")
+      .append("\nLOCATION '").append(externalTableConfig.getLocation()).append("'")
+      .append("\nTBLPROPERTIES (")
+      .append("\n'mcfed.mapreduce.output.fileoutputformat.compress'='true',")
+      .append("\n'mcfed.mapreduce.output.fileoutputformat.compress.codec'='com.hadoop.compression.lzo.LzoCodec');");
     return sb.toString();
   }
 
@@ -336,7 +338,7 @@ public class OdpsSqlUtils {
   }
 
   public static String getOssTablePath(MmaConfig.OssConfig ossConfig, String ossFilePath) {
-    // aliyun doc : https://help.aliyun.com/document_detail/72776.html?spm=5176.10695662.1996646101.searchclickresult.3f543a59Eh6owJ
+    // aliyun doc : https://help.aliyun.com/document_detail/72776.html
     // if use sts, Location format is:
     //    LOCATION 'oss://${endpoint}/${bucket}/${userfilePath}/'
     // else, Location format is:

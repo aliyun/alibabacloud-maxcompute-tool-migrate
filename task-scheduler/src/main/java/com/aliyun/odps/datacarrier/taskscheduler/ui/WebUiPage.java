@@ -17,35 +17,24 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.taskscheduler.action;
+package com.aliyun.odps.datacarrier.taskscheduler.ui;
 
-import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
-import com.aliyun.odps.datacarrier.taskscheduler.OdpsSqlUtils;
+public abstract class WebUiPage {
+  private String prefix;
 
-public class OdpsInsertOverwriteDataTransferAction extends OdpsSqlAction {
-  public OdpsInsertOverwriteDataTransferAction(String id) {
-    super(id);
+  public WebUiPage(String prefix) {
+    this.prefix = prefix;
   }
 
-  @Override
-  String getSql() {
-    return OdpsSqlUtils.getInsertOverwriteTableStatement(
-        actionExecutionContext.getTableMetaModel());
+  public void setPrefix(String prefix) {
+    this.prefix = prefix;
   }
 
-  @Override
-  Map<String, String> getSettings() {
-    Map<String, String> settings =  actionExecutionContext
-        .getOdpsConfig()
-        .getSourceTableSettings()
-        .getMigrationSettings();
-    settings.putIfAbsent("odps.sql.allow.fullscan", "true");
-    return settings;
+  public String getPrefix() {
+    return prefix;
   }
 
-  @Override
-  public String getName() {
-    return "Data transmission";
-  }
+  public abstract String render(HttpServletRequest request);
 }

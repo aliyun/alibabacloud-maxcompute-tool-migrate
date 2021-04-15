@@ -1206,9 +1206,10 @@ public class TaskProvider {
       MmaConfig.JobType jobType,
       MmaConfig.ObjectType objectType,
       String db, String object) {
+    long time = System.currentTimeMillis();
     if (MmaConfig.ObjectType.DATABASE.equals(objectType)) {
-      return String.format("%s-%s-%s", jobType.name(), objectType.name(), db);
+      return String.format("%s-%s-%s.%d", jobType.name(), objectType.name(), db, time);
     }
-    return String.format("%s-%s-%s-%s", jobType.name(), objectType.name(), db, object);
+    return String.format("%s-%s-%s-%s.%d", jobType.name(), objectType.name(), db, object, time);
   }
 }
