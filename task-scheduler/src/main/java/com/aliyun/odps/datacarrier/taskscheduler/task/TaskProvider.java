@@ -230,12 +230,13 @@ public class TaskProvider {
           continue;
         }
         ret.add(task);
+      } else {
+        LOG.warn("Unsupported job type {} for {}.{}",
+                 jobType,
+                 tableMetaModel.databaseName,
+                 tableMetaModel.tableName);
+        // TODO: should mark corresponding job as failed
       }
-      LOG.warn("Unsupported job type {} for {}.{}",
-               jobType,
-               tableMetaModel.databaseName,
-               tableMetaModel.tableName);
-      // TODO: should mark corresponding job as failed
     }
 
     return ret;
