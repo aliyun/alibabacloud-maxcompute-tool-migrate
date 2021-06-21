@@ -3,7 +3,7 @@ package com.aliyun.odps.mma.server.action;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.aliyun.odps.mma.server.OdpsSqlUtils;
+import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
 
@@ -26,7 +26,7 @@ public class McAddPartitionsAction extends McSqlAction {
 
   @Override
   public String getSql() {
-    return OdpsSqlUtils.getAddPartitionStatement(tableMetaModel);
+    return McSqlUtils.getAddPartitionStatement(tableMetaModel);
   }
 
   @Override

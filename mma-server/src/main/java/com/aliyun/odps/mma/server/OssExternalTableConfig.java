@@ -19,6 +19,9 @@
 
 package com.aliyun.odps.mma.server;
 
+import com.aliyun.odps.mma.config.ExternalTableConfig;
+import com.aliyun.odps.mma.config.ExternalTableStorage;
+
 public class OssExternalTableConfig extends ExternalTableConfig {
   private String endpoint;
   private String bucket;

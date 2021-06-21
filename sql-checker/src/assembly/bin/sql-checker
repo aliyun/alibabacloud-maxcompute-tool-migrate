@@ -1,0 +1,9 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export MMA_HOME=$(dirname ${DIR})
+
+MMA_VERSION=$(cat ${MMA_HOME}/version.txt)
+
+java -Dlog4j.configurationFile="$MMA_HOME/res/sql_checker_log4j2.xml" \
+     -cp "$MMA_HOME/lib/*" \
+     com.aliyun.odps.mma.sql.SqlMigrationAssistantMain "$@"

@@ -12,7 +12,7 @@ import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.server.HiveSqlUtils;
+import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
