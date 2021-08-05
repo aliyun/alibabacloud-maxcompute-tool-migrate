@@ -19,8 +19,6 @@
 
 package com.aliyun.odps.datacarrier.taskscheduler;
 
-import com.google.inject.internal.util.$Nullable;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
