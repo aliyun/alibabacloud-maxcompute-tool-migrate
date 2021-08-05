@@ -19,7 +19,7 @@
     <oss.sdk.version>3.8.0</oss.sdk.version>
     <hive.version>3.1.1</hive.version>
     <jetty.version>9.4.41.v20210516</jetty.version>
-    <hadoop.version>2.6.0</hadoop.version>
+    <hadoop.version>3.1.0</hadoop.version>
   </properties>
 
   <dependencyManagement>
