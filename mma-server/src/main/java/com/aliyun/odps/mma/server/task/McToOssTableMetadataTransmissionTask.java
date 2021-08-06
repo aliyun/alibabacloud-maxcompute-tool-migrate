@@ -28,11 +28,11 @@ public class McToOssTableMetadataTransmissionTask extends DagTask {
     McToOssTableMetadataTransmissionAction action = new McToOssTableMetadataTransmissionAction(
         id + ".MetadataTransmission",
         tableMetaModel,
-        config.get(JobConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID),
-        config.get(JobConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET),
-        config.get(JobConfiguration.DATA_DEST_OSS_ROLE_ARN),
-        config.get(JobConfiguration.DATA_DEST_OSS_BUCKET),
-        config.get(JobConfiguration.DATA_DEST_OSS_ENDPOINT),
+        config.get(JobConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
+        config.get(JobConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
+        config.get(JobConfiguration.METADATA_DEST_OSS_ROLE_ARN),
+        config.get(JobConfiguration.METADATA_DEST_OSS_BUCKET),
+        config.get(JobConfiguration.METADATA_DEST_OSS_ENDPOINT),
         this,
         context);
     dag.addVertex(action);

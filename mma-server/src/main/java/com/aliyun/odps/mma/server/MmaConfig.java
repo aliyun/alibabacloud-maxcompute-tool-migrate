@@ -214,10 +214,9 @@ public class MmaConfig {
 
     @Override
     public boolean validate() {
-      return (!StringUtils.isNullOrEmpty(jdbcConnectionUrl) &&
-              !StringUtils.isNullOrEmpty(hmsThriftAddr) &&
-              user != null &&
-              password != null);
+      return (!StringUtils.isNullOrEmpty(jdbcConnectionUrl)
+          && user != null
+          && password != null);
     }
 
     public String getJdbcConnectionUrl() {

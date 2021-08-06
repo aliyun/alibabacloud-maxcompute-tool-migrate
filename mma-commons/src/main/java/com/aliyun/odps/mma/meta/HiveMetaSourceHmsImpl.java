@@ -44,9 +44,9 @@ import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.util.GsonUtils;
 
-public class HiveMetaSource implements MetaSource {
+public class HiveMetaSourceHmsImpl implements MetaSource {
 
-  private static final Logger LOG = LogManager.getLogger(HiveMetaSource.class);
+  private static final Logger LOG = LogManager.getLogger(HiveMetaSourceHmsImpl.class);
 
   private static final String TABLE_PARAMETER_TOTAL_SIZE = "totalSize";
   private static final String TABLE_PARAMETER_CREATE_TIME = "createTime";
@@ -54,7 +54,7 @@ public class HiveMetaSource implements MetaSource {
 
   private IMetaStoreClient hmsClient;
 
-  public HiveMetaSource(
+  public HiveMetaSourceHmsImpl(
       String hmsUris,
       boolean hmsSaslEnabled,
       String kerberosPrincipal,

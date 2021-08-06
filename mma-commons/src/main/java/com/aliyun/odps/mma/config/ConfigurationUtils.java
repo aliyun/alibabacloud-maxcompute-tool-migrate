@@ -28,11 +28,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.commons.lang3.Validate;
 
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.ProjectFilter;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.oss.OSS;
@@ -46,40 +45,173 @@ import com.google.gson.JsonPrimitive;
 
 public class ConfigurationUtils {
 
-  public static void validateMc(
+  private static String getCannotBeNullOrEmptyErrorMessage(String key) {
+    return key + " cannot be null or empty";
+  }
+
+  public static void validateMcMetaSource(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_MC_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_MC_ENDPOINT));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_SECRET));
+    validateMcCredentials(endpoint, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateMcDataSource(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_MC_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_MC_ENDPOINT));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET));
+    validateMcCredentials(endpoint, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateOssMetaSource(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT));
+    String bucket = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateOssDataSource(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_OSS_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_ENDPOINT));
+    String bucket = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_OSS_BUCKET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_BUCKET));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateHiveMetaSource(AbstractConfiguration config) throws Exception {
+    validateHiveMetastoreCredentials(config);
+  }
+
+  public static void validateHiveDataSource(AbstractConfiguration config)
+      throws SQLException, ClassNotFoundException {
+    String hiveJdbcUrl = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL));
+    validateHiveJdbcCredentials(
+        hiveJdbcUrl,
+        config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
+        config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD));
+  }
+
+  public static void validateMcMetaDest(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_MC_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_MC_ENDPOINT));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_SECRET));
+    validateMcCredentials(endpoint, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateMcDataDest(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_MC_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_MC_ENDPOINT));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_MC_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET));
+    validateMcCredentials(endpoint, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateOssMetaDest(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT));
+    String bucket = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_BUCKET));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
+    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+  }
+
+  public static void validateOssDataDest(AbstractConfiguration config) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_OSS_ENDPOINT),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_ENDPOINT));
+    String bucket = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_OSS_BUCKET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_BUCKET));
+    String accessKeyId = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID));
+    String accessKeySecret = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET));
+    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+  }
+
+  static void validateMcCredentials(
       String endpoint,
-      String project,
       String accessKeyId,
       String accessKeySecret) throws MmaException {
-
     AliyunAccount aliyunAccount = new AliyunAccount(accessKeyId, accessKeySecret);
     Odps odps = new Odps(aliyunAccount);
     odps.setEndpoint(endpoint);
-
     try {
-      odps.projects().get(project).reload();
-    } catch (OdpsException e) {
+      ProjectFilter filter = new ProjectFilter();
+      odps.projects().iteratorByFilter(filter).hasNext();
+    } catch (Exception e) {
       throw new MmaException("Invalid MaxCompute configuration", e);
     }
   }
 
-  public static void validateOss(
+  static void validateOssCredentials(
       String endpoint,
       String bucket,
       String accessKeyId,
       String accessKeySecret) throws MmaException {
-
     OSS oss = (new OSSClientBuilder()).build(endpoint, accessKeyId, accessKeySecret);
     if (oss.listBuckets().stream().noneMatch(b -> bucket.equals(b.getName()))) {
       throw new MmaException("Invalid OSS configuration");
     }
   }
 
-  public static void validateHiveMetastore(JobConfiguration config) throws MetaException {
+  static void validateHiveMetastoreCredentials(
+      AbstractConfiguration config) throws Exception {
     MetaSourceFactory.getHiveMetaSource(config);
   }
 
-  public static void validateHiveJdbc(
+  static void validateHiveJdbcCredentials(
       String hiveJdbcUrl,
       String username,
       String password) throws ClassNotFoundException, SQLException {

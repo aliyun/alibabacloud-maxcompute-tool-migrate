@@ -91,9 +91,9 @@ def prepare_data():
         commands.append(insert_overwrite_partitioned_tbl_statement(
             "TEST_SEQUENCEFILE_PARTITIONED_10x1K", random_string(5), random_bigint(), 1000))
 
-    for i in range(10000):
+    for i in range(1000):
         commands.append(insert_overwrite_partitioned_tbl_statement(
-            "TEST_PARTITIONED_10Kx10K", random_string(5), random_bigint(), 10000))
+            "TEST_PARTITIONED_1Kx10K", random_string(5), random_bigint(), 10000))
 
     # add special partitions
     commands.append(insert_overwrite_partitioned_tbl_statement("TEST_TEXT_PARTITIONED_10x1K",
@@ -114,7 +114,7 @@ def prepare_data():
                                                                1000))
     commands.append(insert_overwrite_partitioned_tbl_statement(
         "TEST_SEQUENCEFILE_PARTITIONED_10x1K", "mma_test", 123456, 1000))
-    commands.append(insert_overwrite_partitioned_tbl_statement("TEST_PARTITIONED_100x10K",
+    commands.append(insert_overwrite_partitioned_tbl_statement("TEST_PARTITIONED_1Kx10K",
                                                                "mma_test",
                                                                123456,
                                                                10000))
@@ -122,7 +122,7 @@ def prepare_data():
     for c in setup_commands:
         utils.execute_command("hive -e \"%s\"" % c)
 
-    executor = ThreadPoolExecutor(5)
+    executor = ThreadPoolExecutor(10)
     sql_2_future = {}
     for c in commands:
         sql_2_future[c] = executor.submit(utils.execute_command, "hive -e \"%s\"" % c)

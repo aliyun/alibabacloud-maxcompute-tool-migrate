@@ -58,11 +58,18 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String METADATA_SOURCE_MC_ACCESS_KEY_ID = "mma.metadata.source.mc.access.key.id";
   public static final String METADATA_SOURCE_MC_ACCESS_KEY_SECRET = "mma.metadata.source.mc.access.key.secret";
   // Hive
+  public static final String METADATA_SOURCE_HIVE_IMPL = "mma.metadata.source.hive.impl";
+  public static final String METADATA_SOURCE_HIVE_IMPL_DEFAULT_VALUE = "HMS";
+  // Hive Meta store
   public static final String METADATA_SOURCE_HIVE_METASTORE_URIS = "mma.metadata.source.hive.metastore.uris";
   public static final String METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED = "mma.metadata.source.hive.metastore.sasl.enabled";
   public static final String METADATA_SOURCE_HIVE_METASTORE_KERBEROS_PRINCIPAL = "mma.metadata.source.hive.metastore.kerberos.principal";
   public static final String METADATA_SOURCE_HIVE_METASTORE_KERBEROS_KEYTAB_FILE = "mma.metadata.source.hive.metastore.kerberos.keytab.file";
-  public static final String METADATA_SOURCE_HIVE_EXTRA_CONFIGS = "mma.metadata.source.hive.extra.configs";
+  public static final String METADATA_SOURCE_HIVE_META_STORE_EXTRA_CONFIGS = "mma.metadata.source.hive.metastore.extra.configs";
+  // Hive JDBC
+  public static final String METADATA_SOURCE_HIVE_JDBC_URL = "mma.metadata.source.hive.jdbc.url";
+  public static final String METADATA_SOURCE_HIVE_JDBC_USERNAME = "mma.data.source.hive.jdbc.username";
+  public static final String METADATA_SOURCE_HIVE_JDBC_PASSWORD = "mma.data.source.hive.jdbc.password";
 
   /**
    * Data source type. Could be Hive, MaxCompute, OSS.
@@ -89,7 +96,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_SOURCE_HIVE_JDBC_PASSWORD = "mma.data.source.hive.jdbc.password";
 
   /**
-   * Metadata destination type. Could be MaxCompute, OSS.
+   * Metadata destination type. Could be MaxCompute and OSS.
    */
   public static final String METADATA_DEST_TYPE = "mma.metadata.dest.type";
 

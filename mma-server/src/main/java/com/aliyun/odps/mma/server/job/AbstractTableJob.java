@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jgrapht.Graphs;
@@ -24,7 +23,6 @@ import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.job.JobStatus;
-import com.aliyun.odps.mma.server.MmaConfig.JobConfig;
 import com.aliyun.odps.mma.server.job.utils.JobUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
@@ -194,7 +192,7 @@ public abstract class AbstractTableJob extends AbstractJob {
           .collect(
               Collectors.toMap(
                   p -> ConfigurationUtils.toPartitionIdentifier(tableName, p.getPartitionValues()),
-                  PartitionMetaModel::getLastModifiedTime));
+                  PartitionMetaModel::getLastModificationTime));
       for (Job subJob : getSubJobs()) {
         String partitionIdentifier =
             subJob.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME);
@@ -224,7 +222,7 @@ public abstract class AbstractTableJob extends AbstractJob {
           .collect(
               Collectors.toMap(
                   p -> ConfigurationUtils.toPartitionIdentifier(tableName, p.getPartitionValues()),
-                  PartitionMetaModel::getLastModifiedTime));
+                  PartitionMetaModel::getLastModificationTime));
       // Find new sub jobs
       Set<String> currentPartitionIdentifierSet = getSubJobs()
           .stream()

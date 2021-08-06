@@ -163,11 +163,11 @@ function PRINT_CONFIGURE_HIVE_UDTF_GUIDANCE()
 function CONFIGURE_MC()
 {
     MC_ENDPOINT=$(GET_INPUT "$MC_ENDPOINT_PROMPT" "$MC_ENDPOINT_HELP" "$MC_ENDPOINT_EXAMPLE")
-    ADD_OR_REPLACE "mma.data.dest.mc.endpoint" "${MC_ENDPOINT}" ","
     if [[ ${MC_ENDPOINT} == *"aliyun.com"* ]]
     then
         PRINTLN_STDERR_BOLD_RED "WARNING: Using a MaxCompute endpoint for the Internet. Normally, a endpoint for VPC should be used."
     fi
+    ADD_OR_REPLACE "mma.data.dest.mc.endpoint" "${MC_ENDPOINT}" ","
     MC_PROJECT_NAME=$(GET_INPUT \
     "$MC_PROJECT_NAME_PROMPT" "$MC_PROJECT_NAME_HELP" "$MC_PROJECT_NAME_EXAMPLE")
     ADD_OR_REPLACE "mma.job.execution.mc.project" "${MC_PROJECT_NAME}" ","
@@ -177,6 +177,10 @@ function CONFIGURE_MC()
     ALIYUN_ACCESS_KEY=$(GET_INPUT \
     "$ALIYUN_ACCESS_KEY_PROMPT" "$ALIYUN_ACCESS_KEY_HELP" "$ALIYUN_ACCESS_KEY_EXAMPLE")
     ADD_OR_REPLACE "mma.data.dest.mc.access.key.secret" "${ALIYUN_ACCESS_KEY}" ","
+
+    ADD_OR_REPLACE "mma.metadata.dest.mc.endpoint" "${MC_ENDPOINT}" ","
+    ADD_OR_REPLACE "mma.metadata.dest.mc.access.key.id" "${ALIYUN_ACCESS_ID}" ","
+    ADD_OR_REPLACE "mma.metadata.dest.mc.access.key.secret" "${ALIYUN_ACCESS_KEY}" ","
 }
 
 function CONFIGURE_SOURCE_AND_DEST()
@@ -185,6 +189,7 @@ function CONFIGURE_SOURCE_AND_DEST()
     ADD_OR_REPLACE "mma.data.source.type" "Hive" ","
     ADD_OR_REPLACE "mma.metadata.dest.type" "MaxCompute" ","
     ADD_OR_REPLACE "mma.data.dest.type" "MaxCompute" ","
+    ADD_OR_REPLACE "mma.metadata.source.hive.impl" "HMS" ","
 }
 
 function CONFIGURE_METADATA_DB()
@@ -196,25 +201,10 @@ function CONFIGURE_METADATA_DB()
     ADD_OR_REPLACE "mma.meta.db.jdbc.password" "mma" ""
 }
 
-MMA_SERVER_CONFIG_EXISTS=false
-if [[ -f ${MMA_SERVER_CONFIG_PATH} ]]
-then
-    while true; do
-        SKIP=$(GET_INPUT "MMA server configuration file exists. Remove it? (Y/N)" "" "")
-        case ${SKIP} in
-            [Yy]) rm -f "${MMA_SERVER_CONFIG_PATH}"; touch ${MMA_SERVER_CONFIG_PATH}; break;;
-            [Nn]) MMA_SERVER_CONFIG_EXISTS=true; break;;
-            *) PRINTLN_STDERR "Please input 'Y' or 'N'";;
-        esac
-    done
-else
-    touch ${MMA_SERVER_CONFIG_PATH}
-fi
+rm -f "${MMA_SERVER_CONFIG_PATH}"
+touch ${MMA_SERVER_CONFIG_PATH};
+echo "{" >> ${MMA_SERVER_CONFIG_PATH}
 
-if [[ ${MMA_SERVER_CONFIG_EXISTS} = false ]]
-then
-  echo "{" >> ${MMA_SERVER_CONFIG_PATH}
-fi
 # remove the '}' at the end of file
 sed -i '/}/c\' ${MMA_SERVER_CONFIG_PATH}
 
@@ -254,11 +244,7 @@ PRINTLN_STDERR_BOLD_YELLOW "Validating MMA server configurations"
 java -Dlog4j.configurationFile="$MMA_HOME/res/mma_client_log4j2.xml" \
      -cp "$MMA_HOME/lib/*" \
      com.aliyun.odps.mma.client.MmaConfigurationValidator \
-     --source true --type Hive --config "${MMA_SERVER_CONFIG_PATH}"
-java -Dlog4j.configurationFile="$MMA_HOME/res/mma_client_log4j2.xml" \
-     -cp "$MMA_HOME/lib/*" \
-     com.aliyun.odps.mma.client.MmaConfigurationValidator \
-     --type MaxCompute --config "${MMA_SERVER_CONFIG_PATH}"
+     --config "${MMA_SERVER_CONFIG_PATH}"
 PRINTLN_STDERR_BOLD_YELLOW "Passed"
 
 PRINTLN_STDERR ""

@@ -238,10 +238,10 @@ public class JobManager {
         subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, partitionIdentifier);
         subConfig.put(JobConfiguration.DEST_OBJECT_NAME, partitionIdentifier);
         subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.PARTITION.name());
-        if (partitionMetaModel.getLastModifiedTime() != null) {
+        if (partitionMetaModel.getLastModificationTime() != null) {
           subConfig.put(
               JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
-              Long.toString(partitionMetaModel.getLastModifiedTime()));
+              Long.toString(partitionMetaModel.getLastModificationTime()));
         }
 
         metaManager.addSubJob(

@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.server.meta;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
@@ -11,7 +12,7 @@ public class MockMetaSourceFactory extends MetaSourceFactory {
   }
 
   @Override
-  public MetaSource getMetaSource(JobConfiguration config) {
+  public MetaSource getMetaSource(AbstractConfiguration config) {
     String metadataSourceType = config.get(JobConfiguration.METADATA_SOURCE_TYPE);
     switch (metadataSourceType) {
       case "MaxCompute": {

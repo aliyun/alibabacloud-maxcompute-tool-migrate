@@ -4,13 +4,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.metastore.api.MetaException;
-
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder;
@@ -53,7 +50,7 @@ public class PartitionJob extends AbstractJob {
     Long oldObjectLastModifiedTime =
         config.containsKey(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME) ?
             Long.valueOf(config.get(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME)) : null;
-    Long newObjectLastModifiedTime = partitionMetaModel.getLastModifiedTime();
+    Long newObjectLastModifiedTime = partitionMetaModel.getLastModificationTime();
     boolean objectChanged = oldObjectLastModifiedTime != null
         && newObjectLastModifiedTime != null
         && oldObjectLastModifiedTime < newObjectLastModifiedTime;

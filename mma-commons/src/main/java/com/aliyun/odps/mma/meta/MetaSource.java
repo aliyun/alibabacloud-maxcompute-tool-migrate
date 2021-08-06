@@ -79,68 +79,80 @@ public interface MetaSource {
       }
 
       public TableMetaModelBuilder tableStorage(String storage) {
-        this.tableMetaModel.tableStorage = Validate.notNull(storage);
+        this.tableMetaModel.tableStorage = storage;
         return this;
       }
 
       public TableMetaModelBuilder comment(String comment) {
-        this.tableMetaModel.comment = Validate.notNull(comment);
+        this.tableMetaModel.comment = comment;
         return this;
       }
 
-      public TableMetaModelBuilder lifeCycle(long lifeCycle) {
+      public TableMetaModelBuilder lifeCycle(Long lifeCycle) {
         this.tableMetaModel.lifeCycle = lifeCycle;
         return this;
       }
 
-      public TableMetaModelBuilder size(long size) {
+      public TableMetaModelBuilder size(Long size) {
         this.tableMetaModel.size = size;
         return this;
       }
 
       public TableMetaModelBuilder location(String location) {
-        this.tableMetaModel.location = Validate.notNull(location);
+        this.tableMetaModel.location = location;
         return this;
       }
 
       public TableMetaModelBuilder inputFormat(String inputFormat) {
-        this.tableMetaModel.inputFormat = Validate.notNull(inputFormat);
+        this.tableMetaModel.inputFormat = inputFormat;
         return this;
       }
 
       public TableMetaModelBuilder outputFormat(String outputFormat) {
-        this.tableMetaModel.outputFormat = Validate.notNull(outputFormat);
+        this.tableMetaModel.outputFormat = outputFormat;
         return this;
       }
 
       public TableMetaModelBuilder serDe(String serDe) {
-        this.tableMetaModel.serDe = Validate.notNull(serDe);
+        this.tableMetaModel.serDe = serDe;
         return this;
       }
 
-      public TableMetaModelBuilder creationTime(long creationTime) {
+      public TableMetaModelBuilder creationTime(Long creationTime) {
         this.tableMetaModel.creationTime = creationTime;
         return this;
       }
 
-      public TableMetaModelBuilder lastModificationTime(long lastModificationTime) {
+      public TableMetaModelBuilder lastModificationTime(Long lastModificationTime) {
         this.tableMetaModel.lastModificationTime = lastModificationTime;
         return this;
       }
 
       public TableMetaModelBuilder serDeProperties(Map<String, String> serDeProperties) {
-        this.tableMetaModel.serDeProperties = new HashMap<>(Validate.notNull(serDeProperties));
+        if (serDeProperties != null) {
+          this.tableMetaModel.serDeProperties = new HashMap<>(serDeProperties);
+        } else {
+          this.tableMetaModel.serDeProperties = new HashMap<>();
+        }
         return this;
       }
 
       public TableMetaModelBuilder partitionColumns(List<ColumnMetaModel> partitionColumns) {
-        this.tableMetaModel.partitionColumns = new ArrayList<>(Validate.notNull(partitionColumns));
+        if (partitionColumns != null) {
+          this.tableMetaModel.partitionColumns = new ArrayList<>(Validate.notNull(partitionColumns));
+        } else {
+          this.tableMetaModel.partitionColumns = new ArrayList<>(0);
+        }
         this.tableMetaModel.partitionColumns.forEach(Validate::notNull);
         return this;
       }
 
       public TableMetaModelBuilder partitions(List<PartitionMetaModel> partitions) {
-        this.tableMetaModel.partitions = new ArrayList<>(Validate.notNull(partitions));
+        if (partitions != null) {
+          this.tableMetaModel.partitions = new ArrayList<>(partitions);
+        } else {
+          this.tableMetaModel.partitions = new ArrayList<>(0);
+        }
         this.tableMetaModel.partitions.forEach(Validate::notNull);
         return this;
       }
@@ -286,20 +298,20 @@ public interface MetaSource {
         List<String> partitionValues,
         String location,
         Long createTime,
-        Long lastModifiedTime,
+        Long lastModificationTime,
         Long size) {
       this.partitionValues = new ArrayList<>(Validate.notNull(partitionValues));
       this.partitionValues.forEach(Validate::notNull);
       this.location = location;
       this.createTime = createTime;
-      this.lastModifiedTime = lastModifiedTime;
+      this.lastModificationTime = lastModificationTime;
       this.size = size;
     }
 
     private List<String> partitionValues;
     private String location;
     private Long createTime;
-    private Long lastModifiedTime;
+    private Long lastModificationTime;
     private Long size;
 
     public List<String> getPartitionValues() {
@@ -314,8 +326,8 @@ public interface MetaSource {
       return createTime;
     }
 
-    public Long getLastModifiedTime() {
-      return lastModifiedTime;
+    public Long getLastModificationTime() {
+      return lastModificationTime;
     }
 
     public Long getSize() {
