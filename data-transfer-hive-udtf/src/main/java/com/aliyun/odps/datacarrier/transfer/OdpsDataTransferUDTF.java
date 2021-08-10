@@ -22,7 +22,7 @@ package com.aliyun.odps.datacarrier.transfer;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.TableSchema;
-import com.aliyun.odps.account.AliyunAccount;
+import com.aliyun.odps.account.BearerTokenAccount;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.data.RecordWriter;
 import com.aliyun.odps.datacarrier.transfer.converter.HiveObjectConverter;
@@ -31,7 +31,6 @@ import com.aliyun.odps.tunnel.TableTunnel.UploadSession;
 import com.aliyun.odps.tunnel.TunnelException;
 import com.aliyun.odps.tunnel.io.TunnelBufferedWriter;
 import com.aliyun.odps.type.TypeInfo;
-import com.aliyun.odps.utils.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
@@ -51,11 +49,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
-
-/**
- * Only for odps 2.0
- * @author: Jon (wangzhong.zw@alibaba-inc.com)
- */
 public class OdpsDataTransferUDTF extends GenericUDTF {
 
   /**
@@ -69,7 +62,6 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   private List<String> odpsColumnNames;
   private List<String> odpsPartitionColumnNames;
   private TableSchema schema;
-  private MapredContext mapredContext;
 
   /**
    * Changes with different partition
@@ -93,11 +85,6 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   private Object[] forwardObj = new Object[1];
 
   @Override
-  public void configure(MapredContext mapredContext) {
-    this.mapredContext = mapredContext;
-  }
-
-  @Override
   public StructObjectInspector initialize(ObjectInspector[] args) throws UDFArgumentException {
     objectInspectors = args;
     List<String> fieldNames = new ArrayList<>();
@@ -112,47 +99,43 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   public void process(Object[] args) throws HiveException {
     try {
       if(odps == null) {
-        OdpsConfig odpsConfig =
-            new OdpsConfig(mapredContext, "hdfs:///tmp/odps_config.ini");
-        AliyunAccount account =
-            new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
+        StringObjectInspector soi0 = (StringObjectInspector) objectInspectors[0];
+        String bearerToken = soi0.getPrimitiveJavaObject(args[0]).trim();
+        print("bearer token: " + bearerToken);
+        StringObjectInspector soi1 = (StringObjectInspector) objectInspectors[1];
+        String endpoint = soi1.getPrimitiveJavaObject(args[1]).trim();
+        print("endpoint: " + endpoint);
+        BearerTokenAccount account = new BearerTokenAccount(bearerToken);
         odps = new Odps(account);
-        odps.setEndpoint(odpsConfig.getOdpsEndpoint());
+        odps.setEndpoint(endpoint);
         odps.setUserAgent("MMA");
         tunnel = new TableTunnel(odps);
-        if (!StringUtils.isNullOrEmpty(odpsConfig.getTunnelEndpoint())) {
-          if (!StringUtils.isNullOrEmpty(odpsConfig.getTunnelEndpoint2())) {
-            tunnel.setEndpoint(ThreadLocalRandom.current().nextBoolean() ?
-                               odpsConfig.getTunnelEndpoint() : odpsConfig.getTunnelEndpoint2());
-          } else {
-            tunnel.setEndpoint(odpsConfig.getTunnelEndpoint());
-          }
-        }
       }
 
       if (odpsTableName == null) {
-        StringObjectInspector soi0 = (StringObjectInspector) objectInspectors[0];
-        StringObjectInspector soi1 = (StringObjectInspector) objectInspectors[1];
         StringObjectInspector soi2 = (StringObjectInspector) objectInspectors[2];
         StringObjectInspector soi3 = (StringObjectInspector) objectInspectors[3];
+        StringObjectInspector soi4 = (StringObjectInspector) objectInspectors[4];
+        StringObjectInspector soi5 = (StringObjectInspector) objectInspectors[5];
 
-        odpsProjectName = soi0.getPrimitiveJavaObject(args[0]).trim();
+        odpsProjectName = soi2.getPrimitiveJavaObject(args[2]).trim();
         odps.setDefaultProject(odpsProjectName);
-        System.out.println("[Data-carrier] MaxCompute project: " + odpsProjectName);
+        print("project: " + odpsProjectName);
+        print("tunnel endpoint: " + odps.projects().get().getTunnelEndpoint());
 
-        odpsTableName = soi1.getPrimitiveJavaObject(args[1]).trim();
-        System.out.println("[Data-carrier] MaxCompute table: " + odpsTableName);
+        odpsTableName = soi3.getPrimitiveJavaObject(args[3]).trim();
+        print("table: " + odpsTableName);
 
         schema = odps.tables().get(odpsTableName).getSchema();
 
-        String odpsColumnNameString = soi2.getPrimitiveJavaObject(args[2]).trim();
+        String odpsColumnNameString = soi4.getPrimitiveJavaObject(args[4]).trim();
         odpsColumnNames = new ArrayList<>();
         if (!odpsColumnNameString.isEmpty()) {
           odpsColumnNames.addAll(Arrays.asList(odpsColumnNameString.split(",")));
         }
         hiveColumnValues = new Object[odpsColumnNames.size()];
 
-        String odpsPartitionColumnNameString = soi3.getPrimitiveJavaObject(args[3]).trim();
+        String odpsPartitionColumnNameString = soi5.getPrimitiveJavaObject(args[5]).trim();
         odpsPartitionColumnNames = new ArrayList<>();
         if (!odpsPartitionColumnNameString.isEmpty()) {
           odpsPartitionColumnNames.addAll(
@@ -162,10 +145,10 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       }
 
       for (int i = 0; i < odpsColumnNames.size(); i++) {
-        hiveColumnValues[i] = args[i + 4];
+        hiveColumnValues[i] = args[i + 6];
       }
       for (int i = 0; i < odpsPartitionColumnNames.size(); i++) {
-        hivePartitionColumnValues[i] = args[i + 4 + odpsColumnNames.size()];
+        hivePartitionColumnValues[i] = args[i + 6 + odpsColumnNames.size()];
       }
 
       // Get partition spec
@@ -190,7 +173,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
           reusedRecord.set(odpsColumnName, null);
         } else {
           // Handle data types
-          ObjectInspector objectInspector = objectInspectors[i + 4];
+          ObjectInspector objectInspector = objectInspectors[i + 6];
           TypeInfo typeInfo = schema.getColumn(odpsColumnName).getTypeInfo();
           reusedRecord.set(odpsColumnName, HiveObjectConverter.convert(objectInspector, value, typeInfo));
         }
@@ -212,7 +195,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
         continue;
       }
 
-      ObjectInspector objectInspector = objectInspectors[i + 4 + odpsColumnNames.size()];
+      ObjectInspector objectInspector = objectInspectors[i + 6 + odpsColumnNames.size()];
       TypeInfo typeInfo = schema.getPartitionColumn(odpsPartitionColumnNames.get(i)).getTypeInfo();
 
       Object odpsValue = HiveObjectConverter.convert(objectInspector, colValue, typeInfo);
@@ -249,21 +232,21 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       while (true) {
         try {
           if (partitionSpec.isEmpty()) {
-            System.out.println("[Data-carrier] creating record worker");
+            print("creating record worker");
             uploadSession = tunnel.createUploadSession(odps.getDefaultProject(),
                                                        odpsTableName);
-            System.out.println("[Data-carrier] creating record worker done");
+            print("creating record worker done");
           } else {
-            System.out.println("[Data-carrier] creating record worker for " + partitionSpec);
+            print("creating record worker for " + partitionSpec);
             uploadSession = tunnel.createUploadSession(odps.getDefaultProject(),
                                                        odpsTableName,
                                                        new PartitionSpec(partitionSpec));
             System.out
-                .println("[Data-carrier] creating record worker for " + partitionSpec + " done");
+                .println("creating record worker for " + partitionSpec + " done");
           }
           break;
         } catch (TunnelException e) {
-          System.out.println("[Data-carrier] create session failed, retry: " + retry);
+          print("create session failed, retry: " + retry);
           e.printStackTrace(System.out);
           retry++;
           if (retry > 5) {
@@ -286,7 +269,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
   @Override
   public void close() throws HiveException {
     if (recordWriter == null) {
-      System.out.println("[Data-carrier] recordWriter is null, seems no record is fed to this UDTF");
+      print("record writer is null, seems no record is fed to this UDTF");
     } else {
       // TODO: rely on tunnel retry strategy once the RuntimeException bug is fixed
       int retry = 5;
@@ -295,7 +278,7 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
           recordWriter.close();
           break;
         } catch (Exception e) {
-          System.out.println("[Data-carrier] Record writer failed to close, retry: " + retry);
+          print("Failed to close record writer, retry: " + retry);
           e.printStackTrace(System.out);
           retry--;
           if (retry <= 0) {
@@ -311,12 +294,12 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
       int retry = 5;
       while (true) {
         try {
-          System.out.println("[Data-carrier] committing " + partitionSpec);
+          print("committing " + partitionSpec);
           partitionSpecToUploadSession.get(partitionSpec).commit();
-          System.out.println("[Data-carrier] committing " + partitionSpec + " done");
+          print("committing " + partitionSpec + " done");
           break;
         } catch (IOException | TunnelException e) {
-          System.out.println("[Data-carrier] committing" + partitionSpec + " failed, retry: " + retry);
+          print("committing" + partitionSpec + " failed, retry: " + retry);
           e.printStackTrace(System.out);
           retry--;
           if (retry <= 0) {
@@ -328,5 +311,9 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
 
     forwardObj[0] = numRecordTransferred;
     forward(forwardObj);
+  }
+  
+  private static void print(String log) {
+    System.out.println(String.format("[MMA %d] %s", System.currentTimeMillis(), log));
   }
 }
