@@ -39,7 +39,7 @@ echo "Done"
 
 echo "Install local jars"
 mvn --quiet install:install-file \
--Dfile=task-scheduler/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar \
+-Dfile=mma-server/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar \
 -DgroupId=com.dingtalk \
 -DartifactId=dingtalk-sdk \
 -Dversion=1.0 \
@@ -47,7 +47,7 @@ mvn --quiet install:install-file \
 echo "Done"
 
 echo "Compile"
-mvn --quiet clean package -DskipTests
+mvn -U --quiet clean package -DskipTests
 echo "Done"
 
 echo "Assemble"
@@ -56,8 +56,9 @@ cp -r build/bin mma/bin
 echo "  Done"
 echo "  Copy jars"
 mkdir mma/lib
-cp task-scheduler/target/task-scheduler-1.0-SNAPSHOT.jar mma/lib/
+cp mma-server/target/mma-server-1.0-SNAPSHOT.jar mma/lib/
 cp data-transfer-hive-udtf/target/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar mma/lib
+cp mma-client/target/mma-client-1.0-SNAPSHOT.jar mma/lib/
 echo "  Done"
 echo "  Copy configuration files"
 cp  -r build/conf/ mma/conf

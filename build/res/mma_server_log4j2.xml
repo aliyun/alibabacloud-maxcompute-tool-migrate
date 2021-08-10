@@ -60,7 +60,7 @@
         <logger name="org.eclipse.jetty" level="info">
             <AppenderRef ref="JettyLoggerAppender"/>
         </logger>
-        <logger name="com.aliyun.odps.datacarrier.taskscheduler.ui" level="info">
+        <logger name="com.aliyun.odps.mma.server.ui" level="info">
             <AppenderRef ref="JettyLoggerAppender"/>
         </logger>
     </Loggers>

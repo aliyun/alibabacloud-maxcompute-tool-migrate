@@ -1,0 +1,30 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4
+      with:
+        maven-version: 3.5.4
+    - name: Install DingTalk SDK
+      run: mvn --quiet install:install-file -Dfile=mma-server/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar -DgroupId=com.dingtalk -DartifactId=dingtalk-sdk -Dversion=1.0 -Dpackaging=jar
+    - name: Build with Maven
+      run: mvn -U -B clean package -DskipTests

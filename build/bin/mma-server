@@ -2,19 +2,6 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export MMA_HOME=$(dirname ${DIR})
 
-function CHECK_EXISTENCE()
-{
-    PROCESS_COUNT=$(ps -ef | grep MmaServerMain | grep -v grep | wc -l)
-    if [[ ${PROCESS_COUNT} != "0" ]]
-    then
-        PID=$(jps | grep MmaServerMain | awk '{print $1}')
-        echo "MMA server exists: pid=${PID}. Running multiple MMA server at the same time is not allowed. Exiting ..."
-        exit -1
-    fi
-}
-
-CHECK_EXISTENCE
-
 java -Dlog4j.configurationFile="$MMA_HOME/res/mma_server_log4j2.xml" \
      -cp "$MMA_HOME/lib/*" \
-     com.aliyun.odps.datacarrier.taskscheduler.MmaServerMain "$@"
+     com.aliyun.odps.mma.server.MmaServerMain "$@"
