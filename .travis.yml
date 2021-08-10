@@ -3,6 +3,7 @@ dist: trusty
 jdk:
   - oraclejdk8
 install:
+  - git fetch origin release/hive-1.x:release/hive-3.x
   - git fetch origin release/hive-2.x:release/hive-2.x
   - git fetch origin release/hive-1.x:release/hive-1.x
   - git branch -a
@@ -15,9 +16,8 @@ deploy:
   file_glob: false
   file:
     - mma-hive-1.x-release.tar.gz
-    - mma-hive-1.x-release.tar.gz.md5sum
     - mma-hive-2.x-release.tar.gz
-    - mma-hive-2.x-release.tar.gz.md5sum
+    - mma-hive-3.x-release.tar.gz
   skip_cleanup: true
   on:
     tags: true
