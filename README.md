@@ -1,4 +1,5 @@
 # MaxCompute Migration Assistant
+![build](https://github.com/aliyun/alibabacloud-maxcompute-tool-migrate/actions/workflows/build.yml/badge.svg)
 
 MaxCompute Migration Assistant (MMA) provides a solution to migrate data from different datasources 
 to MaxCompute. Currently, migration from Hive to MaxCompute is the most common scenario.
