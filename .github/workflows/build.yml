@@ -20,7 +20,11 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4
+      with:
+        maven-version: 3.5.4
     - name: Install DingTalk SDK
-      run: mvn --quiet install:install-file -Dfile=task-scheduler/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar -DgroupId=com.dingtalk -DartifactId=dingtalk-sdk -Dversion=1.0 -Dpackaging=jar
+      run: mvn --quiet install:install-file -Dfile=mma-server/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar -DgroupId=com.dingtalk -DartifactId=dingtalk-sdk -Dversion=1.0 -Dpackaging=jar
     - name: Build with Maven
-      run: mvn clean package -DskipTests
+      run: mvn -U -B clean package -DskipTests

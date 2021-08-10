@@ -24,6 +24,15 @@
     <hadoop.version>2.6.0</hadoop.version>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>conjars</id>
+      <name>Concurrent Conjars repository</name>
+      <url>http://conjars.org/repo</url>
+      <layout>default</layout>
+    </repository>
+  </repositories>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -264,12 +273,6 @@
         <groupId>com.j2html</groupId>
         <artifactId>j2html</artifactId>
         <version>1.4.0</version>
-      </dependency>
-      <!-- dataworks plugin -->
-      <dependency>
-        <groupId>com.alibaba.dw</groupId>
-        <artifactId>alisa-wrapper-face</artifactId>
-        <version>1.0.5-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.mybatis</groupId>

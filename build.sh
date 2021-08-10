@@ -47,7 +47,7 @@ mvn --quiet install:install-file \
 echo "Done"
 
 echo "Compile"
-mvn --quiet clean package -DskipTests
+mvn -U --quiet clean package -DskipTests
 echo "Done"
 
 echo "Assemble"
