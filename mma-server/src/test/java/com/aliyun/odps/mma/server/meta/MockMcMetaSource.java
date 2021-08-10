@@ -26,7 +26,7 @@ public class MockMcMetaSource implements MetaSource {
         DB_NAME,
         TBL_NON_PARTITIONED,
         columnMetaModels);
-    builder.lastModificationTime(0);
+    builder.lastModificationTime(0L);
     TBL_NON_PARTITIONED_META = builder.build();
   }
 
@@ -45,7 +45,7 @@ public class MockMcMetaSource implements MetaSource {
     columnMetaModels.add(
         new ColumnMetaModel("p2", "BIGINT", "second partition column"));
     builder.partitionColumns(partitionColumnMetaModels);
-    builder.lastModificationTime(0);
+    builder.lastModificationTime(0L);
 
     List<PartitionMetaModel> partitionMetaModels = new ArrayList<>(2);
     List<String> partitionValues = new ArrayList<>(2);
