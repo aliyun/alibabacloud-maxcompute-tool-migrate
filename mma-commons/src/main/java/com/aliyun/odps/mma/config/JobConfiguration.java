@@ -99,15 +99,24 @@ public class JobConfiguration extends AbstractConfiguration {
     }
   }
 
-  private void validateMcToOssCredentials() {
-    // TODO:
+  private void validateMcToOssCredentials() throws MmaException {
+    ConfigurationUtils.validateMcMetaSource(this);
+    ConfigurationUtils.validateMcDataSource(this);
+    ConfigurationUtils.validateOssMetaDest(this);
+    ConfigurationUtils.validateOssDataDest(this);
   }
 
-  private void validateOssToMcCredentials() {
-    // TODO:
+  private void validateOssToMcCredentials() throws MmaException {
+    ConfigurationUtils.validateOssMetaSource(this);
+    ConfigurationUtils.validateOssDataSource(this);
+    ConfigurationUtils.validateMcMetaDest(this);
+    ConfigurationUtils.validateMcDataDest(this);
   }
 
-  private void validateHiveToMcCredentials() {
-    // TODO:
+  private void validateHiveToMcCredentials() throws MmaException {
+    ConfigurationUtils.validateHiveMetaSource(this);
+    ConfigurationUtils.validateHiveDataSource(this);
+    ConfigurationUtils.validateMcMetaDest(this);
+    ConfigurationUtils.validateMcDataDest(this);
   }
 }
