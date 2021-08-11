@@ -11,7 +11,10 @@ import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 
-public class MockMcMetaSource implements MetaSource {
+/**
+ * Can be used as a mock MaxCompute or Hive meta source.
+ */
+public class MockMetaSource implements MetaSource {
 
   public static final String DB_NAME = "test";
   public static final String TBL_NON_PARTITIONED = "test_non_partitioned";
@@ -40,9 +43,9 @@ public class MockMcMetaSource implements MetaSource {
         TBL_PARTITIONED,
         columnMetaModels);
     List<ColumnMetaModel> partitionColumnMetaModels = new ArrayList<>(2);
-    columnMetaModels.add(
+    partitionColumnMetaModels.add(
         new ColumnMetaModel("p1", "STRING", "first partition column"));
-    columnMetaModels.add(
+    partitionColumnMetaModels.add(
         new ColumnMetaModel("p2", "BIGINT", "second partition column"));
     builder.partitionColumns(partitionColumnMetaModels);
     builder.lastModificationTime(0L);

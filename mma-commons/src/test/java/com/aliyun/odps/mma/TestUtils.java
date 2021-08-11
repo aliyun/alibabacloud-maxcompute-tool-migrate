@@ -22,6 +22,7 @@ public class TestUtils {
   public static final String OSS_BUCKET = "oss_bucket";
   public static final String OSS_ACCESSKEY_ID = "oss_accesskey_id";
   public static final String OSS_ACCESSKEY_SECRET = "oss_accesskey_secret";
+  public static final String OSS_PATH = "oss_path";
 
   private static Properties properties = null;
 

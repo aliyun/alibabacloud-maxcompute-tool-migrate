@@ -15,11 +15,9 @@ public class MockMetaSourceFactory extends MetaSourceFactory {
   public MetaSource getMetaSource(AbstractConfiguration config) {
     String metadataSourceType = config.get(JobConfiguration.METADATA_SOURCE_TYPE);
     switch (metadataSourceType) {
-      case "MaxCompute": {
-        return new MockMcMetaSource();
-      }
+      case "MaxCompute":
       case "Hive":
-      case "OSS":
+        return new MockMetaSource();
       default:
         throw new IllegalArgumentException(
             "Unsupported metadata source type: " + metadataSourceType);
