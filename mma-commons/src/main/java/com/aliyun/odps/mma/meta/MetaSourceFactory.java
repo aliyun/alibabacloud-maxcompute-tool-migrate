@@ -19,8 +19,7 @@
 
 package com.aliyun.odps.mma.meta;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -30,8 +29,9 @@ import com.google.gson.reflect.TypeToken;
 
 public class MetaSourceFactory {
 
-  // TODO: HACK avoid creating too many hive meta sources
-  private MetaSource hiveMetaSource;
+  private static final int MAX_HIVE_META_SOURCE_NUM = 5;
+  private List<AbstractConfiguration> hiveConfigQueue = new LinkedList<>();
+  private Map<AbstractConfiguration, MetaSource> hiveConfig2MetaSource = new HashMap<>();
 
   public MetaSourceFactory() {}
 
@@ -53,15 +53,60 @@ public class MetaSourceFactory {
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT));
       }
       case "Hive": {
-        if (hiveMetaSource == null) {
-          hiveMetaSource = newHiveMetaSource(config);
+        for (AbstractConfiguration existConfig : hiveConfigQueue) {
+          if (hiveConfigEqual(existConfig, config)) {
+            hiveConfigQueue.remove(existConfig);
+            hiveConfigQueue.add(existConfig);
+            return hiveConfig2MetaSource.get(existConfig);
+          }
         }
+
+        if (hiveConfigQueue.size() >= MAX_HIVE_META_SOURCE_NUM) {
+          hiveConfig2MetaSource.remove(hiveConfigQueue.get(0));
+          hiveConfigQueue.remove(0);
+        }
+
+        hiveConfigQueue.add(config);
+        MetaSource hiveMetaSource = newHiveMetaSource(config);
+        hiveConfig2MetaSource.put(config, hiveMetaSource);
         return hiveMetaSource;
       }
       default:
         throw new IllegalArgumentException(
             "Unsupported metadata source type: " + metadataSourceType);
     }
+  }
+
+  private static boolean hiveConfigEqual(AbstractConfiguration conf1, AbstractConfiguration conf2) {
+    String impl1 = conf1.getOrDefault(AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL,
+        AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL_DEFAULT_VALUE);
+    String impl2 = conf2.getOrDefault(AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL,
+        AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL_DEFAULT_VALUE);
+    if (!impl1.equals(impl2)) return false;
+
+    List<String> checkList = new ArrayList<>();
+    checkList.add(AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG);
+    checkList.add(AbstractConfiguration.JAVA_SECURITY_KRB5_CONF);
+    checkList.add(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY);
+    if (impl1.equalsIgnoreCase("HMS")) {
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_META_STORE_EXTRA_CONFIGS);
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_URIS);
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED);
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_PRINCIPAL);
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_KEYTAB_FILE);
+    } else if (impl1.equalsIgnoreCase("JDBC")) {
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_URL);
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_USERNAME);
+      checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_PASSWORD);
+    } else {
+      throw new IllegalArgumentException(
+          "Unsupported value for " + AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL + ": " + impl1);
+    }
+
+    for(String config: checkList) {
+      if(!conf1.get(config).equals(conf2.get(config))) return false;
+    }
+    return true;
   }
 
   private static MetaSource newHiveMetaSource(
