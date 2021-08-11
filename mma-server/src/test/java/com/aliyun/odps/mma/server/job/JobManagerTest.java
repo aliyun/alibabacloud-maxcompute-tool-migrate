@@ -20,9 +20,10 @@ import com.aliyun.odps.mma.config.MetaDestType;
 import com.aliyun.odps.mma.config.MetaSourceType;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.job.JobStatus;
+import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.aliyun.odps.mma.server.meta.MetaManager;
-import com.aliyun.odps.mma.server.meta.MockMcMetaSource;
+import com.aliyun.odps.mma.server.meta.MockMetaSource;
 import com.aliyun.odps.mma.server.meta.MockMetaSourceFactory;
 
 public class JobManagerTest {
@@ -71,10 +72,10 @@ public class JobManagerTest {
 
     config.put(JobConfiguration.JOB_ID, "testAddNonPartitionedTableJob");
     config.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLE.name());
-    config.put(JobConfiguration.SOURCE_CATALOG_NAME, MockMcMetaSource.DB_NAME);
-    config.put(JobConfiguration.SOURCE_OBJECT_NAME, MockMcMetaSource.TBL_NON_PARTITIONED);
-    config.put(JobConfiguration.DEST_CATALOG_NAME, MockMcMetaSource.DB_NAME);
-    config.put(JobConfiguration.DEST_OBJECT_NAME, MockMcMetaSource.TBL_NON_PARTITIONED);
+    config.put(JobConfiguration.SOURCE_CATALOG_NAME, MockMetaSource.DB_NAME);
+    config.put(JobConfiguration.SOURCE_OBJECT_NAME, MockMetaSource.TBL_NON_PARTITIONED);
+    config.put(JobConfiguration.DEST_CATALOG_NAME, MockMetaSource.DB_NAME);
+    config.put(JobConfiguration.DEST_OBJECT_NAME, MockMetaSource.TBL_NON_PARTITIONED);
 
     JobConfiguration jobConfig = new JobConfiguration(config);
     String jobId = jobManager.addJob(jobConfig);
@@ -100,13 +101,12 @@ public class JobManagerTest {
     config.put(JobConfiguration.DATA_SOURCE_TYPE, DataSourceType.MaxCompute.name());
     config.put(JobConfiguration.METADATA_DEST_TYPE, MetaDestType.OSS.name());
     config.put(JobConfiguration.DATA_DEST_TYPE, DataDestType.OSS.name());
-
     config.put(JobConfiguration.JOB_ID, "testAddPartitionedTableJob");
     config.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLE.name());
-    config.put(JobConfiguration.SOURCE_CATALOG_NAME, MockMcMetaSource.DB_NAME);
-    config.put(JobConfiguration.SOURCE_OBJECT_NAME, MockMcMetaSource.TBL_PARTITIONED);
-    config.put(JobConfiguration.DEST_CATALOG_NAME, MockMcMetaSource.DB_NAME);
-    config.put(JobConfiguration.DEST_OBJECT_NAME, MockMcMetaSource.TBL_PARTITIONED);
+    config.put(JobConfiguration.SOURCE_CATALOG_NAME, MockMetaSource.DB_NAME);
+    config.put(JobConfiguration.SOURCE_OBJECT_NAME, MockMetaSource.TBL_PARTITIONED);
+    config.put(JobConfiguration.DEST_CATALOG_NAME, MockMetaSource.DB_NAME);
+    config.put(JobConfiguration.DEST_OBJECT_NAME, MockMetaSource.TBL_PARTITIONED);
 
     JobConfiguration jobConfig = new JobConfiguration(config);
     String jobId = jobManager.addJob(jobConfig);
@@ -123,7 +123,7 @@ public class JobManagerTest {
     Assert.assertEquals(config, actual);
 
     List<Job> subJobs = jobManager.listSubJobs(job);
-    Assert.assertEquals(1, subJobs.size());
+    Assert.assertEquals(2, subJobs.size());
 
     Job subJob = subJobs.get(0);
     Assert.assertEquals("testAddPartitionedTableJob", subJob.getParentJob().getId());
@@ -147,8 +147,8 @@ public class JobManagerTest {
 
     config.put(JobConfiguration.JOB_ID, "testAddCatalogJob");
     config.put(JobConfiguration.OBJECT_TYPE, ObjectType.CATALOG.name());
-    config.put(JobConfiguration.SOURCE_CATALOG_NAME, MockMcMetaSource.DB_NAME);
-    config.put(JobConfiguration.DEST_CATALOG_NAME, MockMcMetaSource.DB_NAME);
+    config.put(JobConfiguration.SOURCE_CATALOG_NAME, MockMetaSource.DB_NAME);
+    config.put(JobConfiguration.DEST_CATALOG_NAME, MockMetaSource.DB_NAME);
     config.put(JobConfiguration.SOURCE_OBJECT_TYPES, ObjectType.TABLE.name());
 
     JobConfiguration jobConfig = new JobConfiguration(config);
@@ -169,7 +169,8 @@ public class JobManagerTest {
     for (Job subJob : subJobs) {
       JobConfiguration subJobConfig = subJob.getJobConfiguration();
       System.out.println(subJob.getJobConfiguration());
-      if (MockMcMetaSource.TBL_NON_PARTITIONED.equals(subJobConfig.get(JobConfiguration.SOURCE_OBJECT_NAME))) {
+      if (MockMetaSource.TBL_NON_PARTITIONED.equals(
+          subJobConfig.get(JobConfiguration.SOURCE_OBJECT_NAME))) {
         Assert.assertEquals("testAddCatalogJob", subJob.getParentJob().getId());
         Assert.assertEquals(JobStatus.PENDING, subJob.getStatus());
         Assert.assertEquals(
@@ -177,15 +178,16 @@ public class JobManagerTest {
             subJob.getPriority());
         Assert.assertFalse(subJob.hasSubJob());
       } else {
+        TableMetaModel tableMetaModel =
+            MockMetaSource.TBL_NAME_2_TBL_META.get(MockMetaSource.TBL_PARTITIONED);
         Assert.assertEquals("testAddCatalogJob", subJob.getParentJob().getId());
         Assert.assertEquals(JobStatus.PENDING, subJob.getStatus());
         Assert.assertEquals(
             Integer.valueOf(JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE).intValue(),
             subJob.getPriority());
         Assert.assertTrue(subJob.hasSubJob());
-
         List<Job> subSubJobs = jobManager.listSubJobs(subJob);
-        Assert.assertEquals(1, subSubJobs.size());
+        Assert.assertEquals(tableMetaModel.getPartitions().size(), subSubJobs.size());
         Job subSubJob = subSubJobs.get(0);
         Assert.assertEquals(subJob.getId(), subSubJob.getParentJob().getId());
         Assert.assertEquals(JobStatus.PENDING, subSubJob.getStatus());

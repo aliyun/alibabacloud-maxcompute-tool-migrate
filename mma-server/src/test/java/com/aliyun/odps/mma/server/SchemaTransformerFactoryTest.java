@@ -8,11 +8,13 @@ import com.aliyun.odps.mma.config.DataSourceType;
 public class SchemaTransformerFactoryTest {
   @Test
   public void testGetHiveSchemaTransformer() {
-    Assert.assertTrue(SchemaTransformerFactory.get(DataSourceType.Hive) instanceof HiveSchemaTransformer);
+    Assert.assertTrue(
+        SchemaTransformerFactory.get(DataSourceType.Hive) instanceof HiveSchemaTransformer);
   }
 
   @Test
   public void testGetMcSchemaTransformer() {
-    Assert.assertTrue(SchemaTransformerFactory.get(DataSourceType.MaxCompute) instanceof McSchemaTransformer);
+    Assert.assertTrue(
+        SchemaTransformerFactory.get(DataSourceType.MaxCompute) instanceof McSchemaTransformer);
   }
 }
