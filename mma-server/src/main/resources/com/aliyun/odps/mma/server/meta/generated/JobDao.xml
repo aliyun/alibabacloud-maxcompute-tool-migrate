@@ -30,7 +30,7 @@
   <select id="selectSubJobById" resultMap="BaseResultMap">
     SELECT
     <include refid="Base_Column_List" />
-    FROM MMA.${parentJobId}
+    FROM MMA.`${parentJobId}`
     WHERE JOB_ID = #{subJobId,jdbcType=VARCHAR}
   </select>
 
@@ -44,7 +44,7 @@
   <select id="selectSubJobs" resultMap="BaseResultMap">
     SELECT
     <include refid="Base_Column_List" />
-    FROM MMA.${parentJobId}
+    FROM MMA.`${parentJobId}`
     ORDER BY C_TIME DESC
   </select>
 
@@ -59,7 +59,7 @@
   <select id="selectSubJobsByJobStatus" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List" />
-    from MMA.${parentJobId}
+    from MMA.`${parentJobId}`
     where JOB_STATUS = #{jobStatus,jdbcType=VARCHAR}
     ORDER BY C_TIME DESC
   </select>
@@ -70,14 +70,14 @@
   </delete>
 
   <delete id="deleteSubJobById">
-    DELETE FROM MMA.${parentJobId}
+    DELETE FROM MMA.`${parentJobId}`
     WHERE JOB_ID = #{subJobId}
   </delete>
 
   <insert
     id="insertSubJob"
     flushCache="true">
-    INSERT INTO MMA.${parentJobId} (
+    INSERT INTO MMA.`${parentJobId}` (
       JOB_ID,
       JOB_PRIORITY,
       JOB_STATUS,
@@ -257,7 +257,7 @@
   </update>
 
   <update id="updateSubJobById">
-    update MMA.${parentJobId}
+    update MMA.`${parentJobId}`
     set JOB_PRIORITY = #{record.jobPriority,jdbcType=INTEGER},
       JOB_STATUS = #{record.jobStatus,jdbcType=VARCHAR},
       JOB_CONFIG = #{record.jobConfig,jdbcType=VARCHAR},
@@ -295,7 +295,7 @@
   </update>
 
   <update id="createSubJobTableIfNotExists" parameterType="java.lang.String">
-    CREATE TABLE IF NOT EXISTS MMA.${parentJobId} (
+    CREATE TABLE IF NOT EXISTS MMA.`${parentJobId}` (
       `JOB_ID` VARCHAR(255),
       `JOB_PRIORITY` INT,
       `JOB_STATUS` VARCHAR(16),
@@ -313,6 +313,6 @@
   </update>
 
   <update id="dropSubJobTable" parameterType="java.lang.String">
-    DROP TABLE IF EXISTS MMA.${parentJobId}
+    DROP TABLE IF EXISTS MMA.`${parentJobId}`
   </update>
 </mapper>
