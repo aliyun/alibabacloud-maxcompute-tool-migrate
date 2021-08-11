@@ -1,30 +1,51 @@
-package com.aliyun.odps.mma.server.meta;
+package com.aliyun.odps.mma.meta;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.aliyun.odps.mma.TestUtils;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.OssMetaSource;
 import com.aliyun.odps.mma.util.GsonUtils;
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSClientBuilder;
 
-// TODO:
 public class OssMetaSourceTest {
+  private static OSS oss;
   private static OssMetaSource ossMetaSource;
 
   @BeforeClass
-  public static void before() {
+  public static void beforeClass() throws IOException {
+    oss = new OSSClientBuilder().build(
+        TestUtils.getProperty(TestUtils.OSS_ENDPOINT),
+        TestUtils.getProperty(TestUtils.OSS_ACCESSKEY_ID),
+        TestUtils.getProperty(TestUtils.OSS_ACCESSKEY_SECRET));
+
+    // TODO: add objects
+    // remove objects
+    // put objects
+
     ossMetaSource = new OssMetaSource(
-        "",
-        "",
-        "",
-        "",
-        "");
+        TestUtils.getProperty(TestUtils.OSS_ACCESSKEY_ID),
+        TestUtils.getProperty(TestUtils.OSS_ACCESSKEY_SECRET),
+        TestUtils.getProperty(TestUtils.OSS_BUCKET),
+        TestUtils.getProperty(TestUtils.OSS_PATH),
+        TestUtils.getProperty(TestUtils.OSS_ENDPOINT));
+  }
+
+  @AfterClass
+  public static void afterClass() throws IOException {
+    // TODO: remove objects
+    // list objects
+    // remove objects
   }
 
   @Test
@@ -36,7 +57,7 @@ public class OssMetaSourceTest {
   public void testHasTable() {
     boolean ret = ossMetaSource.hasTable("mma_test_backup", "test_text_1x1k");
     Assert.assertTrue(ret);
-}
+  }
 
   @Test
   public void testHasPartition() throws Exception {
