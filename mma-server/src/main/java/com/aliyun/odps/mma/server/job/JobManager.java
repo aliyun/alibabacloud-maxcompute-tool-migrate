@@ -208,9 +208,12 @@ public class JobManager {
       String tableName,
       JobConfiguration config) throws Exception {
     boolean isSubJob = !StringUtils.isBlank(parentJobId);
-    String jobId = StringUtils.defaultString(
-        config.get(JobConfiguration.JOB_ID),
-        JobUtils.generateJobId(isSubJob));
+    String jobId;
+    if (!isSubJob && config.containsKey(JobConfiguration.JOB_ID)) {
+      jobId = config.get(JobConfiguration.JOB_ID);
+    } else {
+      jobId = JobUtils.generateJobId(isSubJob);
+    }
 
     // Ignore schema name for now, since MetaSource interface doesn't support it.
     MetaSource metaSource = metaSourceFactory.getMetaSource(config);
@@ -262,7 +265,6 @@ public class JobManager {
           jobMaxAttemptTimes,
           config.toString(),
           isPartitioned);
-
     } else {
       metaManager.addJob(
           jobId,
