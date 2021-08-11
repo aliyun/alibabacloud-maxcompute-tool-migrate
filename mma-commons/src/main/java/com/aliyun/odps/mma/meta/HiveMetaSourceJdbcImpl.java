@@ -55,7 +55,7 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
       Map<String, String> javaSecurityConfigs) throws ClassNotFoundException {
     this.hiveJdbcUrl = Validate.notBlank(hiveJdbcUrl, "Hive JDBC URL cannot be null");
     this.username = Validate.notBlank(username, "Hive JDBC username cannot be null");
-    this.password = Validate.notBlank(password, "Hive JDBC password cannot be null");
+    this.password = password;
 
     LOG.info("Initializing HiveMetaSourceJdbcImpl, JDBC URL: {}, username: {}, system properties: {}",
              hiveJdbcUrl,
