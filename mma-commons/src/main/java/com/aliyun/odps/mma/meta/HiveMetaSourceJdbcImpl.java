@@ -232,7 +232,7 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
         }
       }
 
-      if (!withoutPartitionMeta) {
+      if (!withoutPartitionMeta && !partitionColumns.isEmpty()) {
         List<List<String>> partitionValuesList =
             listPartitionsInternal(connection, databaseName, tableName);
         List<String> partitionColumnNames = partitionColumns
