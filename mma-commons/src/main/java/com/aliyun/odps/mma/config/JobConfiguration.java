@@ -20,6 +20,7 @@
 package com.aliyun.odps.mma.config;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
@@ -71,10 +72,12 @@ public class JobConfiguration extends AbstractConfiguration {
 
   @Override
   public void validate() throws MmaException {
+    // Supported job id: [A-Za-z0-9-_]
     // Supported source and destination combinations:
     // 1. Hive(metadata), Hive(data) -> MC(metadata), MC(data)
     // 2. MC(metadata), MC(metadata) -> OSS(metadata), OSS(data)
     // 3. OSS(metadata), OSS(data) -> MC(metadata), MC(data)
+    validateJobId();
     MetaSourceType metaSourceType = MetaSourceType.valueOf(configuration.get(METADATA_SOURCE_TYPE));
     DataSourceType dataSourceType = DataSourceType.valueOf(configuration.get(DATA_SOURCE_TYPE));
     MetaDestType metaDestType = MetaDestType.valueOf(configuration.get(METADATA_DEST_TYPE));
@@ -118,5 +121,12 @@ public class JobConfiguration extends AbstractConfiguration {
     ConfigurationUtils.validateHiveDataSource(this);
     ConfigurationUtils.validateMcMetaDest(this);
     ConfigurationUtils.validateMcDataDest(this);
+  }
+
+  private void validateJobId() throws MmaException {
+    String jobId = get(JobConfiguration.JOB_ID);
+    if(!Pattern.compile("[A-Za-z0-9_-]+").matcher(jobId).matches()){
+      throw new MmaException("Invalid Job Id");
+    }
   }
 }

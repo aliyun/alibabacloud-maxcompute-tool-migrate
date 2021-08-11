@@ -211,8 +211,7 @@ public class ConfigurationUtils {
     try {
       MetaSourceFactory.getHiveMetaSource(config);
     } catch (Exception e) {
-      e.printStackTrace();
-      throw new MmaException("Invalid Hive configuration");
+      throw new MmaException("Invalid Hive configuration", e);
     }
   }
 
@@ -233,8 +232,7 @@ public class ConfigurationUtils {
         }
       }
     } catch (SQLException | ClassNotFoundException e) {
-      e.printStackTrace();
-      throw new MmaException("Invalid Hive configuration");
+      throw new MmaException("Invalid Hive configuration", e);
     }
   }
 
