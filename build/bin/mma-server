@@ -2,6 +2,26 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export MMA_HOME=$(dirname ${DIR})
 
-java -Dlog4j.configurationFile="$MMA_HOME/res/mma_server_log4j2.xml" \
+function GET_MMA_SERVER_PID() {
+  if type lsof > /dev/null; then
+  # TODO: get MMA server API port from MMA server config
+    PID=$(lsof -t -i:18889)
+  else
+    PID=$(ps ax | grep -i 'MmaServerMain' | grep java | grep -v grep | awk '{print $1}')
+  fi
+  echo ${PID}
+}
+
+PID=$(GET_MMA_SERVER_PID)
+
+if [ -z "$PID" ]; then
+  echo "Start MMA server"
+  nohup java -Dlog4j.configurationFile="$MMA_HOME/res/mma_server_log4j2.xml" \
      -cp "$MMA_HOME/lib/*" \
-     com.aliyun.odps.mma.server.MmaServerMain "$@"
+     com.aliyun.odps.mma.server.MmaServerMain "$@" 2&>1 &
+  sleep 5
+  PID=$(GET_MMA_SERVER_PID)
+  echo "MMA server started, PID=${PID}"
+else
+  echo "MMA server already started, PID=${PID}"
+fi
