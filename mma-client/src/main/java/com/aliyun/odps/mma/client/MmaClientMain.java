@@ -10,9 +10,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.JobInfoOutputsV1;
+import com.aliyun.odps.mma.config.ObjectType;
 
 public class MmaClientMain {
 
@@ -122,6 +124,7 @@ public class MmaClientMain {
     String content = IOUtils.toString(
         new FileInputStream(jobConfigPath), StandardCharsets.UTF_8);
     JobConfiguration config = JobConfiguration.fromJson(content);
+    System.err.println("Submitting job, this may take a few minutes");
     mmaClient.submitJob(config);
     System.err.println("OK");
     return 0;
@@ -132,6 +135,7 @@ public class MmaClientMain {
       throw new IllegalArgumentException("Missing required option " + JOB_ID_LONG_OPT);
     }
     String jobId = cmd.getOptionValue(JOB_ID_OPT);
+    System.err.println("Resetting job, this may take a few minutes");
     mmaClient.resetJob(jobId);
     System.err.println("OK");
     return 0;
@@ -162,14 +166,18 @@ public class MmaClientMain {
     sb.append("Job status: ").append(jobInfo.getStatus()).append("\n");
     sb.append("Object type: ").append(jobInfo.getObjectType()).append("\n");
     sb.append("Source: ")
-      .append(jobInfo.getSourceCatalog())
-      .append(".")
-      .append(jobInfo.getSourceObject())
-      .append("\n");
+      .append(jobInfo.getSourceCatalog());
+    if (!ObjectType.CATALOG.name().equals(jobInfo.getObjectType())) {
+      sb.append(".")
+        .append(jobInfo.getSourceObject());
+    }
+    sb.append("\n");
     sb.append("Destination: ")
-      .append(jobInfo.getDestCatalog())
-      .append(".")
-      .append(jobInfo.getDestObject());
+      .append(jobInfo.getDestCatalog());
+    if (!ObjectType.CATALOG.name().equals(jobInfo.getObjectType())) {
+      sb.append(".")
+        .append(jobInfo.getDestObject());
+    }
     System.out.println(sb.toString());
     System.err.println("OK");
     return 0;
