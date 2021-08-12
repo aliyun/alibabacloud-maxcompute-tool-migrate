@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer;
+package com.aliyun.odps.mma.io;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
