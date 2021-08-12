@@ -256,8 +256,10 @@ public abstract class AbstractTableJob extends AbstractJob {
   @Override
   public synchronized void stop() throws MmaException {
     super.stop();
-    for (Task t : dag.vertexSet()) {
-      t.stop();
+    if (dag != null) {
+      for (Task t : dag.vertexSet()) {
+        t.stop();
+      }
     }
   }
 
