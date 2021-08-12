@@ -145,6 +145,9 @@ public class JobPage extends WebUiPage {
     List<Task> tasks = job.getTasks();
     if (!tasks.isEmpty()) {
       content.add(
+          h4("Tasks (" + tasks.size() + ")").withId("tasks")
+      );
+      content.add(
           UiUtils.tasksTable(
               taskTableParameterPath,
               request,
