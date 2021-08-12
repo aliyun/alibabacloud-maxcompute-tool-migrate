@@ -519,12 +519,14 @@ public class UiUtils {
 
     @Override
     public DomContent[] getHeaders() {
-      DomContent[] headers = new DomContent[5];
+      DomContent[] headers = new DomContent[7];
       headers[0] = th("Job ID");
       headers[1] = th("Status");
       headers[2] = th("Object Type");
       headers[3] = th("Source");
       headers[4] = th("Destination");
+      headers[5] = th("Start Time");
+      headers[6] = th("Duration");
       return headers;
     }
 
@@ -542,7 +544,9 @@ public class UiUtils {
           td(job.getStatus().name()),
           td(job.getJobConfiguration().get(JobConfiguration.OBJECT_TYPE)),
           td(UiUtils.getSource(job)),
-          td(UiUtils.getDestination(job))
+          td(UiUtils.getDestination(job)),
+          td(UiUtils.formatDate(job.getStartTime())),
+          td(UiUtils.formatDuration(job.getStartTime(), job.getEndTime()))
       );
     }
 
@@ -580,9 +584,12 @@ public class UiUtils {
     }
 
     private String jobPageLink(String id) {
+      String root = StringUtils.defaultIfBlank(
+          rootJobId,
+          StringUtils.defaultIfBlank(jobId, ""));
       return parameterPath + "/job?"
           + Constants.JOB_TAG_PARAM + "=" + jobTag
-          + "&" + Constants.ROOT_JOB_ID_PARAM + "=" + StringUtils.defaultString(rootJobId, "")
+          + "&" + Constants.ROOT_JOB_ID_PARAM + "=" + root
           + "&" + Constants.JOB_ID_PARAM + "=" + id;
     }
   }
