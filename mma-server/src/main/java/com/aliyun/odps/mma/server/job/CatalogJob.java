@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.server.job;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,6 +16,8 @@ import com.aliyun.odps.mma.server.task.Task;
 public class CatalogJob extends AbstractJob {
 
   private static final Logger LOG = LogManager.getLogger(CatalogJob.class);
+
+  private static final int EXECUTABLE_TASK_BATCH_SIZE = 3;
 
   public CatalogJob(
       Job parentJob,
@@ -49,9 +52,14 @@ public class CatalogJob extends AbstractJob {
   public List<Task> getExecutableTasks() {
     // Iterate over sub jobs and pick up executable tasks
     List<Job> subJobs = getSubJobs();
-    List<Task> ret = new LinkedList<>();
+    List<Task> ret = new ArrayList<>(EXECUTABLE_TASK_BATCH_SIZE);
     for (Job subJob : subJobs) {
       ret.addAll(subJob.getExecutableTasks());
+      if (ret.size() > EXECUTABLE_TASK_BATCH_SIZE) {
+        // Make this method call return once a few executable tasks are generated, so that this
+        // method call won't block the execution.
+        break;
+      }
     }
     return ret;
   }
