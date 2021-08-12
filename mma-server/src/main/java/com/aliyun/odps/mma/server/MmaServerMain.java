@@ -51,7 +51,7 @@ public class MmaServerMain {
     return 0;
   }
 
-  public static void main(String[] args) throws ParseException, IOException, MmaException {
+  public static void main(String[] args) throws Exception {
     BasicConfigurator.configure();
 
     String mmaHome = System.getenv("MMA_HOME");
@@ -95,6 +95,8 @@ public class MmaServerMain {
     try {
       MmaServer mmaServer = new MmaServer();
       mmaServer.run();
+    } catch (Exception e) {
+      LOG.error("Failed to start MMA server", e);
     } finally {
       MmaEventManager.getInstance().shutdown();
     }
