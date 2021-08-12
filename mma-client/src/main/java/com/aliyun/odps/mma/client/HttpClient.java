@@ -67,7 +67,7 @@ public class HttpClient {
       connection.setDoInput(true);
       connection.setDoOutput(true);
 
-      connection.setReadTimeout(120 * 1000);
+      connection.setReadTimeout(600 * 1000);
       connection.setConnectTimeout(10 * 1000);
 
       if (("POST".equals(method) || "PUT".equals(method)) && inputs != null && inputs.length != 0) {
