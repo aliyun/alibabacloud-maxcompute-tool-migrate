@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,15 +41,21 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 
-public class HiveMetaSourceJdbcImpl implements MetaSource {
+public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
 
   private static final Logger LOG = LogManager.getLogger(HiveMetaSourceJdbcImpl.class);
+
+  /**
+   * Limit the number of available to protect the Hiveserver2 from being overwhelmed
+   */
+  private static final int CONNECTION_COUNT_MAX = 15;
+  private final Semaphore available = new Semaphore(CONNECTION_COUNT_MAX, true);
 
   private String hiveJdbcUrl;
   private String username;
   private String password;
 
-  public HiveMetaSourceJdbcImpl(
+  HiveMetaSourceJdbcImpl(
       String hiveJdbcUrl,
       String username,
       String password,
@@ -73,17 +80,30 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
     LOG.info("HiveMetaSourceJdbcImpl initialized");
   }
 
-  private Connection getConnection() throws SQLException {
+  private Connection getConnection() throws SQLException, InterruptedException {
+    available.acquire();
+    LOG.debug(
+        "Get connection, max connection: {}, current: {}",
+        CONNECTION_COUNT_MAX,
+        CONNECTION_COUNT_MAX - available.availablePermits());
     return DriverManager.getConnection(hiveJdbcUrl, username, password);
   }
 
+  private void releaseConnection() {
+    LOG.debug(
+        "Release connection, max connection: {}, current: {}",
+        CONNECTION_COUNT_MAX,
+        CONNECTION_COUNT_MAX - available.availablePermits());
+    available.release();
+  }
+
   @Override
-  public TableMetaModel getTableMeta(String databaseName, String tableName) throws Exception {
+  public TableMetaModel timedGetTableMeta(String databaseName, String tableName) throws Exception {
     return getTableMetaInternal(databaseName, tableName, false);
   }
 
   @Override
-  public TableMetaModel getTableMetaWithoutPartitionMeta(String databaseName, String tableName)
+  public TableMetaModel timedGetTableMetaWithoutPartitionMeta(String databaseName, String tableName)
       throws Exception {
     return getTableMetaInternal(databaseName, tableName, true);
   }
@@ -91,7 +111,7 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
   private TableMetaModel getTableMetaInternal(
       String databaseName,
       String tableName,
-      boolean withoutPartitionMeta) throws SQLException {
+      boolean withoutPartitionMeta) throws SQLException, InterruptedException {
     List<ColumnMetaModel> columns = new LinkedList<>();
     List<ColumnMetaModel> partitionColumns = new LinkedList<>();
     List<PartitionMetaModel> partitions = new LinkedList<>();
@@ -261,6 +281,8 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
       builder.serDe(serDe);
       builder.partitions(partitions);
       return builder.build();
+    } finally {
+      releaseConnection();
     }
   }
 
@@ -395,7 +417,7 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
   }
 
   @Override
-  public PartitionMetaModel getPartitionMeta(
+  public PartitionMetaModel timedGetPartitionMeta(
       String databaseName,
       String tableName,
       List<String> partitionValues) throws Exception {
@@ -410,6 +432,8 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
           tableName,
           partitionColumnNames,
           partitionValues);
+    } finally {
+      releaseConnection();
     }
   }
 
@@ -419,7 +443,7 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
   }
 
   @Override
-  public boolean hasDatabase(String databaseName) throws Exception {
+  public boolean timedHasDatabase(String databaseName) throws Exception {
     try (Connection connection = getConnection()) {
       DatabaseMetaData meta = connection.getMetaData();
       try (ResultSet rs = meta.getSchemas(null, databaseName)) {
@@ -429,12 +453,14 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
           }
         }
       }
+    } finally {
+      releaseConnection();
     }
     return false;
   }
 
   @Override
-  public boolean hasTable(String databaseName, String tableName) throws Exception {
+  public boolean timedHasTable(String databaseName, String tableName) throws Exception {
     try (Connection connection = getConnection()) {
       DatabaseMetaData meta = connection.getMetaData();
       try (ResultSet rs = meta.getTables(null, databaseName, tableName, null)) {
@@ -445,12 +471,14 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
           }
         }
       }
+    } finally {
+      releaseConnection();
     }
     return false;
   }
 
   @Override
-  public boolean hasPartition(String databaseName, String tableName, List<String> partitionValues)
+  public boolean timedHasPartition(String databaseName, String tableName, List<String> partitionValues)
       throws Exception {
     try (Connection connection = getConnection()) {
       List<String> partitionColumnNames =
@@ -469,6 +497,8 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
           }
         }
       }
+    } finally {
+      releaseConnection();
     }
 
     return false;
@@ -562,7 +592,7 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
   }
 
   @Override
-  public List<String> listDatabases() throws Exception {
+  public List<String> timedListDatabases() throws Exception {
     List<String> databaseNames = new LinkedList<>();
     try (Connection connection = getConnection()) {
       DatabaseMetaData meta = connection.getMetaData();
@@ -571,12 +601,14 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
           databaseNames.add(rs.getString("TABLE_SCHEM"));
         }
       }
+    } finally {
+      releaseConnection();
     }
     return databaseNames;
   }
 
   @Override
-  public List<String> listTables(String databaseName) throws Exception {
+  public List<String> timedListTables(String databaseName) throws Exception {
     List<String> tableNames = new LinkedList<>();
     try (Connection connection = getConnection()) {
       DatabaseMetaData meta = connection.getMetaData();
@@ -585,15 +617,19 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
           tableNames.add(rs.getString("TABLE_NAME"));
         }
       }
+    } finally {
+      releaseConnection();
     }
     return tableNames;
   }
 
   @Override
-  public List<List<String>> listPartitions(String databaseName, String tableName) throws Exception {
+  public List<List<String>> timedListPartitions(String databaseName, String tableName) throws Exception {
     List<List<String>> partitionValuesList;
     try (Connection connection = getConnection()) {
       partitionValuesList = listPartitionsInternal(connection, databaseName, tableName);
+    } finally {
+      releaseConnection();
     }
     return partitionValuesList;
   }
@@ -630,6 +666,5 @@ public class HiveMetaSourceJdbcImpl implements MetaSource {
 
   @Override
   public void shutdown() {
-//    ds.close();
   }
 }
