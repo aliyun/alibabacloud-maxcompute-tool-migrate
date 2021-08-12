@@ -17,13 +17,16 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
+import java.sql.Date;
+
+import com.aliyun.odps.OdpsType;
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.DateObjectInspector;
 
-public class HiveBooleanObjectConverter extends AbstractHiveObjectConverter {
+public class HiveDateObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -31,6 +34,17 @@ public class HiveBooleanObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    return ((BooleanObjectInspector) objectInspector).get(o);
+    DateObjectInspector dateObjectInspector = (DateObjectInspector) objectInspector;
+    java.sql.Date value = new Date(dateObjectInspector.getPrimitiveJavaObject(o).toEpochMilli());
+    if (OdpsType.STRING.equals(odpsTypeInfo.getOdpsType())) {
+      return value.toString();
+    } else if (OdpsType.DATETIME.equals(odpsTypeInfo.getOdpsType())) {
+      return new java.sql.Date(value.getTime());
+    } else {
+      String msg = String.format("Unsupported implicit type conversion: from %s to %s",
+                                 "Hive.Date",
+                                 "ODPS." + odpsTypeInfo.getOdpsType());
+      throw new IllegalArgumentException(msg);
+    }
   }
 }

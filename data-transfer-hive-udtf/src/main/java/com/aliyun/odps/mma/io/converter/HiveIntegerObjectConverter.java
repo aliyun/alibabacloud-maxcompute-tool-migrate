@@ -17,27 +17,19 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
-
-import java.sql.Timestamp;
+package com.aliyun.odps.mma.io.converter;
 
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 
-public class HiveTimeStampObjectConverter extends AbstractHiveObjectConverter {
+public class HiveIntegerObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
     if (o == null) {
       return null;
     }
-
-    TimestampObjectInspector timestampObjectInspector = (TimestampObjectInspector) objectInspector;
-    org.apache.hadoop.hive.common.type.Timestamp apacheTimestamp =
-        timestampObjectInspector.getPrimitiveJavaObject(o);
-    Timestamp timestamp = new Timestamp(apacheTimestamp.toEpochMilli());
-    timestamp.setNanos(apacheTimestamp.getNanos());
-    return timestamp;
+    return ((IntObjectInspector) objectInspector).get(o);
   }
 }

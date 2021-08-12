@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer;
+package com.aliyun.odps.mma.io;
 
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.PartitionSpec;
@@ -25,7 +25,7 @@ import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.BearerTokenAccount;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.data.RecordWriter;
-import com.aliyun.odps.datacarrier.transfer.converter.HiveObjectConverter;
+import com.aliyun.odps.mma.io.converter.HiveObjectConverter;
 import com.aliyun.odps.tunnel.TableTunnel;
 import com.aliyun.odps.tunnel.TableTunnel.UploadSession;
 import com.aliyun.odps.tunnel.TunnelException;
@@ -49,13 +49,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
-
-/**
- * Only for odps 2.0
- * @author: Jon (wangzhong.zw@alibaba-inc.com)
- */
-public class OdpsDataTransferUDTF extends GenericUDTF {
-
+public class McDataTransmissionUDTF extends GenericUDTF {
   /**
    * Won't change once initialized
    */

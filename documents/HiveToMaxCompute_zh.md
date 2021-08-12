@@ -9,7 +9,44 @@
 这种迁移方式的前置条件有：
 - Hive集群各节点需要具备访问MaxCompute的能力
 
-## 准备工作
+## <a name="Architecture"></a>架构与原理
+当用户通过MMA client向MMA server提交一个迁移Job后，MMA首先会将该Job的配置记录在元数据中，并初始化其状态为PENDING。
+
+随后，MMA调度器将会把这个Job状态置为RUNNING，向Hive请求这张表的元数据，并开始调度执行。这个Job在MMA中会被拆分为若干
+个Task，每一个Task负责表中的一部分数据。每一个Task将会包含如下图所示的，由若干个Action组成的DAG：
+```$xslt
+            CreateTable (在MC中创建表)
+                 |
+            AddPartition (在MC中添加分区，仅限分区表)
+                 |
+            DataTransfer (数据传输)
+         +-------+-------+
+         |               |
+Source Verification   Dest Verification
+         |               |
+         +-------+-------+
+                 |
+      Compare Verification Result (对比验证结果)
+```
+
+上图中数据传输的原理是利用Hive的分布式计算能力，实现了一个Hive UDTF，在Hive UDTF
+中实现了上传数据至MaxCompute的逻辑，并将一个数据迁移任务转化为一个或多个形如：
+```$xslt
+SELECT UDTF(*) FROM hive_db.hive_table;
+```
+的Hive SQL。在执行上述Hive SQL时，数据将被Hive读出并传入UDTF，UDTF会通过MaxCompute的Tunnel SDK将数据写入
+MaxCompute。
+
+当某一个Task的所有Action执行成功后，MMA会将这个Task负责的部分数据的迁移状态置为SUCCEEDED。当该Job对应的所有Task都成功
+后，这张表的迁移结束。
+
+当某一个Task的某一个Action执行失败，MMA会将这个Task负责的部分数据的迁移状态置为FAILED，并生成另一个Task负责这部分数据，
+直到成功或达到重试次数上限。
+
+当表中数据发生变化时（新增数据，新增分区，或已有分区数据变化），可以重新提交迁移任务，此时MMA会重新扫描Hive中元数据，
+发现数据变化，并迁移发生变化的表或分区。
+
+## <a name="Preparation"></a>准备工作
 ### 1. 确认Hive版本
 在Hadoop集群的master节点执行 ```hive --version``` 确认Hive版本，根据返回下载对应MMA安装包。
 
@@ -90,7 +127,7 @@ $ hdfs dfs -put -f /path/to/mma/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-wit
 
 创建函数：
 ```$xslt
-0: jdbc:hive2://127.0.0.1:10000/default> CREATE FUNCTION odps_data_dump_multi as 'com.aliyun.odps.datacarrier.transfer.OdpsDataTransferUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';
+0: jdbc:hive2://127.0.0.1:10000/default> CREATE FUNCTION odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTransmissionUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';
 ```
 
 ## 快速开始

@@ -57,7 +57,7 @@ def prepare_data():
     hdfs_udtf_path = (
       "hdfs:///mma/"
       "data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar")
-    class_name = "com.aliyun.odps.datacarrier.transfer.RandomDataGenerateUDTF"
+    class_name = "com.aliyun.odps.mma.io.RandomDataGenerateUDTF"
 
     setup_commands = [
         "dfs -mkdir -p /mma;",

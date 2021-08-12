@@ -17,16 +17,16 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
-import com.aliyun.odps.type.ArrayTypeInfo;
+import com.aliyun.odps.type.MapTypeInfo;
 import com.aliyun.odps.type.TypeInfo;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
-public class HiveListObjectConverter extends AbstractHiveObjectConverter {
+public class HiveMapObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -34,15 +34,20 @@ public class HiveListObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    ListObjectInspector listObjectInspector = (ListObjectInspector) objectInspector;
-    ObjectInspector elementInspector = listObjectInspector.getListElementObjectInspector();
-    TypeInfo elementTypeInfo = ((ArrayTypeInfo) odpsTypeInfo).getElementTypeInfo();
-    List list = listObjectInspector.getList(o);
-    List<Object> newList = new ArrayList<>();
-    for (Object element : list) {
-      newList.add(HiveObjectConverter.convert(elementInspector, element, elementTypeInfo));
+    MapObjectInspector mapObjectInspector = (MapObjectInspector) objectInspector;
+    ObjectInspector mapKeyObjectInspector = mapObjectInspector.getMapKeyObjectInspector();
+    ObjectInspector mapValueObjectInspector = mapObjectInspector.getMapValueObjectInspector();
+    TypeInfo mapKeyTypeInfo = ((MapTypeInfo) odpsTypeInfo).getKeyTypeInfo();
+    TypeInfo mapValueTypeInfo = ((MapTypeInfo) odpsTypeInfo).getValueTypeInfo();
+
+    Map map = mapObjectInspector.getMap(o);
+    Map<Object, Object> newMap = new HashMap<>();
+    for (Object k : map.keySet()) {
+      Object v = map.get(k);
+      newMap.put(HiveObjectConverter.convert(mapKeyObjectInspector, k, mapKeyTypeInfo),
+          HiveObjectConverter.convert(mapValueObjectInspector, v, mapValueTypeInfo));
     }
 
-    return newList;
+    return newMap;
   }
 }

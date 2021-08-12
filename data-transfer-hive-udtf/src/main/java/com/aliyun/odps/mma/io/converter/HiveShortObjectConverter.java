@@ -17,13 +17,13 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.FloatObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.ShortObjectInspector;
 
-public class HiveFloatObjectConverter extends AbstractHiveObjectConverter {
+public class HiveShortObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -31,6 +31,6 @@ public class HiveFloatObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    return ((FloatObjectInspector) objectInspector).get(o);
+    return ((ShortObjectInspector) objectInspector).get(o);
   }
 }

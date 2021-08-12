@@ -17,16 +17,14 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
-import com.aliyun.odps.type.MapTypeInfo;
+import com.aliyun.odps.data.Varchar;
 import com.aliyun.odps.type.TypeInfo;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveVarcharObjectInspector;
 
-public class HiveMapObjectConverter extends AbstractHiveObjectConverter {
+public class HiveVarCharObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -34,20 +32,9 @@ public class HiveMapObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    MapObjectInspector mapObjectInspector = (MapObjectInspector) objectInspector;
-    ObjectInspector mapKeyObjectInspector = mapObjectInspector.getMapKeyObjectInspector();
-    ObjectInspector mapValueObjectInspector = mapObjectInspector.getMapValueObjectInspector();
-    TypeInfo mapKeyTypeInfo = ((MapTypeInfo) odpsTypeInfo).getKeyTypeInfo();
-    TypeInfo mapValueTypeInfo = ((MapTypeInfo) odpsTypeInfo).getValueTypeInfo();
-
-    Map map = mapObjectInspector.getMap(o);
-    Map<Object, Object> newMap = new HashMap<>();
-    for (Object k : map.keySet()) {
-      Object v = map.get(k);
-      newMap.put(HiveObjectConverter.convert(mapKeyObjectInspector, k, mapKeyTypeInfo),
-          HiveObjectConverter.convert(mapValueObjectInspector, v, mapValueTypeInfo));
-    }
-
-    return newMap;
+    HiveVarcharObjectInspector hiveVarcharObjectInspector =
+        (HiveVarcharObjectInspector) objectInspector;
+    String varcharValue = hiveVarcharObjectInspector.getPrimitiveJavaObject(o).getValue();
+    return new Varchar(varcharValue);
   }
 }

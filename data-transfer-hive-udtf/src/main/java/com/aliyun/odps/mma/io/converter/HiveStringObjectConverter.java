@@ -17,14 +17,16 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
-import com.aliyun.odps.data.Varchar;
+import java.math.BigDecimal;
+
+import com.aliyun.odps.OdpsType;
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveVarcharObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
-public class HiveVarCharObjectConverter extends AbstractHiveObjectConverter {
+public class HiveStringObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -32,9 +34,15 @@ public class HiveVarCharObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    HiveVarcharObjectInspector hiveVarcharObjectInspector =
-        (HiveVarcharObjectInspector) objectInspector;
-    String varcharValue = hiveVarcharObjectInspector.getPrimitiveJavaObject(o).getValue();
-    return new Varchar(varcharValue);
+    StringObjectInspector stringObjectInspector = (StringObjectInspector) objectInspector;
+    String value = stringObjectInspector.getPrimitiveJavaObject(o);
+
+    if (OdpsType.DECIMAL.equals(odpsTypeInfo.getOdpsType())) {
+      Double doubleValue = Double.valueOf(value);
+      return BigDecimal.valueOf(doubleValue);
+    } else if (OdpsType.DOUBLE.equals(odpsTypeInfo.getOdpsType())) {
+      return Double.valueOf(value);
+    }
+    return value;
   }
 }
