@@ -38,12 +38,7 @@ public class HiveMetaSourceJdbcImplTest {
     try {
       TableMetaModel tableMetaModel = metaSource.getTableMeta(
           "mma_test", "TEST_PARTITIONED_1Kx10K");
-      Assert.assertEquals("mma_test", tableMetaModel.getDatabase());
-      Assert.assertNotNull(tableMetaModel.getLastModificationTime());
-      Assert.assertEquals(16, tableMetaModel.getColumns().size());
-      // TODO: assert each column
-      Assert.assertEquals(2, tableMetaModel.getPartitionColumns().size());
-      // TODO: assert each partition columns
+      validateTableMetaModel(tableMetaModel);
       Assert.assertEquals(1001, tableMetaModel.getPartitions().size());
     } catch (Exception e) {
       e.printStackTrace();
@@ -56,15 +51,36 @@ public class HiveMetaSourceJdbcImplTest {
     try {
       TableMetaModel tableMetaModel = metaSource.getTableMetaWithoutPartitionMeta(
           "mma_test", "TEST_PARTITIONED_1Kx10K");
-      Assert.assertNotNull(tableMetaModel.getLastModificationTime());
-      Assert.assertEquals(16, tableMetaModel.getColumns().size());
-      // TODO: assert each column
-      Assert.assertEquals(2, tableMetaModel.getPartitionColumns().size());
-      // TODO: assert each partition columns
+      validateTableMetaModel(tableMetaModel);
       Assert.assertEquals(0, tableMetaModel.getPartitions().size());
     } catch (Exception e) {
       e.printStackTrace();
       fail();
+    }
+  }
+
+  private void validateTableMetaModel(TableMetaModel tableMetaModel) {
+    Assert.assertEquals("mma_test", tableMetaModel.getDatabase());
+    Assert.assertNotNull(tableMetaModel.getLastModificationTime());
+    Assert.assertEquals(16, tableMetaModel.getColumns().size());
+    String []columns = {
+        "tinyint", "smallint", "int", "bigint", "float", "double", "decimal", "timestamp",
+        "string", "varchar", "char", "boolean", "binary", "array", "map", "struct"
+    };
+    // column: name: t_[type], type: [type] | [type][detail]
+    for (int i = 0; i < columns.length; i++) {
+      MetaSource.ColumnMetaModel cmm = tableMetaModel.getColumns().get(i);
+      Assert.assertTrue(cmm.getColumnName().endsWith(columns[i]));
+      Assert.assertTrue(cmm.getType().startsWith(columns[i]));
+    }
+    Assert.assertEquals(2, tableMetaModel.getPartitionColumns().size());
+
+    String []p_columns_names = {"p1", "p2"};
+    String []p_columns_types = {"string", "bigint"};
+    for (int i = 0; i < tableMetaModel.getPartitionColumns().size(); i++) {
+      MetaSource.ColumnMetaModel pmm = tableMetaModel.getPartitionColumns().get(i);
+      Assert.assertEquals(pmm.getColumnName(), p_columns_names[i]);
+      Assert.assertEquals(pmm.getType(), p_columns_types[i]);
     }
   }
 
