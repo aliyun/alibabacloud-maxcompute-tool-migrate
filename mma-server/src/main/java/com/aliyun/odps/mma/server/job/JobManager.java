@@ -41,8 +41,20 @@ public class JobManager {
   public JobManager(MetaManager metaManager, MetaSourceFactory metaSourceFactory) {
     this.metaManager = Objects.requireNonNull(metaManager);
     this.metaSourceFactory = Objects.requireNonNull(metaSourceFactory);
+  }
 
-    // TODO: init jobs
+  /**
+   * Check the status of each job. Set the status of running jobs back to pending.
+   */
+  public synchronized void recover() throws Exception {
+    LOG.info("Enter recover");
+    List<Job> runningJobs = listJobByStatusInternal(JobStatus.RUNNING);
+    for (Job job : runningJobs) {
+      LOG.info("Recover job, job id: {}", job.getId());
+      job.stop();
+      job.reset(false);
+    }
+    LOG.info("Leave recover");
   }
 
   public synchronized String addJob(JobConfiguration config) throws Exception {
@@ -543,21 +555,25 @@ public class JobManager {
     return ret;
   }
 
-//  public List<Job> listJobsByStatus(JobStatus jobStatus) {
-//    List<com.aliyun.odps.mma.server.meta.generated.Job> records =
-//        metaManager.listJobsByStatus(jobStatus);
-//
-//    if (records.isEmpty()) {
-//      return Collections.emptyList();
-//    }
-//
-//    List<Job> ret = new ArrayList<>(records.size());
-//    for (com.aliyun.odps.mma.server.meta.generated.Job record : records) {
-//      ret.add(getJobInternal(null, record));
-//    }
-//
-//    return ret;
-//  }
+  public synchronized List<Job> listJobsByStatus(JobStatus jobStatus) {
+    return listJobByStatusInternal(jobStatus);
+  }
+
+  private List<Job> listJobByStatusInternal(JobStatus jobStatus) {
+    List<com.aliyun.odps.mma.server.meta.generated.Job> records =
+        metaManager.listJobsByStatus(jobStatus);
+
+    if (records.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    List<Job> ret = new ArrayList<>(records.size());
+    for (com.aliyun.odps.mma.server.meta.generated.Job record : records) {
+      ret.add(getJobInternal(null, record));
+    }
+
+    return ret;
+  }
 
   public synchronized List<Job> listSubJobs(Job parentJob) {
     LOG.info("List sub jobs, parent job id: {}", parentJob.getId());

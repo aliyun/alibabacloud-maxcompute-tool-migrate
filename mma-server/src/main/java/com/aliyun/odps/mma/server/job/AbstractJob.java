@@ -231,9 +231,19 @@ public abstract class AbstractJob implements Job {
   public synchronized void stop() throws MmaException {
     if (isTerminated()) {
       LOG.info("Stop terminated job, job id: {}", record.getJobId());
-      return;
+    } else {
+      LOG.info("Stop job, job id: {}, status: {}", record.getJobId(), record.getJobStatus());
+      setStatusInternal(JobStatus.CANCELED);
     }
-    setStatusInternal(JobStatus.CANCELED);
+    // The job status may be inconsistent because of unexpected process termination. Thus, we need
+    // to traverse the job tree and try to stop all the sub jobs even when this job itself is
+    // already terminated.
+    if (record.hasSubJob()) {
+      List<Job> subJobs = jobManager.listSubJobs(this);
+      for (Job subJob : subJobs) {
+        ((AbstractJob) subJob).stop();
+      }
+    }
   }
 
   @Override
@@ -281,6 +291,7 @@ public abstract class AbstractJob implements Job {
     JobBuilder jobBuilder = new JobBuilder(record);
     jobBuilder.jobStatus(status);
     switch (status) {
+      case CANCELED:
       case SUCCEEDED:
       case FAILED:
         jobBuilder.eTime(time);
@@ -288,14 +299,6 @@ public abstract class AbstractJob implements Job {
       case RUNNING:
         jobBuilder.sTime(time);
         jobBuilder.attemptTimes(record.getAttemptTimes() + 1);
-        break;
-      case CANCELED:
-        if (record.hasSubJob()) {
-          List<Job> subJobs = jobManager.listSubJobs(this);
-          for (Job subJob : subJobs) {
-            ((AbstractJob) subJob).setStatusInternal(JobStatus.CANCELED);
-          }
-        }
         break;
       default:
     }
