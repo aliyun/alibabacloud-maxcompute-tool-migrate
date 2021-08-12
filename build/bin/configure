@@ -157,7 +157,7 @@ function PRINT_CONFIGURE_HIVE_UDTF_GUIDANCE()
     PRINTLN_STDERR "hdfs dfs -put -f ${MMA_HOME}/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar hdfs:///tmp/"
     PRINTLN_STDERR_BOLD_BLUE "Create Hive function in beeline: "
     PRINTLN_STDERR "DROP FUNCTION IF EXISTS default.odps_data_dump_multi;"
-    PRINTLN_STDERR "CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.datacarrier.transfer.OdpsDataTransferUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';"
+    PRINTLN_STDERR "CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTransmissionUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';"
 }
 
 function CONFIGURE_MC()

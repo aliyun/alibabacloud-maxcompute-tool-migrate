@@ -17,16 +17,14 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
-import com.aliyun.odps.type.ArrayTypeInfo;
+import com.aliyun.odps.data.Binary;
 import com.aliyun.odps.type.TypeInfo;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 
-public class HiveListObjectConverter extends AbstractHiveObjectConverter {
+public class HiveBinaryObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -34,15 +32,7 @@ public class HiveListObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    ListObjectInspector listObjectInspector = (ListObjectInspector) objectInspector;
-    ObjectInspector elementInspector = listObjectInspector.getListElementObjectInspector();
-    TypeInfo elementTypeInfo = ((ArrayTypeInfo) odpsTypeInfo).getElementTypeInfo();
-    List list = listObjectInspector.getList(o);
-    List<Object> newList = new ArrayList<>();
-    for (Object element : list) {
-      newList.add(HiveObjectConverter.convert(elementInspector, element, elementTypeInfo));
-    }
-
-    return newList;
+    BinaryObjectInspector binaryObjectInspector = (BinaryObjectInspector) objectInspector;
+    return new Binary(binaryObjectInspector.getPrimitiveJavaObject(o));
   }
 }

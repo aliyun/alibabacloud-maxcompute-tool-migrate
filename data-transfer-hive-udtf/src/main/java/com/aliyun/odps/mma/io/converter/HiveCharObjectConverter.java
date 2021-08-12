@@ -17,19 +17,23 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveCharObjectInspector;
 
-public class HiveIntegerObjectConverter extends AbstractHiveObjectConverter {
+public class HiveCharObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
     if (o == null) {
       return null;
     }
-    return ((IntObjectInspector) objectInspector).get(o);
+
+    // TODO: support hive.compatible (return a Char object)
+    HiveCharObjectInspector hiveCharObjectInspector =
+        (HiveCharObjectInspector) objectInspector;
+    return hiveCharObjectInspector.getPrimitiveJavaObject(o).getValue();
   }
 }

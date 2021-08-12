@@ -17,16 +17,16 @@
  * under the License.
  */
 
-package com.aliyun.odps.datacarrier.transfer.converter;
+package com.aliyun.odps.mma.io.converter;
 
-import java.math.BigDecimal;
-
-import com.aliyun.odps.OdpsType;
+import com.aliyun.odps.type.ArrayTypeInfo;
 import com.aliyun.odps.type.TypeInfo;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 
-public class HiveLongObjectConverter extends AbstractHiveObjectConverter {
+public class HiveListObjectConverter extends AbstractHiveObjectConverter {
 
   @Override
   public Object convert(ObjectInspector objectInspector, Object o, TypeInfo odpsTypeInfo) {
@@ -34,11 +34,15 @@ public class HiveLongObjectConverter extends AbstractHiveObjectConverter {
       return null;
     }
 
-    Long longValue = ((LongObjectInspector) objectInspector).get(o);
-    if (OdpsType.DECIMAL.equals(odpsTypeInfo.getOdpsType())) {
-      return BigDecimal.valueOf(longValue);
+    ListObjectInspector listObjectInspector = (ListObjectInspector) objectInspector;
+    ObjectInspector elementInspector = listObjectInspector.getListElementObjectInspector();
+    TypeInfo elementTypeInfo = ((ArrayTypeInfo) odpsTypeInfo).getElementTypeInfo();
+    List list = listObjectInspector.getList(o);
+    List<Object> newList = new ArrayList<>();
+    for (Object element : list) {
+      newList.add(HiveObjectConverter.convert(elementInspector, element, elementTypeInfo));
     }
 
-    return longValue;
+    return newList;
   }
 }

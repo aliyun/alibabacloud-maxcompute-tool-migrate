@@ -29,7 +29,7 @@ Source Verification   Dest Verification
       Compare Verification Result (对比验证结果)
 ```
 
-上图中数据传输的原理是利用Hive的分布式计算能力，实现了一个Hive UDTF，在[Hive UDTF](https://github.com/aliyun/alibabacloud-maxcompute-tool-migrate/blob/master/data-transfer-hive-udtf/src/main/java/com/aliyun/odps/datacarrier/transfer/OdpsDataTransferUDTF.java)
+上图中数据传输的原理是利用Hive的分布式计算能力，实现了一个Hive UDTF，在Hive UDTF
 中实现了上传数据至MaxCompute的逻辑，并将一个数据迁移任务转化为一个或多个形如：
 ```$xslt
 SELECT UDTF(*) FROM hive_db.hive_table;
@@ -127,7 +127,7 @@ $ hdfs dfs -put -f /path/to/mma/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-wit
 
 创建函数：
 ```$xslt
-0: jdbc:hive2://127.0.0.1:10000/default> CREATE FUNCTION odps_data_dump_multi as 'com.aliyun.odps.datacarrier.transfer.OdpsDataTransferUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';
+0: jdbc:hive2://127.0.0.1:10000/default> CREATE FUNCTION odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTransmissionUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';
 ```
 
 ### 进度推送
