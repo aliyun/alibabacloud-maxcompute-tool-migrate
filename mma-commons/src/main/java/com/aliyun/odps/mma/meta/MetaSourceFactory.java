@@ -57,7 +57,7 @@ public class MetaSourceFactory {
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT));
       }
       case "Hive": {
-        return HiveMetaSourceInstance.getMetaSourceFromQueue(config);
+        return HiveMetaSourceFactory.getHiveMetaSource(config);
       }
       default:
         throw new IllegalArgumentException(
@@ -65,21 +65,11 @@ public class MetaSourceFactory {
     }
   }
 
-  static class HiveMetaSourceInstance {
-
+  static class HiveMetaSourceFactory {
     private static final int MAX_HIVE_META_SOURCE_NUM = 5;
     private static final Deque<HiveMetaSourceInstance> RUNNING_HIVE_QUEUE = new LinkedList<>();
 
-    private final AbstractConfiguration config;
-    private MetaSource metaSource;
-    private boolean isHms;
-
-    HiveMetaSourceInstance(AbstractConfiguration config) {
-      this.config = config;
-      setUpType();
-    }
-
-    static MetaSource getMetaSourceFromQueue(AbstractConfiguration config) throws Exception {
+    static MetaSource getHiveMetaSource(AbstractConfiguration config) throws Exception {
       HiveMetaSourceInstance newInstance = new HiveMetaSourceInstance(config);
       for (HiveMetaSourceInstance instance: RUNNING_HIVE_QUEUE) {
         if (instance.equals(newInstance)){
@@ -93,6 +83,19 @@ public class MetaSourceFactory {
       }
       RUNNING_HIVE_QUEUE.addFirst(newInstance);
       return newInstance.getMetaSource();
+    }
+
+  }
+
+  static class HiveMetaSourceInstance {
+
+    private final AbstractConfiguration config;
+    private MetaSource metaSource;
+    private boolean isHms;
+
+    HiveMetaSourceInstance(AbstractConfiguration config) {
+      this.config = config;
+      setUpType();
     }
 
     MetaSource getMetaSource() throws MetaException, ClassNotFoundException {
@@ -206,7 +209,7 @@ public class MetaSourceFactory {
   }
 
   public static MetaSource getHiveMetaSource(AbstractConfiguration config) throws Exception {
-    return new HiveMetaSourceInstance(config).getMetaSource();
+    return HiveMetaSourceFactory.getHiveMetaSource(config);
   }
 
 //  public static MetaSource getOdpsMetaSource(MmaConfig.OdpsConfig odpsConfig) {
