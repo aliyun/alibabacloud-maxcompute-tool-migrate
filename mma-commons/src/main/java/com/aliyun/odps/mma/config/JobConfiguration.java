@@ -59,6 +59,7 @@ public class JobConfiguration extends AbstractConfiguration {
    * Job attributes.
    */
   public static final String JOB_ID = "mma.job.id";
+  private static Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
 
   public JobConfiguration(Map<String, String> configuration) {
     super(configuration);
@@ -125,7 +126,7 @@ public class JobConfiguration extends AbstractConfiguration {
 
   private void validateJobId() throws MmaException {
     String jobId = get(JobConfiguration.JOB_ID);
-    if(!Pattern.compile("[A-Za-z0-9_-]+").matcher(jobId).matches()){
+    if(!JOB_ID_PATTERN.matcher(jobId).matches()){
       throw new MmaException("Invalid Job Id");
     }
   }
