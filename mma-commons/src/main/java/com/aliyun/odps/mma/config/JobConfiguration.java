@@ -127,7 +127,7 @@ public class JobConfiguration extends AbstractConfiguration {
   private void validateJobId() throws MmaException {
     String jobId = get(JobConfiguration.JOB_ID);
     if(!JOB_ID_PATTERN.matcher(jobId).matches()){
-      throw new MmaException("Invalid Job Id");
+      throw new MmaException("Invalid Job Id. Valid Job Id pattern: [A-Za-z0-9_-]+");
     }
   }
 }
