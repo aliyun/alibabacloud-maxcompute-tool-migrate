@@ -19,19 +19,23 @@
 
 package com.aliyun.odps.mma.meta;
 
+
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
 
 public class MetaSourceFactory {
-
-  // TODO: HACK avoid creating too many hive meta sources
-  private MetaSource hiveMetaSource;
 
   public MetaSourceFactory() {}
 
@@ -53,10 +57,7 @@ public class MetaSourceFactory {
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT));
       }
       case "Hive": {
-        if (hiveMetaSource == null) {
-          hiveMetaSource = newHiveMetaSource(config);
-        }
-        return hiveMetaSource;
+        return HiveMetaSourceFactory.getHiveMetaSource(config);
       }
       default:
         throw new IllegalArgumentException(
@@ -64,62 +65,151 @@ public class MetaSourceFactory {
     }
   }
 
-  private static MetaSource newHiveMetaSource(
-      AbstractConfiguration config) throws Exception {
-    String impl = config.getOrDefault(
-        AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL,
-        AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL_DEFAULT_VALUE);
+  static class HiveMetaSourceFactory {
+    private static final int MAX_HIVE_META_SOURCE_NUM = 5;
+    private static final Deque<HiveMetaSourceInstance> RUNNING_HIVE_QUEUE = new LinkedList<>();
 
-    Map<String, String> javaSecurityConfigs = new HashMap<>();
-    if (config.containsKey(AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG)) {
-      javaSecurityConfigs.put(
-          AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG,
-          config.get(AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG));
-    }
-    if (config.containsKey(AbstractConfiguration.JAVA_SECURITY_KRB5_CONF)) {
-      javaSecurityConfigs.put(
-          AbstractConfiguration.JAVA_SECURITY_KRB5_CONF,
-          config.get(AbstractConfiguration.JAVA_SECURITY_KRB5_CONF));
-    }
-    if (config.containsKey(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY)) {
-      javaSecurityConfigs.put(
-          AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY,
-          config.get(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY));
-    }
-
-    if ("HMS".equalsIgnoreCase(impl)) {
-      Map<String, String> extraConfigs;
-      String extraConfigsStr = config.get(
-          AbstractConfiguration.METADATA_SOURCE_HIVE_META_STORE_EXTRA_CONFIGS);
-      if (!StringUtils.isBlank(extraConfigsStr)) {
-        extraConfigs = GsonUtils
-            .GSON
-            .fromJson(extraConfigsStr, new TypeToken<Map<String, String>>() {}.getType());
-      } else {
-        extraConfigs = new HashMap<>();
+    static MetaSource getHiveMetaSource(AbstractConfiguration config) throws Exception {
+      HiveMetaSourceInstance newInstance = new HiveMetaSourceInstance(config);
+      for (HiveMetaSourceInstance instance: RUNNING_HIVE_QUEUE) {
+        if (instance.equals(newInstance)){
+          RUNNING_HIVE_QUEUE.remove(instance);
+          RUNNING_HIVE_QUEUE.addFirst(instance);
+          return instance.getMetaSource();
+        }
       }
-      return new HiveMetaSourceHmsImpl(
-          config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_URIS),
-          Boolean.valueOf(config.get(
-              AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED)),
-          config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_PRINCIPAL),
-          config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_KEYTAB_FILE),
-          javaSecurityConfigs,
-          extraConfigs);
-    } else if ("JDBC".equalsIgnoreCase(impl)) {
-      return new HiveMetaSourceJdbcImpl(
-          config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_URL),
-          config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_USERNAME),
-          config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_PASSWORD),
-          javaSecurityConfigs);
-    } else {
-      throw new IllegalArgumentException(
-          "Unsupported value for " + AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL + ": " + impl);
+      if (RUNNING_HIVE_QUEUE.size() >= MAX_HIVE_META_SOURCE_NUM) {
+        RUNNING_HIVE_QUEUE.pollLast();
+      }
+      RUNNING_HIVE_QUEUE.addFirst(newInstance);
+      return newInstance.getMetaSource();
+    }
+
+  }
+
+  static class HiveMetaSourceInstance {
+
+    private final AbstractConfiguration config;
+    private MetaSource metaSource;
+    private boolean isHms;
+
+    HiveMetaSourceInstance(AbstractConfiguration config) {
+      this.config = config;
+      setUpType();
+    }
+
+    MetaSource getMetaSource() throws MetaException, ClassNotFoundException {
+      if (metaSource != null) {
+        return metaSource;
+      }
+
+      Map<String, String> javaSecurityConfigs = new HashMap<>();
+      if (config.containsKey(AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG)) {
+        javaSecurityConfigs.put(
+            AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG,
+            config.get(AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG));
+      }
+      if (config.containsKey(AbstractConfiguration.JAVA_SECURITY_KRB5_CONF)) {
+        javaSecurityConfigs.put(
+            AbstractConfiguration.JAVA_SECURITY_KRB5_CONF,
+            config.get(AbstractConfiguration.JAVA_SECURITY_KRB5_CONF));
+      }
+      if (config.containsKey(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY)) {
+        javaSecurityConfigs.put(
+            AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY,
+            config.get(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY));
+      }
+
+      if (isHms) {
+        Map<String, String> extraConfigs;
+        String extraConfigsStr = config.get(
+            AbstractConfiguration.METADATA_SOURCE_HIVE_META_STORE_EXTRA_CONFIGS);
+        if (!StringUtils.isBlank(extraConfigsStr)) {
+          extraConfigs = GsonUtils
+              .GSON
+              .fromJson(extraConfigsStr, new TypeToken<Map<String, String>>() {}.getType());
+        } else {
+          extraConfigs = new HashMap<>();
+        }
+        metaSource = new HiveMetaSourceHmsImpl(
+            config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_URIS),
+            Boolean.parseBoolean(config.get(
+                AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED)),
+            config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_PRINCIPAL),
+            config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_KEYTAB_FILE),
+            javaSecurityConfigs,
+            extraConfigs);
+      } else {
+        metaSource = new HiveMetaSourceJdbcImpl(
+            config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_URL),
+            config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_USERNAME),
+            config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_PASSWORD),
+            javaSecurityConfigs);
+      }
+      return metaSource;
+    }
+
+    private void setUpType() {
+      String impl = config.getOrDefault(AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL,
+                                        AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL_DEFAULT_VALUE);
+      if ("HMS".equalsIgnoreCase(impl)) {
+        isHms = true;
+      } else if ("JDBC".equalsIgnoreCase(impl)){
+        isHms = false;
+      } else {
+        throw new IllegalArgumentException(
+            "Unsupported value for " + AbstractConfiguration.METADATA_SOURCE_HIVE_IMPL + ": " + impl);
+      }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      HiveMetaSourceInstance instance = (HiveMetaSourceInstance) o;
+
+      if (isHms != instance.isHms) {
+        return false;
+      }
+
+      List<String> checkList = new ArrayList<>();
+      checkList.add(AbstractConfiguration.JAVA_SECURITY_AUTH_LOGIN_CONFIG);
+      checkList.add(AbstractConfiguration.JAVA_SECURITY_KRB5_CONF);
+      checkList.add(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY);
+      if (isHms) {
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_META_STORE_EXTRA_CONFIGS);
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_URIS);
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED);
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_PRINCIPAL);
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_KERBEROS_KEYTAB_FILE);
+      } else {
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_URL);
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_USERNAME);
+        checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_PASSWORD);
+      }
+
+      for(String configName: checkList) {
+        String s1 = config.get(configName);
+        String s2 = instance.config.get(configName);
+        if(!s1.equals(s2)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(isHms);
     }
   }
 
   public static MetaSource getHiveMetaSource(AbstractConfiguration config) throws Exception {
-    return newHiveMetaSource(config);
+    return HiveMetaSourceFactory.getHiveMetaSource(config);
   }
 
 //  public static MetaSource getOdpsMetaSource(MmaConfig.OdpsConfig odpsConfig) {
