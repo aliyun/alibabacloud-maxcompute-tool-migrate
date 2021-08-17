@@ -192,10 +192,12 @@ public class MetaSourceFactory {
         checkList.add(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_PASSWORD);
       }
 
-      for(String configName: checkList) {
+      for (String configName: checkList) {
         String s1 = config.get(configName);
         String s2 = instance.config.get(configName);
-        if(!s1.equals(s2)) {
+        if (s1 == null ^ s2 == null) {
+          return false;
+        } else if(s1 != null && !s1.equals(s2)) {
           return false;
         }
       }
