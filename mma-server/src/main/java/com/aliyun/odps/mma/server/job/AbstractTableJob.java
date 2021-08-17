@@ -87,7 +87,11 @@ public abstract class AbstractTableJob extends AbstractJob {
   public synchronized List<Task> getExecutableTasks() {
     if (dag == null) {
       LOG.info("The DAG is not generated yet, job id: {}", record.getJobId());
-      dag = generateDag();
+      try {
+        dag = generateDag();
+      } catch (Exception e) {
+        return Collections.emptyList();
+      }
     }
 
     List<Task> ret = new LinkedList<>();
@@ -134,7 +138,11 @@ public abstract class AbstractTableJob extends AbstractJob {
   public synchronized boolean retry() {
     boolean retry = super.retry();
     if (retry) {
-      dag = generateDag();
+      try {
+        dag = generateDag();
+      } catch (Exception e) {
+        return false;
+      }
     }
     return retry;
   }
@@ -143,7 +151,7 @@ public abstract class AbstractTableJob extends AbstractJob {
   public synchronized boolean reset(boolean force) throws Exception {
     boolean reset = super.reset(force);
     if (reset) {
-      dag = generateDag();
+      dag = null;
     }
     return reset;
   }
@@ -277,7 +285,7 @@ public abstract class AbstractTableJob extends AbstractJob {
     return "basics: " + basics;
   }
 
-  abstract DirectedAcyclicGraph<Task, DefaultEdge> generateDag();
+  abstract DirectedAcyclicGraph<Task, DefaultEdge> generateDag() throws Exception;
 
   List<TablePartitionGroup> getTablePartitionGroups(
       MetaSource metaSource,
