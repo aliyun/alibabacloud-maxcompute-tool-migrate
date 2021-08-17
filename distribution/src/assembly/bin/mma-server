@@ -18,13 +18,14 @@ function GET_MMA_SERVER_PID() {
 PID=$(GET_MMA_SERVER_PID)
 
 if [ -z "${PID}" ]; then
-  echo "Start MMA server"
+  echo "Start MMA server..."
+  echo "This may take a few seconds"
   mkdir -p "${MMA_HOME}/log/"
   nohup java -Dlog4j.configurationFile="$MMA_HOME/res/mma_server_log4j2.xml" \
      -cp "$MMA_HOME/lib/*" \
      com.aliyun.odps.mma.server.MmaServerMain "$@" > "${MMA_HOME}/log/nohup.log" 2>&1 &
   # wait since it may take a few seconds for MMA API server to initialize
-  sleep 5
+  sleep 10
   PID=$(GET_MMA_SERVER_PID)
   if [ -z "${PID}" ]; then
     echo "Failed to start MMA server, please see the logs in ${MMA_HOME}/log for detailed information"
