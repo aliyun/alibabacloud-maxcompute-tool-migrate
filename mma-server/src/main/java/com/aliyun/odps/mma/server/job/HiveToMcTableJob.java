@@ -38,7 +38,7 @@ public class HiveToMcTableJob extends AbstractTableJob {
   }
 
   @Override
-  DirectedAcyclicGraph<Task, DefaultEdge> generateDag() {
+  DirectedAcyclicGraph<Task, DefaultEdge> generateDag() throws Exception {
     LOG.info("Generate the DAG, job id: {}", record.getJobId());
 
     try {
@@ -76,7 +76,7 @@ public class HiveToMcTableJob extends AbstractTableJob {
     } catch (Exception e) {
       String stackTrace = ExceptionUtils.getFullStackTrace(e);
       fail(stackTrace);
-      return null;
+      throw e;
     }
   }
 
