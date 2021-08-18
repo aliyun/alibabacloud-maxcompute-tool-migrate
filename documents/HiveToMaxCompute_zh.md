@@ -148,14 +148,14 @@ mma 的配置文件一般不手动修改，使用工具进行管理，主要包�
 上传 Hive UDTF Jar 包至 HDFS：
 
 ```shell
-hdfs dfs -put -f /path/to/mma/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar hdfs:///tmp/
+hdfs dfs -put -f ${MMA_HOME}/lib/data-transfer-hive-udtf-${MMA_VERSION}-jar-with-dependencies.jar hdfs:///tmp/
 ```
 
 使用 beeline 创建 Hive 函数：
 
 ```sql
 DROP FUNCTION IF EXISTS default.odps_data_dump_multi;
-CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.datacarrier.transfer.OdpsDataTransferUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-${MMA_VERSION}-jar-with-dependencies.jar'
+CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTransmissionUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-${MMA_VERSION}-jar-with-dependencies.jar';
 ```
 
 ### 进度推送
@@ -193,7 +193,7 @@ MMA支持向钉钉群推送进度信息。目前支持任务（Job）级别的 �
 当存量数据通过MMA进行迁移之后，MMA支持对新增分区或最近被修改的分区进行增量数据进行迁移。当您确认新增的分区已经处于可迁移的状态（不会有新数据进入该分区），可以通过直接重新提交迁移任务，让MMA获取新增的分区，并进行迁移。迁移步骤如下：
 1. 完成存量数据迁移
 1. 确认源表不再有修改，可以迁移
-1. 重启迁移任务，此时MMA会自动发现新分区和有修改的分区并进行迁移，见[重置迁移任务](#ResetJob)
+1. 重置迁移任务，此时MMA会自动发现新分区和有修改的分区并进行迁移，见[重置迁移任务](#ResetJob)
 1. 等待迁移任务完成，见[查看迁移任务列表](#ListJobs)
 1. 处理失败的任务并重启任务，见[查看迁移任务列表](#ListJobs)与[失败处理](#HandleFailures)
 
