@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.aliyun.odps.mma.config.ObjectType;
-import com.aliyun.odps.mma.server.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.server.OdpsSqlUtils;
+import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.server.OssExternalTableConfig;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -65,9 +65,9 @@ public class McCreateOssExternalTableAction extends McSqlAction {
         ossConfig.getOssEndpoint(),
         ossConfig.getOssBucket(),
         ossConfig.getOssRoleArn(),
-        OdpsSqlUtils.getOssTablePath(ossConfig, tableDataLocation));
+        McSqlUtils.getOssTablePath(ossConfig, tableDataLocation));
 
-    return OdpsSqlUtils.getCreateTableStatement(ossTableMetaModel, ossExternalTableConfig);
+    return McSqlUtils.getCreateTableStatement(ossTableMetaModel, ossExternalTableConfig);
   }
 
   @Override

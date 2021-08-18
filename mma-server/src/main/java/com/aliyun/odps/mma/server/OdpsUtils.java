@@ -34,6 +34,7 @@ import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
+import com.aliyun.odps.mma.config.MmaConfig;
 
 public class OdpsUtils {
   private static final Logger LOG = LogManager.getLogger(OdpsUtils.class);
