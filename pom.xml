@@ -15,6 +15,9 @@
     <module>mma-client</module>
     <module>mma-commons</module>
     <module>distribution</module>
+    <!-- this module requires internal dependencies, thus it cannot be compiled on github -->
+    <!-- for sql checker -->
+    <!--<module>sql-checker</module>-->
   </modules>
 
   <properties>
@@ -300,6 +303,29 @@
         <artifactId>commons-codec</artifactId>
         <version>1.9</version>
       </dependency>
+      <!-- for sql checker -->
+      <!--<dependency>-->
+        <!--<groupId>com.aliyun.odps</groupId>-->
+        <!--<artifactId>odps-compiler</artifactId>-->
+        <!--<version>37-migration-tool-SNAPSHOT</version>-->
+      <!--</dependency>-->
+      <!--<dependency>-->
+        <!--<groupId>com.aliyun.odps</groupId>-->
+        <!--<artifactId>odps-compiler-hive21-adapter</artifactId>-->
+        <!--<version>37-migration-tool-SNAPSHOT</version>-->
+        <!--&lt;!&ndash; need to exclude or it causes java.lang.NoSuchFieldError: QUARTER &ndash;&gt;-->
+        <!--<exclusions>-->
+          <!--<exclusion>-->
+            <!--<groupId>org.apache.calcite</groupId>-->
+            <!--<artifactId>calcite-avatica</artifactId>-->
+          <!--</exclusion>-->
+        <!--</exclusions>-->
+      <!--</dependency>-->
+      <!--<dependency>-->
+        <!--<groupId>com.google.guava</groupId>-->
+        <!--<artifactId>guava</artifactId>-->
+        <!--<version>19.0</version>-->
+      <!--</dependency>-->
     </dependencies>
   </dependencyManagement>
 
