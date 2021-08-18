@@ -1,4 +1,5 @@
 # Hive迁移至MaxCompute
+
 在Hive迁移至MaxCompute的场景下，MMA实现了Hive的UDTF，通过Hive的分布式能力，实现Hive数据向MaxCompute的高并发传输。
 
 这种迁移方式的优点有：
@@ -14,6 +15,7 @@
 
 随后，MMA调度器将会把这个Job状态置为RUNNING，向Hive请求这张表的元数据，并开始调度执行。这个Job在MMA中会被拆分为若干
 个Task，每一个Task负责表中的一部分数据。每一个Task将会包含如下图所示的，由若干个Action组成的DAG：
+
 ```$xslt
             CreateTable (在MC中创建表)
                  |
@@ -31,11 +33,10 @@ Source Verification   Dest Verification
 
 上图中数据传输的原理是利用Hive的分布式计算能力，实现了一个Hive UDTF，在Hive UDTF
 中实现了上传数据至MaxCompute的逻辑，并将一个数据迁移任务转化为一个或多个形如：
-```$xslt
+```sql
 SELECT UDTF(*) FROM hive_db.hive_table;
 ```
-的Hive SQL。在执行上述Hive SQL时，数据将被Hive读出并传入UDTF，UDTF会通过MaxCompute的Tunnel SDK将数据写入
-MaxCompute。
+的Hive SQL。在执行上述Hive SQL时，数据将被Hive读出并传入UDTF，UDTF会通过MaxCompute的Tunnel SDK将数据写入MaxCompute。
 
 当某一个Task的所有Action执行成功后，MMA会将这个Task负责的部分数据的迁移状态置为SUCCEEDED。当该Job对应的所有Task都成功
 后，这张表的迁移结束。
@@ -51,7 +52,7 @@ MaxCompute。
 在Hadoop集群的master节点执行 ```hive --version``` 确认Hive版本，根据返回下载对应MMA安装包。
 
 例如：
-```$xslt
+```shell
 $ hive --version
 Hive 1.0.0
 ```
@@ -93,157 +94,227 @@ $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 使用MMA前，需要确认MaxCompute project已经按照[文档](https://help.aliyun.com/document_detail/159541.html?spm=a2c4g.11186623.6.639.7336134dNbODrx)配置了2.0数据类型版本
 
 ## <a name="Configuration"></a>配置
+
+目录结构
+
+```
+MMA_HOME
+└── conf
+    ├── gss-jaas.conf.template					
+    ├── mma_server_config.json					
+    └── table_mapping.txt							
+```
+
+mma 的配置文件一般不手动修改，使用工具进行管理，主要包括 mma server 的配置（见 [配置MMA server](#Configure)）与 任务配置（见 [生成任务配置](#GenerateJobConfig)）
+
+### <a name="Configure"></a>配置 MMA server
+
 首先解压MMA安装包。之后执行以下命令，运行配置引导脚本，完成配置：
+
 ```$xslt
-$ mma/bin/configure
+/path/to/mma/bin/configure
 ```
 
 配置过程中需要提供以下Hive参数：
 
-|参数名      |含义        |示例        |
-|:----------|:----------|:----------|
-|Hive metastore URI(s)|见hive-site.xml中"hive.metastore.uris"|thrift://hostname:9083|
-|Hive JDBC连接串|通过beeline使用Hive时输入的JDBC连接串, 前缀为jdbc:hive2|jdbc:hive2://hostname:10000/default|
-|Hive JDBC连接用户名|通常通过beeline使用Hive时输入的JDBC连接用户名, 默认值为Hive|Hive|
-|Hive JDBC连接密码|通常通过beeline使用Hive时输入的JDBC连接密码, 默认值为空||
+| 参数名                | 含义                                                        | 示例                                |
+| :-------------------- | :---------------------------------------------------------- | :---------------------------------- |
+| Hive metastore URI(s) | 见hive-site.xml中"hive.metastore.uris"                      | thrift://hostname:9083              |
+| Hive JDBC连接串       | 通过beeline使用Hive时输入的JDBC连接串, 前缀为jdbc:hive2     | jdbc:hive2://hostname:10000/default |
+| Hive JDBC连接用户名   | 通常通过beeline使用Hive时输入的JDBC连接用户名, 默认值为Hive | Hive                                |
+| Hive JDBC连接密码     | 通常通过beeline使用Hive时输入的JDBC连接密码, 默认值为空     |                                     |
+
+在使用 Kerberos 的情况下，配置过程需要提供以下 Hive Security 参数
+
+| 参数名                   | 含义                                                      | 示例                   |
+| ------------------------ | --------------------------------------------------------- | ---------------------- |
+| jams-gss.conf 文件路径   | 查看文档和 conf/gss-jaas.conf.template                    |                        |
+| krb5.conf 文件路径       | 通常在 /etc 目录下                                        |                        |
+| Kerberos principal 属性  | 见 hive-site.xml 中 "hive.metastore.kerberos.principal"   | hive/_HOST@EXAMPLE.com |
+| Kerberos keytab 文件路径 | 见 hive-site-xml 中 "hive.metastore.kerberos.keytab.file" |                        |
 
 配置过程中需要提供以下MaxCompute参数：
 
-|参数名      |含义        |示例        |
-|:----------|:----------|:----------|
-|MaxCompute endpoint|上文中获取的MaxCompute endpoint|http://service.cn-hangzhou.maxcompute.aliyun.com/api|
-|MaxCompute project名|建议配置为目标MaxCompute project, 规避权限问题||
-|阿里云accesskey id|详见: https://help.aliyun.com/document_detail/27803.html||
-|阿里云accesskey secret|详见: https://help.aliyun.com/document_detail/27803.html||
+| 参数名                 | 含义                                                     | 示例                                                 |
+| :--------------------- | :------------------------------------------------------- | :--------------------------------------------------- |
+| MaxCompute endpoint    | 上文中获取的MaxCompute endpoint                          | http://service.cn-hangzhou.maxcompute.aliyun.com/api |
+| MaxCompute project名   | 建议配置为目标MaxCompute project, 规避权限问题           |                                                      |
+| 阿里云accesskey id     | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
+| 阿里云accesskey secret | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
 
 此外，配置过程中还需要将某些文件上传至HDFS，并在beeline中创建MMA需要的Hive永久函数。MMA配置引导脚本会自动生成需要执行的命令，直接复制粘贴到安装有hdfs命令与beeline的服务器上执行即可。命令示例如下：
 
 
-上传文件至HDFS：
-```$xslt
-$ hdfs dfs -put -f /path/to/mma/conf/odps_config.ini hdfs:///tmp/
-$ hdfs dfs -put -f /path/to/mma/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar hdfs:///tmp/
+上传 Hive UDTF Jar 包至 HDFS：
+
+```shell
+hdfs dfs -put -f /path/to/mma/lib/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar hdfs:///tmp/
 ```
 
-创建函数：
-```$xslt
-0: jdbc:hive2://127.0.0.1:10000/default> CREATE FUNCTION odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTransmissionUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-1.0-SNAPSHOT-jar-with-dependencies.jar';
+使用 beeline 创建 Hive 函数：
+
+```sql
+DROP FUNCTION IF EXISTS default.odps_data_dump_multi;
+CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.datacarrier.transfer.OdpsDataTransferUDTF' USING JAR 'hdfs:///tmp/data-transfer-hive-udtf-${MMA_VERSION}-jar-with-dependencies.jar'
 ```
 
 ### 进度推送
-MMA支持向钉钉群推送进度信息。目前支持summary，迁移成功以及迁移失败三种类型的事件。使用本功能前需要创建一个钉钉群，并获取
-钉钉群自定义机器人的webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。钉钉机器人安全配置关键字可以配置"succeeded"，"failed"，以及"Summary"，大小写敏感。
 
+MMA支持向钉钉群推送进度信息。目前支持任务（Job）级别的 状态总结（SUMMARY），迁移成功（SUCCESS）以及迁移失败（FAIL）三种类型的事件。
 
-之后，在MMA server配置文件的根Json中添加以下配置，用真实的webhook url替换```${webhookurl}```，并重启MMA server。
+- 准备：使用本功能前需要创建一个钉钉群，并获取钉钉群自定义机器人的webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。
 
-```$xslt
-"eventConfig": {
-  "eventSenderConfigs": [
-    {
-      "type": "DingTalk",
-      "webhookUrl": "${webhook_url}"
-    }
-  ],
-}
-```
+- 配置：在 `conf/mma_server_config.json` 文件中添加以下配置，用真实的 webhook url 替换 `${webhookurl}`，并重启 MMA server。
 
-## 快速开始
-MMA提供了quickstart脚本帮助用户快速熟悉MMA的使用方式。完成配置后，可以选择一张表进行迁移。quickstart脚本需要Hive库名，Hive表名，MaxCompute project名以及MaxCompute表名。需要注意的是MMA会自动创建MaxCompute中的目标表，如果目标表已经存在，可能会发生数据类型冲突等问题。
+  `mma.event.types` 可以配置`JOB_SUCCEEDED`，`JOB_FAILED`，以及`SUMMARY` 三种，大小写敏感。需要配置多个多个类型的情况下使用英文逗号 `,` 分割，如 `JOB_SUCCEEDED,JOB_FAILED`
 
-执行以下命令运行quickstart脚本：
-```$xslt
-$ mma/bin/quickstart hive_source_db hive_source_table mc_dest_project mc_dest_table
-```
+  ```json
+  {
+    "mma.event.enabled": "true",
+    "mma.event.senders": "[{\"type\": \"DingTalk\",\"webhookUrl\": ${webhookurl}]",
+    "mma.event.types": "SUMMARY"
+  }
+  ```
+
 
 ## 最佳实践
+
 ### 存量数据迁移
 在存量数据迁移的场景下，我们可以通过以下步骤完成数据迁移：
 1. 确认待迁移的表：由于开发和生产过程中，会产生很多已经废弃不用的表或忘记清理的临时表。这些表往往不再具有价值，因此无需进行迁移。忽略这些表会大大节省数据迁移过程中的时间/计算资源开销，同时也是一次很好的业务梳理机会。
 1. 启动MmaServer，见[启动MMA server](#StartMmaServer)
 1. 生成迁移任务配置文件，见[生成任务配置](#GenerateJobConfig)
-1. 提交迁移任务，与[提交迁移任务](#SubmitJob)
+1. 提交迁移任务，见[提交迁移任务](#SubmitJob)
 1. 反复执行1, 2, 3三步，通过MMA client向MMA server提交所有待迁移表
-1. 等待迁移任务完成（可以另开一个terminal追踪进度，与1, 2, 3步不冲突），见[查看进度](#GetProgress)
+1. 等待迁移任务完成（可以另开一个terminal追踪进度，与1, 2, 3步不冲突），见[查看迁移任务列表](#ListJobs)
 1. 处理失败的任务并重启任务，见[查看迁移任务列表](#ListJobs)与[失败处理](#HandleFailures)
 
 ### 增量数据迁移
 当存量数据通过MMA进行迁移之后，MMA支持对新增分区或最近被修改的分区进行增量数据进行迁移。当您确认新增的分区已经处于可迁移的状态（不会有新数据进入该分区），可以通过直接重新提交迁移任务，让MMA获取新增的分区，并进行迁移。迁移步骤如下：
 1. 完成存量数据迁移
 1. 确认源表不再有修改，可以迁移
-1. 重启迁移任务，此时MMA会自动发现新分区和有修改的分区并进行迁移，见[提交迁移任务](#SubmitJob)
-1. 等待迁移任务完成，见[查看进度](#GetProgress)
+1. 重启迁移任务，此时MMA会自动发现新分区和有修改的分区并进行迁移，见[重置迁移任务](#ResetJob)
+1. 等待迁移任务完成，见[查看迁移任务列表](#ListJobs)
 1. 处理失败的任务并重启任务，见[查看迁移任务列表](#ListJobs)与[失败处理](#HandleFailures)
 
 ## MMA 命令行工具
-### <a name="StartMmaServer"></a>启动MMA server
-执行以下命令启动MMA server，MMA server进程在迁移期间应当一直保持运行。若MMA server因为各种原因中断了运行，直接执行以上命令重启即可。MMA server进程在一台服务器最多只能存在一个。
 
-```$xslt
-$ nohup /path/to/mma/bin/mma-server >/dev/null 2>&1 &
+MMA 命令行工具位于 `$MMA_HOME/bin/` 目录下，包括 `mma_server` / `configure` / `generate-job-config` / `mma_client` 四个工具
+
+```shell
+MMA_HOME
+└── bin
+    ├── configure								# 生成 mma server 配置的工具
+    ├── generate-job-config			# 生成任务配置的工具
+    ├── mma-client							# 客户端命令行工具
+	  └── mma-server							# 服务端命令行工具
+```
+
+### <a name="StartMmaServer"></a>启动MMA server
+
+执行以下命令启动MMA server，MMA server进程在迁移期间应当一直保持运行。若MMA server因为各种原因中断了运行，直接执行以上命令重启即可。MMA server进程在一台服务器最多只能存在一个。默认端口为 18889
+
+```shell
+/path/to/mma/bin/mma-server
 ```
 
 ### <a name="GenerateJobConfig"></a>生成任务配置
--  表级别任务配置
-表级别的迁移是MMA主要支持的场景，因此我们提供了generate-config来更方便地生成任务配置文件。首先组织临时文件table_mapping.txt，模版如下：
-```$xslt
-# The following example represents a migration job. The source table is 'source_table' in Hive
-# database 'source_db' and the destination table is 'dest_table' in MaxCompute project 'dest_pjt'
 
-test_db.test_table:test_project.test_table
-test_db_2.test_table:test_project_2.test_table
-test_db.test_table_2:test_project_2.test_table_2
-```
-table_mapping.txt中的每一行表示一张Hive表到MaxCompute表的映射。之后执行以下命令直接生成table_mapping.txt文件中包含的迁移任务配置。
-```$xslt
-$ /path/to/mma/bin/generate-config --to_migration_config --table_mapping table_mapping.txt
-```
-执行完成后，当前目录下将会生成MMA迁移任务的配置文件mma_migration_config.json。
+使用 `bin/generate-job-config` 工具生成任务配置
 
--  库级别任务配置
-MMA支持迁移Hive中的一个库至MaxCompute，此时任务迁移文件需要手动编写，模版如下：
-```$xslt
-{
-  "user": "Jerry",
-  "databaseMigrationConfigs": [
-    {
-      "sourceDatabaseName": "test_db",
-      "destProjectName": "test_project"
-    }
-  ]
-}
-```
-修改模版中"databaseMigrationConfigs"下的"sourceDatabaseName"即可改变源库名；修改"destProjectName"即可改变目标MaxCompute project名。
+- 表级别任务配置
 
-### <a name="SubmitJob"></a>提交任务
-执行以下命令，向MMA server提交迁移任务：
-```$xslt
-$ /path/to/mma/bin/mma-client --start mma_migration_config.json
+  //TODO 添加 generate-job-config 脚本
+
+  - 首先组织临时文件table_mapping.txt，`conf/table_mapping.txt` 文件提供了编写模版（其中每一行表示一张Hive表到MaxCompute表的映射）：
+
+    ```$xslt
+    # The following example represents a migration job. The source table is 'source_table' in Hive
+    # database 'source_db' and the destination table is 'dest_table' in MaxCompute project 'dest_pjt'
+    
+    test_db.test_table:test_project.test_table
+    test_db_2.test_table:test_project_2.test_table
+    test_db.test_table_2:test_project_2.test_table_2
+    ```
+  - 之后执行以下命令直接生成table_mapping.txt文件中包含的迁移任务配置。
+    ```shell
+    /path/to/mma/bin/generate-job-config --type TABLE
+    ```
+    执行完成后，当前目录下将会生成MMA迁移任务的配置文件mma_migration_config.json。
+
+- 库级别任务配置
+
+  - 执行以下命令生成迁移任务配置。过程中需要配置 `job_id` `source_catalog_name` `dest_catalog_name`
+
+    ```shell
+    /path/to/mma/bin/generate-job-config --type CATELOG
+    ```
+
+### 任务管理
+
+使用 `bin/mma-client` 工具进行任务的增删改查管理。
+
+#### <a name="SubmitJob"></a>提交任务
+
+执行以下命令，向MMA server提交迁移任务（`mma_migration_config.json` 的生成见上一小节[生成任务配置](#GenerateJobConfig)）：
+```shell
+/path/to/mma/bin/mma-client --action SubmitJob --conf mma_migration_config.json
 ```
 任务提交成功时，MMA client会打印 ```Job submitted``` 并结束进程，返回值为0：
 
-### <a name="GetProgress"></a>查看进度
-执行以下命令，查看目前MMA所有迁移任务的进度：
-```$xslt
-$ /path/to/mma/bin/mma-client --wait_all
+#### <a name="GetJobInfo"></a>查看任务状态
+
+```shell
+/path/to/mma/bin/mma-client --action GetJobInfo --jobid YOUR_JOB_ID
+# [输出样例]
+# Job ID: cat2
+# Job status: SUCCEEDED
+# Object type: CATALOG
+# Source: test_catalog
+# Destination: mma_test
+# OK
 ```
 
-MMA将会打印当前所有迁移任务的进度条，当所有任务完成之后结束进程，返回值为0。
 
+#### <a name="ListJobs"></a>查看迁移任务列表
+执行以下命令，查看所有迁移任务列表（列表会列出所有任务的状态与进度）：
+```shell
+/path/to/mma/bin/mma-client --action ListJobs
+# Output Example: Job ID: your_job_id, status: SUCCEEDED, progress: 0.00%
+```
 MMA支持通过WebUI查看目前正在运行的迁移任务，见[Web UI](#WebUI)
 
+#### <a name="RemoveJob"></a>删除迁移任务
 
-### <a name="ListJobs"></a>查看迁移任务列表
-执行以下命令，查看所有迁移任务列表：
-```$xslt
-$ /path/bin/mma-client --list all
-```
-将all替换为PENDING，RUNNING，SUCCEEDED，或FAILED可以查看该状态下迁移任务的列表。
-
-### <a name="RemoveJob"></a>删除迁移任务
 执行以下命令，可以删除状态为SUCCEEDED或FAILED的迁移任务。
-```$xslt
-$ /path/to/mma/bin/mma-client --remove hive_source_db.hive_source_table
+```shell
+/path/to/mma/bin/mma-client --action DeleteJob --jobid YOUR_JOB_ID
+```
+
+#### <a name="ResetJob"></a>重置迁移任务
+
+- 状态为 `SUCCESS` `FAIL` `CANCEL` 三种状态下的任务可以被重置
+- 当需要增量同步时，重置 `SUCCESS` 状态下的任务
+- 当需要重试失败任务时，重置 `FAIL` `CANCEL` 状态下的任务
+
+```shell
+/path/to/mma/bin/mma-client --action ResetJob --jobid YOUR_JOB_ID
+```
+
+#### mma-client 其他参数说明
+
+```shell
+usage: mma-client --action [SubmitJob | ResetJob | ListJobs | GetJobInfo |
+                  StopJob | DeleteJob] [options]
+ -a,--action <Action>          Could be 'SubmitJob', 'ResetJob',
+                               'ListJobs', 'GetJobInfo', 'StopJob', and
+                               'DeleteJob'
+ -c,--config <Job conf path>   Required by action 'Submit'
+ -h,--help                     Print usage
+    --host <Hostname>          Hostname of MMA server
+ -jid,--jobid <Job ID>         Required by action 'GetJobInfo',
+                               'ResetJob', 'StopJob', and 'DeleteJob'
+    --port <Port>              Port of MMA server
 ```
 
 ## <a name="WebUI"></a>MMA Web UI
