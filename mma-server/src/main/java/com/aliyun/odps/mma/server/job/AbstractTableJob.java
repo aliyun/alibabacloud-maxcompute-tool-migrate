@@ -18,6 +18,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
+import com.aliyun.odps.mma.Constants;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.ObjectType;
@@ -317,7 +318,7 @@ public abstract class AbstractTableJob extends AbstractJob {
 
   /**
    * Generate partition groups. For each partition group, the number of partition it contains
-   * will not exceed {@link com.aliyun.odps.mma.server.Constants#MAX_PARTITION_GROUP_SIZE} and the
+   * will not exceed {@link Constants#MAX_PARTITION_GROUP_SIZE} and the
    * data size will not exceed {@link JobConfiguration#TABLE_PARTITION_GROUP_SPLIT_SIZE}.
    *
    * If {@link JobConfiguration#TABLE_PARTITION_GROUP_SPLIT_SIZE} is not configured, a default value

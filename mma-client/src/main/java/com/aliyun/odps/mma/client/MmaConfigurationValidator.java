@@ -2,16 +2,17 @@ package com.aliyun.odps.mma.client;
 
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.commons.util.IOUtils;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.DataDestType;
@@ -41,9 +42,7 @@ public class MmaConfigurationValidator {
     CommandLine cmd = defaultParser.parse(options, args);
 
     String configPath = cmd.getOptionValue(CONFIG_LONG_OPT);
-    String json = new String(
-        IOUtils.readFully(new FileInputStream(configPath)),
-        StandardCharsets.UTF_8);
+    String json = IOUtils.toString(Paths.get(configPath).toUri(), StandardCharsets.UTF_8);
     JobConfiguration config = new JobConfiguration(GsonUtils.GSON.fromJson(
         json, new TypeToken<Map<String, String>>() {}.getType()));
 
