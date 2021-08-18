@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.aliyun.odps.mma.server.OdpsSqlUtils;
+import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
@@ -36,7 +36,7 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
 
   @Override
   public String getSql() {
-    return OdpsSqlUtils.getInsertOverwriteTableStatement(source, dest);
+    return McSqlUtils.getInsertOverwriteTableStatement(source, dest);
   }
 
   @Override

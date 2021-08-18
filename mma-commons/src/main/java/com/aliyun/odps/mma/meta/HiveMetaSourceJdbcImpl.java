@@ -55,7 +55,7 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
   private String username;
   private String password;
 
-  HiveMetaSourceJdbcImpl(
+  public HiveMetaSourceJdbcImpl(
       String hiveJdbcUrl,
       String username,
       String password,

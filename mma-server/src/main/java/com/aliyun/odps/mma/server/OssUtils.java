@@ -33,6 +33,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.MmaConfig;
 import com.aliyun.odps.utils.StringUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;

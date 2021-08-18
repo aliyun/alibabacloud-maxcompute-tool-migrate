@@ -1,6 +1,5 @@
 package com.aliyun.odps.mma.server;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -13,14 +12,12 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.commons.util.IOUtils;
-import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.config.MmaEventSenderConfiguration;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.aliyun.odps.mma.server.event.MmaEventManager;
@@ -103,9 +100,7 @@ public class MmaServerMain {
   }
 
   private static void initMmaServerConfigurationSingleton(Path path) throws IOException {
-    String json = new String(
-        IOUtils.readFully(new FileInputStream(path.toFile())),
-        StandardCharsets.UTF_8);
+    String json = IOUtils.toString(path.toUri(), StandardCharsets.UTF_8);
     Map<String, String> map = GsonUtils.GSON.fromJson(
         json, new TypeToken<Map<String, String>>() {}.getType());
     MmaServerConfiguration.setInstance(map);
