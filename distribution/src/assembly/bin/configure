@@ -109,9 +109,9 @@ function ADD_OR_REPLACE()
     VALUE=$2
     COMMA=$3
     if grep -q "${KEY}" "${MMA_SERVER_CONFIG_PATH}"; then
-      sed -i "/\"${KEY}\"=/c\  \"${KEY}\"=\"${VALUE}\"${COMMA}" ${MMA_SERVER_CONFIG_PATH}
+      sed -i "/\"${KEY}\":/c\  \"${KEY}\":\"${VALUE}\"${COMMA}" ${MMA_SERVER_CONFIG_PATH}
     else
-      echo "  \"${KEY}\"=\"${VALUE}\"${COMMA}" >> ${MMA_SERVER_CONFIG_PATH}
+      echo "  \"${KEY}\":\"${VALUE}\"${COMMA}" >> ${MMA_SERVER_CONFIG_PATH}
     fi
 }
 
