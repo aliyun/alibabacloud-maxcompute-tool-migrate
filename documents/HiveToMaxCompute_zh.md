@@ -33,6 +33,7 @@ Source Verification   Dest Verification
 
 上图中数据传输的原理是利用Hive的分布式计算能力，实现了一个Hive UDTF，在Hive UDTF
 中实现了上传数据至MaxCompute的逻辑，并将一个数据迁移任务转化为一个或多个形如：
+
 ```sql
 SELECT UDTF(*) FROM hive_db.hive_table;
 ```
@@ -52,7 +53,7 @@ SELECT UDTF(*) FROM hive_db.hive_table;
 在Hadoop集群的master节点执行 ```hive --version``` 确认Hive版本，根据返回下载对应MMA安装包。
 
 例如：
-```shell
+```console
 $ hive --version
 Hive 1.0.0
 ```
@@ -76,7 +77,7 @@ Hive 1.0.0
 
 例如：
 
-```$xslt
+```console
 $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 <?xml version="1.0" encoding="UTF-8"?>
 <Error>
@@ -322,14 +323,44 @@ usage: mma-client --action [SubmitJob | ResetJob | ListJobs | GetJobInfo |
 
 Web UI运行在MMA server所在服务器的18888端口，可以通过`http://${hostname}:18888`地址进行访问。
 
+当前 Web UI 的功能主要包括 Job / Task / Action 的状态查看与 MMA Server 配置信息查看
+
+### 查看 Job 信息
+
+查看所有 Job 的信息与状态
+
+![image-20210818202352979](../assets/jobs.png)
+
+点击 Job ID 进入 Job 详情界面，可以查看所有的 sub job 与 task 细节
+
+![image-20210818203009539](../assets/job-detail.png)
+
+### 查看 Task 信息
+
+在 TASKS 界面可以查看所有的 Task 信息
+
+![image-20210818202450077](../assets/tasks.png)
+
+点击 Task ID 可以查看 Task 的详情页，包括 Action 的有向无环图与 Action 细节
+
+![image-20210818203147688](../assets/task-detail.png)
+
+点击 Action ID 可以继续查看 Action 的执行细节
+
+![image-20210818203340002](../assets/action-detail.png)
+
+### 查看 MMA Server 配置信息
+
+![image-20210818202517095](../assets/configuration.png)
+
 
 ## <a name="HandleFailures"></a>失败处理
 由于MMA会自动归档日志，以下```grep```命令请根据实际情况替换为```zgrep```命令。
 
 
 执行以下命令查看当前迁移失败的表：
-```$xslt
-$ /path/to/bin/mma-client --list FAILED
+```shell
+/path/to/bin/mma-client --action ListJobs | grep FAILED
 ```
 
 假设失败的表为```test_db.test_table```，我们可以执行以下命令从所有MMA server的日志中获取失败的原因：
