@@ -57,7 +57,7 @@ public class ConfigurationUtilsTest {
           TestUtils.getProperty(TestUtils.HIVE_JDBC_URL),
           TestUtils.getProperty(TestUtils.HIVE_JDBC_USERNAME),
           TestUtils.getProperty(TestUtils.HIVE_JDBC_PASSWORD));
-    } catch (ClassNotFoundException | SQLException e) {
+    } catch (MmaException e) {
       e.printStackTrace();
       fail();
     }

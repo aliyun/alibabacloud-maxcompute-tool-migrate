@@ -20,6 +20,7 @@
 package com.aliyun.odps.mma.config;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
@@ -58,6 +59,7 @@ public class JobConfiguration extends AbstractConfiguration {
    * Job attributes.
    */
   public static final String JOB_ID = "mma.job.id";
+  private static Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
 
   public JobConfiguration(Map<String, String> configuration) {
     super(configuration);
@@ -71,10 +73,12 @@ public class JobConfiguration extends AbstractConfiguration {
 
   @Override
   public void validate() throws MmaException {
+    // Supported job id: [A-Za-z0-9-_]
     // Supported source and destination combinations:
     // 1. Hive(metadata), Hive(data) -> MC(metadata), MC(data)
     // 2. MC(metadata), MC(metadata) -> OSS(metadata), OSS(data)
     // 3. OSS(metadata), OSS(data) -> MC(metadata), MC(data)
+    validateJobId();
     MetaSourceType metaSourceType = MetaSourceType.valueOf(configuration.get(METADATA_SOURCE_TYPE));
     DataSourceType dataSourceType = DataSourceType.valueOf(configuration.get(DATA_SOURCE_TYPE));
     MetaDestType metaDestType = MetaDestType.valueOf(configuration.get(METADATA_DEST_TYPE));
@@ -99,15 +103,31 @@ public class JobConfiguration extends AbstractConfiguration {
     }
   }
 
-  private void validateMcToOssCredentials() {
-    // TODO:
+  private void validateMcToOssCredentials() throws MmaException {
+    ConfigurationUtils.validateMcMetaSource(this);
+    ConfigurationUtils.validateMcDataSource(this);
+    ConfigurationUtils.validateOssMetaDest(this);
+    ConfigurationUtils.validateOssDataDest(this);
   }
 
-  private void validateOssToMcCredentials() {
-    // TODO:
+  private void validateOssToMcCredentials() throws MmaException {
+    ConfigurationUtils.validateOssMetaSource(this);
+    ConfigurationUtils.validateOssDataSource(this);
+    ConfigurationUtils.validateMcMetaDest(this);
+    ConfigurationUtils.validateMcDataDest(this);
   }
 
-  private void validateHiveToMcCredentials() {
-    // TODO:
+  private void validateHiveToMcCredentials() throws MmaException {
+    ConfigurationUtils.validateHiveMetaSource(this);
+    ConfigurationUtils.validateHiveDataSource(this);
+    ConfigurationUtils.validateMcMetaDest(this);
+    ConfigurationUtils.validateMcDataDest(this);
+  }
+
+  private void validateJobId() throws MmaException {
+    String jobId = get(JobConfiguration.JOB_ID);
+    if(!JOB_ID_PATTERN.matcher(jobId).matches()){
+      throw new MmaException("Invalid Job Id. Valid Job Id pattern: [A-Za-z0-9_-]+");
+    }
   }
 }
