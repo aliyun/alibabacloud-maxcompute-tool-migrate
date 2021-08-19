@@ -1,0 +1,10 @@
+# With the job configuration tool bin/gen-job-conf, a table migration job configuration file can be
+# generated for each of the following lines. Take the first line for an example, the source
+# catalog(or database) and table are 'source_catalog' and 'source_table1', while the destination
+# MaxCompute project and table are 'dest_pjt' and 'dest_table1'.
+# 通过bin/gen-job-conf工具，以下每一行一行将会分别生成一个表迁移任务配置文件。每一行中，冒号(:)前后分别为源表和目标表
+# 的全名。全名的格式为库名.表名，如source_catalog.source_table1:dest_pjt.dest_table1表示源表为source_catalog
+# 库中的表source_table1，目标表为dest_pjt项目下的表dest_table1。
+source_catalog.source_table1:dest_pjt.dest_table1
+source_catalog.source_table2:dest_pjt.dest_table2
+source_catalog.source_table3:dest_pjt.dest_table3
