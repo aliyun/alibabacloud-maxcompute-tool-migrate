@@ -201,13 +201,13 @@ MMA 支持向钉钉群推送进度信息。目前支持任务（Job）级别的 
 
 ## MMA 命令行工具
 
-MMA 命令行工具位于 `$MMA_HOME/bin/` 目录下，包括 `mma_server` / `configure` / `generate-job-config` / `mma_client` 四个工具
+MMA 命令行工具位于 `$MMA_HOME/bin/` 目录下，包括 `mma_server` / `configure` / `gen-job-conf` / `mma_client` 四个工具
 
 ```shell
 MMA_HOME
 └── bin
     ├── configure				# 生成 mma server 配置的工具
-    ├── generate-job-config			# 生成任务配置的工具
+    ├── gen-job-conf				# 生成任务配置的工具
     ├── mma-client				# 客户端命令行工具
     └── mma-server				# 服务端命令行工具
 ```
@@ -222,7 +222,7 @@ MMA_HOME
 
 ### <a name="GenerateJobConfig"></a>生成任务配置
 
-使用 `bin/generate-job-config` 工具生成任务配置
+使用 `bin/gen-job-conf` 工具生成任务配置
 
 - 表级别任务配置
 
@@ -236,19 +236,27 @@ MMA_HOME
     test_db_2.test_table:test_project_2.test_table
     test_db.test_table_2:test_project_2.test_table_2
     ```
+    
   - 之后执行以下命令直接生成 table_mapping.txt 文件中包含的迁移任务配置。
     ```shell
-    /path/to/mma/bin/generate-job-config --type TABLE
+    /path/to/mma/bin/gen-job-conf --objecttype TABLE \
+    				--tablemapping ${table_mapping_file}
     ```
-    执行完成后，当前目录下将会生成 MMA 迁移任务的配置文件 mma_migration_config.json。
+    执行完成后，`conf/` 目录下将会生成 MMA 迁移任务的配置文件 `${objectType}-${sourceCatalog}-${destCatalog}-${job_id}.json`。
 
 - 库级别任务配置
 
   - 执行以下命令生成迁移任务配置。过程中需要配置 `job_id` `source_catalog_name` `dest_catalog_name`
 
     ```shell
-    /path/to/mma/bin/generate-job-config --type CATELOG
+    /path/to/mma/bin/gen-job-conf --objecttype CATELOG \
+    				--sourcecatalog ${source} \
+    				--destcatalog ${dest}
     ```
+  
+- 其他命令行选项
+
+  `-jobid` 可以指定 Job ID，`-output` 可以指定配置文件输出路径。
 
 ### 任务管理
 
