@@ -206,10 +206,10 @@ MMA 命令行工具位于 `$MMA_HOME/bin/` 目录下，包括 `mma_server` / `co
 ```shell
 MMA_HOME
 └── bin
-    ├── configure								# 生成 mma server 配置的工具
+    ├── configure				# 生成 mma server 配置的工具
     ├── generate-job-config			# 生成任务配置的工具
-    ├── mma-client							# 客户端命令行工具
-    └── mma-server							# 服务端命令行工具
+    ├── mma-client				# 客户端命令行工具
+    └── mma-server				# 服务端命令行工具
 ```
 
 ### <a name="StartMmaServer"></a>启动 MMA server
@@ -225,8 +225,6 @@ MMA_HOME
 使用 `bin/generate-job-config` 工具生成任务配置
 
 - 表级别任务配置
-
-  //TODO 添加 generate-job-config 脚本
 
   - 首先组织临时文件 table_mapping.txt，`conf/table_mapping.txt` 文件提供了编写模版（其中每一行表示一张 Hive 表到 MaxCompute 表的映射）：
 
