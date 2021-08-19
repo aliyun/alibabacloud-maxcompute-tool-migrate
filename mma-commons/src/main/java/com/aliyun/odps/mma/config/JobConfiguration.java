@@ -22,6 +22,8 @@ package com.aliyun.odps.mma.config;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
@@ -126,8 +128,8 @@ public class JobConfiguration extends AbstractConfiguration {
 
   private void validateJobId() throws MmaException {
     String jobId = get(JobConfiguration.JOB_ID);
-    if(!JOB_ID_PATTERN.matcher(jobId).matches()){
-      throw new MmaException("Invalid Job Id. Valid Job Id pattern: [A-Za-z0-9_-]+");
+    if(!StringUtils.isBlank(jobId) && !JOB_ID_PATTERN.matcher(jobId).matches()){
+      throw new MmaException("Invalid job Id. Job id pattern: [A-Za-z0-9_-]+");
     }
   }
 }
