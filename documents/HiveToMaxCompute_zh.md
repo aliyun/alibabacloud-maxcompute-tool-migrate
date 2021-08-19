@@ -17,9 +17,9 @@
 个 Task，每一个 Task 负责表中的一部分数据。每一个 Task 将会包含如下图所示的，由若干个 Action 组成的 DAG：
 
 ```$xslt
-            CreateTable (在MC中创建表)
+            CreateTable (在 MC 中创建表)
                  |
-            AddPartition (在MC中添加分区，仅限分区表)
+            AddPartition (在 MC 中添加分区，仅限分区表)
                  |
             DataTransfer (数据传输)
          +-------+-------+
@@ -60,7 +60,7 @@ Hive 1.0.0
 此时应选择 Github release 页面下，mma-hive-1.x-release.tar.gz。
 
 
-### 2. 确认Hive集群各个节点具备访问MaxCompute的能力
+### 2. 确认 Hive 集群各个节点具备访问 MaxCompute 的能力
 
 首先确认 MaxCompute endpoint，官方参考文档：https://help.aliyun.com/document_detail/34951.html
 
@@ -69,10 +69,10 @@ Hive 1.0.0
 - 从阿里云经典网络访问 MaxCompute 服务和 Tunnel 服务
 - 从阿里云 VPC 网络访问 MaxCompute 服务和 Tunnel 服务
 
-以上三种连接方式使用的MaxCompute endpoint有所区别，对于在Aliyun上搭建的Hive集群，或到Aliyun有专线的Hive集群，见上面文档中VPC网络下Region和服务连接对照表。对于其他情况，见外网网络下地域和服务连接对照表。
+以上三种连接方式使用的 MaxCompute endpoint 有所区别，对于在 Aliyun 上搭建的 Hive 集群，或到 Aliyun 有专线的 Hive 集群，见上面文档中 VPC 网络下 Region 和服务连接对照表。对于其他情况，见外网网络下地域和服务连接对照表。
 
-确认MaxCompute endpoint后，可以在Hive集群各个节点分别执行 ```curl "MaxCompute endpoint"```，如果命令立刻返回，
-说明可以访问MaxCompute。
+确认 MaxCompute endpoint 后，可以在 Hive 集群各个节点分别执行 ```curl "MaxCompute endpoint"```，如果命令立刻返回，
+说明可以访问 MaxCompute。
 
 例如：
 
@@ -87,11 +87,11 @@ $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 </Error>
 ```
 
-即表示该节点可以访问MaxCompute。
+即表示该节点可以访问 MaxCompute。
 
-### <a name="MCConfigure"></a>3. MaxCompute配置
+### <a name="MCConfigure"></a>3. MaxCompute 配置
 
-使用MMA前，需要确认MaxCompute project已经按照[文档](https://help.aliyun.com/document_detail/159541.html?spm=a2c4g.11186623.6.639.7336134dNbODrx)配置了2.0数据类型版本
+使用 MMA 前，需要确认 MaxCompute project 已经按照[文档](https://help.aliyun.com/document_detail/159541.html?spm=a2c4g.11186623.6.639.7336134dNbODrx)配置了 2.0 数据类型版本
 
 ## <a name="Configuration"></a>配置
 
@@ -105,24 +105,24 @@ MMA_HOME
     └── table_mapping.txt							
 ```
 
-mma 的配置文件一般不手动修改，使用工具进行管理，主要包括 mma server 的配置（见 [配置MMA server](#Configure)）与 任务配置（见 [生成任务配置](#GenerateJobConfig)）
+mma 的配置文件一般不手动修改，使用工具进行管理，主要包括 mma server 的配置（见 [配置 MMA server](#Configure)）与 任务配置（见 [生成任务配置](#GenerateJobConfig)）
 
 ### <a name="Configure"></a>配置 MMA server
 
-首先解压MMA安装包。之后执行以下命令，运行配置引导脚本，完成配置：
+首先解压 MMA 安装包。之后执行以下命令，运行配置引导脚本，完成配置：
 
 ```$xslt
 /path/to/mma/bin/configure
 ```
 
-配置过程中需要提供以下Hive参数：
+配置过程中需要提供以下 Hive 参数：
 
 | 参数名                | 含义                                                        | 示例                                |
 | :-------------------- | :---------------------------------------------------------- | :---------------------------------- |
-| Hive metastore URI(s) | 见hive-site.xml中"hive.metastore.uris"                      | thrift://hostname:9083              |
-| Hive JDBC连接串       | 通过beeline使用Hive时输入的JDBC连接串, 前缀为jdbc:hive2     | jdbc:hive2://hostname:10000/default |
-| Hive JDBC连接用户名   | 通常通过beeline使用Hive时输入的JDBC连接用户名, 默认值为Hive | Hive                                |
-| Hive JDBC连接密码     | 通常通过beeline使用Hive时输入的JDBC连接密码, 默认值为空     |                                     |
+| Hive metastore URI(s) | 见 hive-site.xml 中"hive.metastore.uris"                      | thrift://hostname:9083              |
+| Hive JDBC 连接串       | 通过 beeline 使用 Hive 时输入的 JDBC 连接串, 前缀为 jdbc:hive2     | jdbc:hive2://hostname:10000/default |
+| Hive JDBC 连接用户名   | 通常通过 beeline 使用 Hive 时输入的 JDBC 连接用户名, 默认值为 Hive | Hive                                |
+| Hive JDBC 连接密码     | 通常通过 beeline 使用 Hive 时输入的 JDBC 连接密码, 默认值为空     |                                     |
 
 在使用 Kerberos 的情况下，配置过程需要提供以下 Hive Security 参数
 
@@ -133,18 +133,18 @@ mma 的配置文件一般不手动修改，使用工具进行管理，主要包�
 | Kerberos principal 属性  | 见 hive-site.xml 中 "hive.metastore.kerberos.principal"   | hive/_HOST@EXAMPLE.com |
 | Kerberos keytab 文件路径 | 见 hive-site-xml 中 "hive.metastore.kerberos.keytab.file" |                        |
 
-配置过程中需要提供以下MaxCompute参数：
+配置过程中需要提供以下 MaxCompute 参数：
 
 | 参数名                 | 含义                                                     | 示例                                                 |
 | :--------------------- | :------------------------------------------------------- | :--------------------------------------------------- |
-| MaxCompute endpoint    | 上文中获取的MaxCompute endpoint                          | http://service.cn-hangzhou.maxcompute.aliyun.com/api |
-| MaxCompute project名   | 建议配置为目标MaxCompute project, 规避权限问题           |                                                      |
-| 阿里云accesskey id     | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
-| 阿里云accesskey secret | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
+| MaxCompute endpoint    | 上文中获取的 MaxCompute endpoint                          | http://service.cn-hangzhou.maxcompute.aliyun.com/api |
+| MaxCompute project 名   | 建议配置为目标 MaxCompute project, 规避权限问题           |                                                      |
+| 阿里云 accesskey id     | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
+| 阿里云 accesskey secret | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
 
 ### <a name="createHiveFunction"></a>创建 Hive 函数
 
-此外，配置过程中还需要将某些文件上传至HDFS，并在beeline中创建MMA需要的Hive永久函数。MMA配置引导脚本会自动生成需要执行的命令，直接复制粘贴到安装有hdfs命令与beeline的服务器上执行即可。命令示例如下：
+此外，配置过程中还需要将某些文件上传至 HDFS，并在 beeline 中创建 MMA 需要的 Hive 永久函数。MMA 配置引导脚本会自动生成需要执行的命令，直接复制粘贴到安装有 hdfs 命令与 beeline 的服务器上执行即可。命令示例如下：
 
 
 上传 Hive UDTF Jar 包至 HDFS：
@@ -162,9 +162,9 @@ CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTr
 
 ### 进度推送
 
-MMA支持向钉钉群推送进度信息。目前支持任务（Job）级别的 状态总结（SUMMARY），迁移成功（SUCCESS）以及迁移失败（FAIL）三种类型的事件。
+MMA 支持向钉钉群推送进度信息。目前支持任务（Job）级别的 状态总结（SUMMARY），迁移成功（SUCCESS）以及迁移失败（FAIL）三种类型的事件。
 
-- 准备：使用本功能前需要创建一个钉钉群，并获取钉钉群自定义机器人的webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。
+- 准备：使用本功能前需要创建一个钉钉群，并获取钉钉群自定义机器人的 webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。
 
 - 配置：在 `conf/mma_server_config.json` 文件中添加以下配置，用真实的 webhook url 替换 `${webhookurl}`，并重启 MMA server。
 
@@ -184,18 +184,18 @@ MMA支持向钉钉群推送进度信息。目前支持任务（Job）级别的 �
 ### 存量数据迁移
 在存量数据迁移的场景下，我们可以通过以下步骤完成数据迁移：
 1. 确认待迁移的表：由于开发和生产过程中，会产生很多已经废弃不用的表或忘记清理的临时表。这些表往往不再具有价值，因此无需进行迁移。忽略这些表会大大节省数据迁移过程中的时间/计算资源开销，同时也是一次很好的业务梳理机会。
-1. 启动MmaServer，见[启动MMA server](#StartMmaServer)
+1. 启动 MmaServer，见[启动 MMA server](#StartMmaServer)
 1. 生成迁移任务配置文件，见[生成任务配置](#GenerateJobConfig)
 1. 提交迁移任务，见[提交迁移任务](#SubmitJob)
-1. 反复执行1, 2, 3三步，通过MMA client向MMA server提交所有待迁移表
-1. 等待迁移任务完成（可以另开一个terminal追踪进度，与1, 2, 3步不冲突），见[查看迁移任务列表](#ListJobs)
+1. 反复执行 1, 2, 3 三步，通过 MMA client 向 MMA server 提交所有待迁移表
+1. 等待迁移任务完成（可以另开一个 terminal 追踪进度，与 1, 2, 3 步不冲突），见[查看迁移任务列表](#ListJobs)
 1. 处理失败的任务并重启任务，见[查看迁移任务列表](#ListJobs)与[失败处理](#HandleFailures)
 
 ### 增量数据迁移
-当存量数据通过MMA进行迁移之后，MMA支持对新增分区或最近被修改的分区进行增量数据进行迁移。当您确认新增的分区已经处于可迁移的状态（不会有新数据进入该分区），可以通过直接重新提交迁移任务，让MMA获取新增的分区，并进行迁移。迁移步骤如下：
+当存量数据通过 MMA 进行迁移之后，MMA 支持对新增分区或最近被修改的分区进行增量数据进行迁移。当您确认新增的分区已经处于可迁移的状态（不会有新数据进入该分区），可以通过直接重新提交迁移任务，让 MMA 获取新增的分区，并进行迁移。迁移步骤如下：
 1. 完成存量数据迁移
 1. 确认源表不再有修改，可以迁移
-1. 重置迁移任务，此时MMA会自动发现新分区和有修改的分区并进行迁移，见[重置迁移任务](#ResetJob)
+1. 重置迁移任务，此时 MMA 会自动发现新分区和有修改的分区并进行迁移，见[重置迁移任务](#ResetJob)
 1. 等待迁移任务完成，见[查看迁移任务列表](#ListJobs)
 1. 处理失败的任务并重启任务，见[查看迁移任务列表](#ListJobs)与[失败处理](#HandleFailures)
 
@@ -209,12 +209,12 @@ MMA_HOME
     ├── configure								# 生成 mma server 配置的工具
     ├── generate-job-config			# 生成任务配置的工具
     ├── mma-client							# 客户端命令行工具
-	  └── mma-server							# 服务端命令行工具
+    └── mma-server							# 服务端命令行工具
 ```
 
-### <a name="StartMmaServer"></a>启动MMA server
+### <a name="StartMmaServer"></a>启动 MMA server
 
-执行以下命令启动MMA server，MMA server进程在迁移期间应当一直保持运行。若MMA server因为各种原因中断了运行，直接执行以上命令重启即可。MMA server进程在一台服务器最多只能存在一个。默认端口为 18889
+执行以下命令启动 MMA server，MMA server 进程在迁移期间应当一直保持运行。若 MMA server 因为各种原因中断了运行，直接执行以上命令重启即可。MMA server 进程在一台服务器最多只能存在一个。默认端口为 18889
 
 ```shell
 /path/to/mma/bin/mma-server
@@ -228,7 +228,7 @@ MMA_HOME
 
   //TODO 添加 generate-job-config 脚本
 
-  - 首先组织临时文件table_mapping.txt，`conf/table_mapping.txt` 文件提供了编写模版（其中每一行表示一张Hive表到MaxCompute表的映射）：
+  - 首先组织临时文件 table_mapping.txt，`conf/table_mapping.txt` 文件提供了编写模版（其中每一行表示一张 Hive 表到 MaxCompute 表的映射）：
 
     ```$xslt
     # The following example represents a migration job. The source table is 'source_table' in Hive
@@ -238,11 +238,11 @@ MMA_HOME
     test_db_2.test_table:test_project_2.test_table
     test_db.test_table_2:test_project_2.test_table_2
     ```
-  - 之后执行以下命令直接生成table_mapping.txt文件中包含的迁移任务配置。
+  - 之后执行以下命令直接生成 table_mapping.txt 文件中包含的迁移任务配置。
     ```shell
     /path/to/mma/bin/generate-job-config --type TABLE
     ```
-    执行完成后，当前目录下将会生成MMA迁移任务的配置文件mma_migration_config.json。
+    执行完成后，当前目录下将会生成 MMA 迁移任务的配置文件 mma_migration_config.json。
 
 - 库级别任务配置
 
@@ -258,39 +258,43 @@ MMA_HOME
 
 #### <a name="SubmitJob"></a>提交任务
 
-执行以下命令，向MMA server提交迁移任务（`mma_migration_config.json` 的生成见上一小节[生成任务配置](#GenerateJobConfig)）：
-```shell
-/path/to/mma/bin/mma-client --action SubmitJob --conf mma_migration_config.json
+执行以下命令，向 MMA server 提交迁移任务（`mma_migration_config.json` 的生成见上一小节[生成任务配置](#GenerateJobConfig)）：
+```console
+$ /path/to/mma/bin/mma-client --action SubmitJob --conf mma_migration_config.json
+Submitting job, this may take a few minutes
+OK
 ```
-任务提交成功时，MMA client会打印 ```Job submitted``` 并结束进程，返回值为0：
+任务提交成功时，MMA client 会打印 ```Job submitted``` 并结束进程，返回值为 0：
 
 #### <a name="GetJobInfo"></a>查看任务状态
 
-```shell
-/path/to/mma/bin/mma-client --action GetJobInfo --jobid YOUR_JOB_ID
-# [输出样例]
-# Job ID: cat2
-# Job status: SUCCEEDED
-# Object type: CATALOG
-# Source: test_catalog
-# Destination: mma_test
-# OK
+```console
+$ /path/to/mma/bin/mma-client --action GetJobInfo --jobid YOUR_JOB_ID
+Job ID: cat2
+Job status: SUCCEEDED
+Object type: CATALOG
+Source: test_catalog
+Destination: mma_test
+OK
 ```
 
 
 #### <a name="ListJobs"></a>查看迁移任务列表
 执行以下命令，查看所有迁移任务列表（列表会列出所有任务的状态与进度）：
-```shell
-/path/to/mma/bin/mma-client --action ListJobs
-# Output Example: Job ID: your_job_id, status: SUCCEEDED, progress: 0.00%
+```console
+$ /path/to/mma/bin/mma-client --action ListJobs
+Job ID: 2263e913e9ba4130ac1e930b909dafab, status: FAILED, progress: 0.00%
+Job ID: cf2c5f2f335041a1a1729b340c1d5fde, status: SUCCEEDED, progress: 0.00%
+OK
 ```
 MMA 支持通过 WebUI 查看目前正在运行的迁移任务，见 [Web UI](#WebUI)
 
 #### <a name="RemoveJob"></a>删除迁移任务
 
 执行以下命令，可以删除状态为 SUCCEEDED 或 FAILED 的迁移任务。
-```shell
-/path/to/mma/bin/mma-client --action DeleteJob --jobid YOUR_JOB_ID
+```console
+$ /path/to/mma/bin/mma-client --action DeleteJob --jobid YOUR_JOB_ID
+OK
 ```
 
 #### <a name="ResetJob"></a>重置迁移任务
@@ -299,13 +303,16 @@ MMA 支持通过 WebUI 查看目前正在运行的迁移任务，见 [Web UI](#W
 - 当需要增量同步时，重置 `SUCCESS` 状态下的任务
 - 当需要重试失败任务时，重置 `FAIL` `CANCEL` 状态下的任务
 
-```shell
-/path/to/mma/bin/mma-client --action ResetJob --jobid YOUR_JOB_ID
+```console
+$ /path/to/mma/bin/mma-client --action ResetJob --jobid YOUR_JOB_ID
+Resetting job, this may take a few minutes
+OK
 ```
 
 #### mma-client 其他参数说明
 
-```shell
+```console
+$ ./bin/mma-client -h
 usage: mma-client --action [SubmitJob | ResetJob | ListJobs | GetJobInfo |
                   StopJob | DeleteJob] [options]
  -a,--action <Action>          Could be 'SubmitJob', 'ResetJob',
@@ -356,7 +363,7 @@ Web UI 运行在 MMA server 所在服务器的 18888 端口，可以通过 `http
 
 
 ## <a name="HandleFailures"></a>失败处理
-由于MMA会自动归档日志，以下```grep```命令请根据实际情况替换为```zgrep```命令。
+由于 MMA 会自动归档日志，以下```grep```命令请根据实际情况替换为```zgrep```命令。
 
 一般的失败处理过程为：
 
@@ -391,7 +398,9 @@ ionTask failed, id(s): 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.par
 
 ```console
 $ grep 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0 log/mma_server.LOG* | grep FAIL
-2021-08-19 13:50:49,594 INFO  [main] action.AbstractAction (AbstractAction.java:setProgress(163)) - Set action status, id: 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0.DataTransmission, from: RUNNING, to: FAILED
+2021-08-19 13:50:49,594 INFO  [main] action.AbstractAction (AbstractAction.java:setProgress(163)) - 
+Set action status, id: 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0.DataTransmission, 
+from: RUNNING, to: FAILED
 ```
 
 输出中会包含失败的 Action 信息，我们需要的是最后一条 Set action status 信息。综合以上信息，我们得出结论：是 `HiveToMcTableDataTransmissionTask` 中的 `DataTransmission` Action（Action ID = Task ID + Action Name） 导致任务失败。
@@ -410,8 +419,10 @@ $ grep 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0 log/mma_serv
 
 ```console
 $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.SetUp.CreateTable, InstanceId: 20201026100347413gvsu46pr2
-2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.SetUp.CreateTable, LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
+2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.SetUp.CreateTable, 
+InstanceId: 20201026100347413gvsu46pr2
+2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.SetUp.CreateTable, 
+LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
 ```
 此时可以将在浏览器中打开 logview URL，即可看到具体失败原因。
 
@@ -422,7 +433,7 @@ $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
 
 #### DataTransmission
 这个 Action 可能的失败情况比较多，常见的如下：
-1. Hive UDTF 没有正确创建，请参考请参考配置中[创建UDTF部分](#createHiveFunction)
+1. Hive UDTF 没有正确创建，请参考请参考配置中[创建 UDTF 部分](#createHiveFunction)
 1. 集群网络环境问题，MapReduce 任务报错如 UnknownHost（DNS 问题），或 Connection Timeout（Endpoint 配置或路由问题）
 1. string 超过 8MB，这个问题请提交工单解决
 1. 脏数据，此时这张表或分区往往已经无法正常读出数据
@@ -434,7 +445,10 @@ $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
 
 ```console
 $ grep "${ACTION_ID}" /path/to/mma/log/mma_server.LOG* | grep "stack trace"
-log/mma_server.LOG:2021-08-19 13:52:54,719 ERROR [main] action.AbstractAction (AbstractAction.java:afterExecution(138)) - Action failed, actionId: f8a5952b-a634-4e16-a77c-8d47e58173f2.DataTransmission.part.0.DataTransmission, stack trace: java.util.concurrent.ExecutionException: org.apache.hive.service.cli.HiveSQLException: Error while compiling statement: FAILED: SemanticException Line 0:-1 Invalid function 'default.odps_data_dump_multi'
+log/mma_server.LOG:2021-08-19 13:52:54,719 ERROR [main] action.AbstractAction (AbstractAction.java:afterExecution(138)) - 
+Action failed, actionId: f8a5952b-a634-4e16-a77c-8d47e58173f2.DataTransmission.part.0.DataTransmission, 
+stack trace: java.util.concurrent.ExecutionException: org.apache.hive.service.cli.HiveSQLException: 
+Error while compiling statement: FAILED: SemanticException Line 0:-1 Invalid function 'default.odps_data_dump_multi'
 ```
 输出中会包含失败原因，以上的输出信息告诉我们 Action 失败是因为 Hive UDTF 没有正确创建。
 
@@ -443,10 +457,12 @@ log/mma_server.LOG:2021-08-19 13:52:54,719 ERROR [main] action.AbstractAction (A
 
 ```console
 $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.DataTransmission, jobId:  job_1591948285564_0267
-2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.DataTransmission, tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.DataTransmission, 
+jobId:  job_1591948285564_0267
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.DataTransmission, 
+tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
 ```
-根据上面的信息，可以在yarn上查找这个MapReduce Job的日志。
+根据上面的信息，可以在 yarn 上查找这个 MapReduce Job 的日志。
 
 #### HiveDataVerification
 这个 Action 失败通常与 Hive 集群相关。
@@ -457,8 +473,10 @@ $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
 
 ```console
 $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.HiveDataVerification, jobId:  job_1591948285564_0267
-2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.HiveDataVerification, tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.HiveDataVerification, 
+jobId:  job_1591948285564_0267
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.HiveDataVerification, 
+tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
 ```
 #### McDataVerification
 这个 Action 失败通常与 MC 相关。
@@ -469,8 +487,10 @@ $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
 
 ```console
 $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.McDataVerification, InstanceId: 20201026100347413gvsu46pr2
-2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.McDataVerification, LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
+2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.McDataVerification, 
+InstanceId: 20201026100347413gvsu46pr2
+2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.McDataVerification, 
+LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
 ```
 此时可以将在浏览器中打开 logview URL，即可看到具体失败原因。
 
@@ -483,25 +503,26 @@ $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
 
 ```console
 $ grep "${ACTION_ID}" /path/to/mma/log/mma_server.LOG
-2020-10-27 14:56:37,781 ERROR [Scheduler] action.AbstractAction (VerificationAction.java:call(77)) - ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.FinalVerification, verification failed, source: 1, dest: 2
+2020-10-27 14:56:37,781 ERROR [Scheduler] action.AbstractAction (VerificationAction.java:call(77)) - 
+ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.FinalVerification, verification failed, source: 1, dest: 2
 ```
 ## FAQ
-## 1. 升级MMA
-MMA会不断更新功能，并修复已知问题，提高稳定性，因此我们建议长期使用MMA的客户升级MMA。升级MMA的步骤如下：
-1. 下载解压新版本MMA
-1. 停止老版本MMA
-1. 将已有的MMA根目录下的元数据文件.MmaMeta.mv.db复制到新版本MMA的根目录下
-1. 启动新版本MMA
+## 1. 升级 MMA
+MMA 会不断更新功能，并修复已知问题，提高稳定性，因此我们建议长期使用 MMA 的客户升级 MMA。升级 MMA 的步骤如下：
+1. 下载解压新版本 MMA
+1. 停止老版本 MMA
+1. 将已有的 MMA 根目录下的元数据文件.MmaMeta.mv.db 复制到新版本 MMA 的根目录下
+1. 启动新版本 MMA
 
 ## 2. 迁移速率慢
 可能的原因包括：
-- 公共云限流：最大允许的带宽为2Gbps，如果需要调整限流阈值请提工单
-- Endpoint配置：注意区分公网和阿里云内网Endpoint
+- 公共云限流：最大允许的带宽为 2Gbps，如果需要调整限流阈值请提工单
+- Endpoint 配置：注意区分公网和阿里云内网 Endpoint
 
-## 3. 导入到多个MC project
-需要保证在执行mma/bin/configure的时候，填入的阿里云账号有这些project的admin权限。之后在配置table mapping时就可以
-选择将数据导入不同project了。请参考[生成任务配置](#GenerateJobConfig)
+## 3. 导入到多个 MC project
+需要保证在执行 mma/bin/configure 的时候，填入的阿里云账号有这些 project 的 admin 权限。之后在配置 table mapping 时就可以
+选择将数据导入不同 project 了。请参考[生成任务配置](#GenerateJobConfig)
 
 ## 4. 进度条一直不动
-目前进度条是基于完成的分区数量显示进度的，因此会出现跳变的情况（对于非分区表会直接从0跳到100）。这一点将在后续版本优化，
-目前可以通过```tailf mma/log/mma_server.LOG```来监控。
+目前进度条是基于完成的分区数量显示进度的，因此会出现跳变的情况（对于非分区表会直接从 0 跳到 100）。这一点将在后续版本优化，
+目前可以通过 ```tailf mma/log/mma_server.LOG``` 来监控。
