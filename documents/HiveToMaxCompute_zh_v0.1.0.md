@@ -101,8 +101,8 @@ $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 MMA_HOME
 └── conf
     ├── gss-jaas.conf.template					
-    ├── mma_server_config.json					
-    └── table_mapping.txt							
+    ├── mma_server_config.json.template					
+    └── table_mapping.txt.template
 ```
 
 mma 的配置文件一般不手动修改，使用工具进行管理，主要包括 mma server 的配置（见 [配置 MMA server](#Configure)）与 任务配置（见 [生成任务配置](#GenerateJobConfig)）
