@@ -1,20 +1,20 @@
-# Hive迁移至MaxCompute
+# Hive 迁移至 MaxCompute
 
-在Hive迁移至MaxCompute的场景下，MMA实现了Hive的UDTF，通过Hive的分布式能力，实现Hive数据向MaxCompute的高并发传输。
+在 Hive 迁移至 MaxCompute 的场景下，MMA 实现了 Hive 的 UDTF，通过 Hive 的分布式能力，实现 Hive 数据向 MaxCompute 的高并发传输。
 
 这种迁移方式的优点有：
-- 读数据由Hive自身完成，因此可以被Hive读的数据（包括Hive外表），都可以用MMA向MaxCompute迁移，且不存在任何数据格式问题
+- 读数据由 Hive 自身完成，因此可以被 Hive 读的数据（包括 Hive 外表），都可以用 MMA 向 MaxCompute 迁移，且不存在任何数据格式问题
 - 支持增量数据迁移
 - 迁移效率高，迁移速率可以随资源分配线性提高
 
 这种迁移方式的前置条件有：
-- Hive集群各节点需要具备访问MaxCompute的能力
+- Hive 集群各节点需要具备访问 MaxCompute 的能力
 
 ## <a name="Architecture"></a>架构与原理
-当用户通过MMA client向MMA server提交一个迁移Job后，MMA首先会将该Job的配置记录在元数据中，并初始化其状态为PENDING。
+当用户通过 MMA client 向 MMA server 提交一个迁移 Job 后，MMA 首先会将该 Job 的配置记录在元数据中，并初始化其状态为 PENDING。
 
-随后，MMA调度器将会把这个Job状态置为RUNNING，向Hive请求这张表的元数据，并开始调度执行。这个Job在MMA中会被拆分为若干
-个Task，每一个Task负责表中的一部分数据。每一个Task将会包含如下图所示的，由若干个Action组成的DAG：
+随后，MMA 调度器将会把这个 Job 状态置为 RUNNING，向 Hive 请求这张表的元数据，并开始调度执行。这个 Job 在 MMA 中会被拆分为若干
+个 Task，每一个 Task 负责表中的一部分数据。每一个 Task 将会包含如下图所示的，由若干个 Action 组成的 DAG：
 
 ```$xslt
             CreateTable (在MC中创建表)
@@ -31,26 +31,25 @@ Source Verification   Dest Verification
       Compare Verification Result (对比验证结果)
 ```
 
-上图中数据传输的原理是利用Hive的分布式计算能力，实现了一个Hive UDTF，在Hive UDTF
-中实现了上传数据至MaxCompute的逻辑，并将一个数据迁移任务转化为一个或多个形如：
+上图中数据传输的原理是利用 Hive 的分布式计算能力，实现了一个 Hive UDTF，在 Hive UDTF 中实现了上传数据至 MaxCompute 的逻辑，并将一个数据迁移任务转化为一个或多个形如：
 
 ```sql
 SELECT UDTF(*) FROM hive_db.hive_table;
 ```
-的Hive SQL。在执行上述Hive SQL时，数据将被Hive读出并传入UDTF，UDTF会通过MaxCompute的Tunnel SDK将数据写入MaxCompute。
+的 Hive SQL。在执行上述 Hive SQL 时，数据将被 Hive 读出并传入 UDTF，UDTF 会通过 MaxCompute 的 Tunnel SDK 将数据写入 MaxCompute。
 
-当某一个Task的所有Action执行成功后，MMA会将这个Task负责的部分数据的迁移状态置为SUCCEEDED。当该Job对应的所有Task都成功
+当某一个 Task 的所有 Action 执行成功后，MMA 会将这个 Task 负责的部分数据的迁移状态置为 SUCCEEDED。当该 Job 对应的所有 Task 都成功
 后，这张表的迁移结束。
 
-当某一个Task的某一个Action执行失败，MMA会将这个Task负责的部分数据的迁移状态置为FAILED，并生成另一个Task负责这部分数据，
+当某一个 Task 的某一个 Action 执行失败，MMA 会将这个 Task 负责的部分数据的迁移状态置为 FAILED，并生成另一个 Task 负责这部分数据，
 直到成功或达到重试次数上限。
 
-当表中数据发生变化时（新增数据，新增分区，或已有分区数据变化），可以重新提交迁移任务，此时MMA会重新扫描Hive中元数据，
+当表中数据发生变化时（新增数据，新增分区，或已有分区数据变化），可以重新提交迁移任务，此时 MMA 会重新扫描 Hive 中元数据，
 发现数据变化，并迁移发生变化的表或分区。
 
 ## <a name="Preparation"></a>准备工作
-### 1. 确认Hive版本
-在Hadoop集群的master节点执行 ```hive --version``` 确认Hive版本，根据返回下载对应MMA安装包。
+### 1. 确认 Hive 版本
+在 Hadoop 集群的 master 节点执行 ```hive --version``` 确认 Hive 版本，根据返回下载对应 MMA 安装包。
 
 例如：
 ```console
@@ -58,17 +57,17 @@ $ hive --version
 Hive 1.0.0
 ```
 
-此时应选择Github release页面下，mma-hive-1.x-release.tar.gz。
+此时应选择 Github release 页面下，mma-hive-1.x-release.tar.gz。
 
 
 ### 2. 确认Hive集群各个节点具备访问MaxCompute的能力
 
-首先确认MaxCompute endpoint，官方参考文档：https://help.aliyun.com/document_detail/34951.html
+首先确认 MaxCompute endpoint，官方参考文档：https://help.aliyun.com/document_detail/34951.html
 
-根据阿里云各Region的部署及网络情况，您可以通过以下三种连接方式访问MaxCompute服务和Tunnel服务：
-- 从外网访问MaxCompute服务和Tunnel服务
-- 从阿里云经典网络访问MaxCompute服务和Tunnel服务
-- 从阿里云VPC网络访问MaxCompute服务和Tunnel服务
+根据阿里云各 Region 的部署及网络情况，您可以通过以下三种连接方式访问 MaxCompute 服务和 Tunnel 服务：
+- 从外网访问 MaxCompute 服务和 Tunnel 服务
+- 从阿里云经典网络访问 MaxCompute 服务和 Tunnel 服务
+- 从阿里云 VPC 网络访问 MaxCompute 服务和 Tunnel 服务
 
 以上三种连接方式使用的MaxCompute endpoint有所区别，对于在Aliyun上搭建的Hive集群，或到Aliyun有专线的Hive集群，见上面文档中VPC网络下Region和服务连接对照表。对于其他情况，见外网网络下地域和服务连接对照表。
 
@@ -90,7 +89,7 @@ $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 
 即表示该节点可以访问MaxCompute。
 
-### 3. MaxCompute配置
+### <a name="MCConfigure"></a>3. MaxCompute配置
 
 使用MMA前，需要确认MaxCompute project已经按照[文档](https://help.aliyun.com/document_detail/159541.html?spm=a2c4g.11186623.6.639.7336134dNbODrx)配置了2.0数据类型版本
 
@@ -142,6 +141,8 @@ mma 的配置文件一般不手动修改，使用工具进行管理，主要包�
 | MaxCompute project名   | 建议配置为目标MaxCompute project, 规避权限问题           |                                                      |
 | 阿里云accesskey id     | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
 | 阿里云accesskey secret | 详见: https://help.aliyun.com/document_detail/27803.html |                                                      |
+
+### <a name="createHiveFunction"></a>创建 Hive 函数
 
 此外，配置过程中还需要将某些文件上传至HDFS，并在beeline中创建MMA需要的Hive永久函数。MMA配置引导脚本会自动生成需要执行的命令，直接复制粘贴到安装有hdfs命令与beeline的服务器上执行即可。命令示例如下：
 
@@ -283,11 +284,11 @@ MMA_HOME
 /path/to/mma/bin/mma-client --action ListJobs
 # Output Example: Job ID: your_job_id, status: SUCCEEDED, progress: 0.00%
 ```
-MMA支持通过WebUI查看目前正在运行的迁移任务，见[Web UI](#WebUI)
+MMA 支持通过 WebUI 查看目前正在运行的迁移任务，见 [Web UI](#WebUI)
 
 #### <a name="RemoveJob"></a>删除迁移任务
 
-执行以下命令，可以删除状态为SUCCEEDED或FAILED的迁移任务。
+执行以下命令，可以删除状态为 SUCCEEDED 或 FAILED 的迁移任务。
 ```shell
 /path/to/mma/bin/mma-client --action DeleteJob --jobid YOUR_JOB_ID
 ```
@@ -319,9 +320,9 @@ usage: mma-client --action [SubmitJob | ResetJob | ListJobs | GetJobInfo |
 ```
 
 ## <a name="WebUI"></a>MMA Web UI
-为了带给用户更好的体验，MMA支持了Web UI。目前Web UI主要用于查看任务的状态，进度，以及有助于错误排查的各种debug信息。
+为了带给用户更好的体验，MMA 支持了 Web UI。目前 Web UI 主要用于查看任务的状态，进度，以及有助于错误排查的各种 debug 信息。
 
-Web UI运行在MMA server所在服务器的18888端口，可以通过`http://${hostname}:18888`地址进行访问。
+Web UI 运行在 MMA server 所在服务器的 18888 端口，可以通过 `http://${hostname}:18888` 地址进行访问。
 
 当前 Web UI 的功能主要包括 Job / Task / Action 的状态查看与 MMA Server 配置信息查看
 
@@ -357,116 +358,133 @@ Web UI运行在MMA server所在服务器的18888端口，可以通过`http://${h
 ## <a name="HandleFailures"></a>失败处理
 由于MMA会自动归档日志，以下```grep```命令请根据实际情况替换为```zgrep```命令。
 
+一般的失败处理过程为：
 
-执行以下命令查看当前迁移失败的表：
-```shell
-/path/to/bin/mma-client --action ListJobs | grep FAILED
+- 查找导致失败的具体 Action
+  - 获取失败任务 Job ID
+  - 获取任务失败原因（对应 Task ID）
+  - 根据 Task ID 获取失败 Action
+- 查看文档中各种 Action 可能的失败原因及调查方法。
+
+接下来我们对失败处理过程进行具体介绍：
+
+### 查找导致失败的具体 Action
+
+
+执行以下命令查看当前迁移失败的 Job，获取 Job ID：
+```console
+$ path/to/mma/bin/mma-client --action ListJobs | grep FAILED
+Job ID: 2263e913e9ba4130ac1e930b909dafab, status: FAILED, progress: 0.00%
+OK
 ```
 
-假设失败的表为```test_db.test_table```，我们可以执行以下命令从所有MMA server的日志中获取失败的原因：
-```$xslt
-$ grep "FAILED" /path/to/mma/log/mma_server.LOG* | grep "test_db.test_table"
+获得 Job ID 后可以执行以下命令获取失败的原因：
+
+```console
+$ grep "Job failed" /path/to/mma/log/mma_server.LOG* | grep 2263e913e9ba4130ac1e930b909dafab
+2021-08-19 13:50:54,141 INFO  [main] job.AbstractJob (AbstractJob.java:fail(310)) - Job failed, id:
+2263e913e9ba4130ac1e930b909dafab, reason: com.aliyun.odps.mma.server.task.HiveToMcTableDataTransmiss
+ionTask failed, id(s): 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0
 ```
-输出可能包含多条日志，我们需要的是最后一条Update action progress的日志，如：
-```$xslt
-2020-10-26 18:03:39,380 INFO  [Scheduler] action.AbstractAction (AbstractAction.java:setProgress(121)) - Update action progress, id: Migration.test_db.test_table.1603706572.DataTransfer, cur progress: RUNNING, new progress: FAILED
+
+通过以上日志，我们可以看到 Job 失败的原因是 `HiveToMcTableDataTransmissionTask` 的失败。通过这个 Task ID 可以进一步查看具体失败的 Action：
+
+```console
+$ grep 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0 log/mma_server.LOG* | grep FAIL
+2021-08-19 13:50:49,594 INFO  [main] action.AbstractAction (AbstractAction.java:setProgress(163)) - Set action status, id: 492ef03d-d0e8-4cb3-afc4-6f540c2f420a.DataTransmission.part.0.DataTransmission, from: RUNNING, to: FAILED
 ```
 
-通过以上日志，我们可以看到是```Migration.test_db.test_table.1603706572.DataTransfer```这个DataTransfer
-action执行失败了。
+输出中会包含失败的 Action 信息，我们需要的是最后一条 Set action status 信息。综合以上信息，我们得出结论：是 `HiveToMcTableDataTransmissionTask` 中的 `DataTransmission` Action（Action ID = Task ID + Action Name） 导致任务失败。
 
-接下来，我们将介绍各种Action可能的失败原因，以及调查方法。
+接下来，我们将介绍各种 Action 可能的失败原因，以及调查方法。
 
-### CreateTable
-这个Action失败通常因为MaxCompute中没有打开新类型开关，请参考[准备工作](#Preparation)中的MaxCompute配置一节。
+### Action 失败原因参考
+
+#### CreateTable
+
+这个 Action 失败通常因为 MaxCompute 中没有打开新类型开关，请参考准备工作中的 [MaxCompute 配置](#MCConfigure)一节。
 
 调查方法：
-根据Action ID在mma/log/task_runner.LOG中查找DDL在MC中执行的logview。命令为
-```$xslt
+
+根据 Action ID 在 mma/log/task_runner.LOG 中查找 DDL 在 MC 中执行的 logview：
+
+```console
 $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
+2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.SetUp.CreateTable, InstanceId: 20201026100347413gvsu46pr2
+2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.SetUp.CreateTable, LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
 ```
-输出样例：
-```$xslt
-2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: Migration.mma_test.dummy.1603706621.CreateTable, InstanceId: 20201026100347413gvsu46pr2
-2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: Migration.mma_test.dummy.1603706621.CreateTable, LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
-```
-此时可以将在浏览器中打开logview URL，即可看到具体失败原因。
+此时可以将在浏览器中打开 logview URL，即可看到具体失败原因。
 
-### AddPartition
-这个Action可能因为元数据并发操作太多导致失败，在绝大多数情况下可以靠MMA自动重试解决，用户无需介入。
+#### AddPartitions
+这个 Action 可能因为元数据并发操作太多导致失败，在绝大多数情况下可以靠 MMA 自动重试解决，用户无需介入。
 
-调查方法同CreateTable。
+调查方法同 [CreateTable](#CreateTable)。
 
-### DataTransfer
-这个Action可能的失败情况比较多，常见的如下：
-1. Hive UDTF没有正确创建，请参考请参考[配置](#Configuration)中创建UDTF部分
-1. 集群网络环境问题，MapReduce任务报错如UnknownHost（DNS问题），或Connection Timeout（Endpoint配置或路由问题）
-1. string超过8MB，这个问题请提交工单解决
+#### DataTransmission
+这个 Action 可能的失败情况比较多，常见的如下：
+1. Hive UDTF 没有正确创建，请参考请参考配置中[创建UDTF部分](#createHiveFunction)
+1. 集群网络环境问题，MapReduce 任务报错如 UnknownHost（DNS 问题），或 Connection Timeout（Endpoint 配置或路由问题）
+1. string 超过 8MB，这个问题请提交工单解决
 1. 脏数据，此时这张表或分区往往已经无法正常读出数据
-1. 并发数量高，压力大导致失败，由于MMA自动重试机制，这个问题目前很少出现
+1. 并发数量高，压力大导致失败，由于 MMA 自动重试机制，这个问题目前很少出现
 
-调查方法：首先，根据Action ID在mma/log/mma_server.LOG中查找报错，命令为：
-```$xslt
+调查方法：
+
+首先，根据 Action ID 在 mma/log/mma_server.LOG 中查找报错：
+
+```console
 $ grep "${ACTION_ID}" /path/to/mma/log/mma_server.LOG* | grep "stack trace"
+log/mma_server.LOG:2021-08-19 13:52:54,719 ERROR [main] action.AbstractAction (AbstractAction.java:afterExecution(138)) - Action failed, actionId: f8a5952b-a634-4e16-a77c-8d47e58173f2.DataTransmission.part.0.DataTransmission, stack trace: java.util.concurrent.ExecutionException: org.apache.hive.service.cli.HiveSQLException: Error while compiling statement: FAILED: SemanticException Line 0:-1 Invalid function 'default.odps_data_dump_multi'
 ```
-输出中会包含失败原因，如：
-```$xslt
-2020-10-27 12:16:08,615 ERROR [FinishedActionHandler] action.HiveSqlAction (HiveSqlAction.java:afterExecution(60)) - Action failed, actionId: Migration.mma_test.dummy.1603772154.DataTransfer, stack trace: java.util.concurrent.ExecutionException: org.apache.hive.service.cli.HiveSQLException: Error while compiling statement: FAILED: SemanticException [Error 10011]: Invalid function odps_data_dump_multi
-```
+输出中会包含失败原因，以上的输出信息告诉我们 Action 失败是因为 Hive UDTF 没有正确创建。
 
-如果失败原因为MapReduce Job执行失败，则需要查找MapReduce Job失败原因。根据Action ID在mma/log/action_executor.LOG中
-查找Hive SQL的tracking URL。命令为
-```$xslt
+如果失败原因为 MapReduce Job 执行失败，则需要查找 MapReduce Job 失败原因。根据 Action ID 在 mma/log/action_executor.LOG 中
+查找 Hive SQL 的 tracking URL。命令为
+
+```console
 $ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-```
-输出样例：
-```$xslt
-2020-10-26 16:38:20,116 [Thread-12] ActionId: Migration.mma_test.test_partitioned_100x10k.1603701412.5.DataTransfer, jobId:  job_1591948285564_0267
-2020-10-26 16:38:20,116 [Thread-12] ActionId: Migration.mma_test.test_partitioned_100x10k.1603701412.5.DataTransfer, tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.DataTransmission, jobId:  job_1591948285564_0267
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.DataTransmission, tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
 ```
 根据上面的信息，可以在yarn上查找这个MapReduce Job的日志。
 
-### SourceVerification
-这个Action失败通常与Hive集群相关。
-
-调查方法：根据Action ID在mma/log/action_executor.LOG中查找Hive SQL的tracking URL。命令为
-```$xslt
-$ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-```
-输出样例：
-```$xslt
-2020-10-26 16:38:20,116 [Thread-12] ActionId: Migration.mma_test.test_partitioned_100x10k.1603701412.5.SourceVerification, jobId:  job_1591948285564_0267
-2020-10-26 16:38:20,116 [Thread-12] ActionId: Migration.mma_test.test_partitioned_100x10k.1603701412.5.SourceVerification, tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
-```
-
-### DestVerification
-这个Action失败通常与MC相关。
+#### HiveDataVerification
+这个 Action 失败通常与 Hive 集群相关。
 
 调查方法：
-根据Action ID在mma/log/action_executor.LOG中查找DDL在MC中执行的logview。命令为
-```$xslt
-$ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
-```
-输出样例：
-```$xslt
-2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: Migration.mma_test.dummy.1603706621.DestVerification, InstanceId: 20201026100347413gvsu46pr2
-2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: Migration.mma_test.dummy.1603706621.DestVerification, LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
-```
-此时可以将在浏览器中打开logview URL，即可看到具体失败原因。
 
-### Compare
-这个Action失败通常因为MC和Hive中数据不一致，MMA的重试机制通常可以自动解决这个问题。
+根据 Action ID 在 mma/log/action_executor.LOG 中查找 Hive SQL 的 tracking URL：
+
+```console
+$ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.HiveDataVerification, jobId:  job_1591948285564_0267
+2020-10-26 16:38:20,116 [Thread-12] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.HiveDataVerification, tracking url:  http://emr-header-1.cluster-177129:20888/proxy/application_1591948285564_0267/
+```
+#### McDataVerification
+这个 Action 失败通常与 MC 相关。
 
 调查方法：
-根据Action ID在mma/log/mma_server.LOG中查找日志。命令为
-```$xslt
+
+根据 Action ID 在 mma/log/action_executor.LOG 中查找 DDL 在 MC 中执行的 logview：
+
+```console
+$ grep "${ACTION_ID}" /path/to/mma/log/action_executor.LOG
+2020-10-26 18:03:47,658 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.McDataVerification, InstanceId: 20201026100347413gvsu46pr2
+2020-10-26 18:03:47,695 [ActionExecutor- #17] ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.McDataVerification, LogView http://logview.odps.aliyun.com/logview/?h=http://service.cn.maxcompute.aliyun-inc.com/api&p=odps_mma_test&i=20201026100347413gvsu46pr2&token=SC83c2JOODVtWG9XT3BKSWxPZTNoNVdYM0R3PSxPRFBTX09CTzoxNTU4MzkxOTQ2NTYxODIxLDE2MDM5NjU4MjcseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL29kcHNfbW1hX3Rlc3QvaW5zdGFuY2VzLzIwMjAxMDI2MTAwMzQ3NDEzZ3ZzdTQ2cHIyIl19XSwiVmVyc2lvbiI6IjEifQ==
+```
+此时可以将在浏览器中打开 logview URL，即可看到具体失败原因。
+
+#### FinalVerification
+这个 Action 失败通常因为 MC 和 Hive 中数据不一致，MMA 的重试机制通常可以自动解决这个问题。
+
+调查方法：
+
+根据 Action ID 在 mma/log/mma_server.LOG 中查找日志：
+
+```console
 $ grep "${ACTION_ID}" /path/to/mma/log/mma_server.LOG
+2020-10-27 14:56:37,781 ERROR [Scheduler] action.AbstractAction (VerificationAction.java:call(77)) - ActionId: 0df1368f-cbb5-4605-946e-c5ef8961dd87.DataTransmission.part.1.FinalVerification, verification failed, source: 1, dest: 2
 ```
-输出样例：
-```$xslt
-2020-10-27 14:56:37,781 ERROR [Scheduler] action.AbstractAction (VerificationAction.java:execute(66)) - Record number not matched, source: 1, dest: 2, actionId: Migration.mma_test.dummy.1603781749.Compare
-```
-
 ## FAQ
 ## 1. 升级MMA
 MMA会不断更新功能，并修复已知问题，提高稳定性，因此我们建议长期使用MMA的客户升级MMA。升级MMA的步骤如下：
