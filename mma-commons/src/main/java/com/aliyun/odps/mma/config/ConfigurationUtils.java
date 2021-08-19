@@ -107,12 +107,12 @@ public class ConfigurationUtils {
     validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
   }
 
-  public static void validateHiveMetaSource(AbstractConfiguration config) throws Exception {
+  public static void validateHiveMetaSource(AbstractConfiguration config) throws MmaException {
     validateHiveMetastoreCredentials(config);
   }
 
   public static void validateHiveDataSource(AbstractConfiguration config)
-      throws SQLException, ClassNotFoundException {
+      throws MmaException {
     String hiveJdbcUrl = Validate.notBlank(
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
         getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL));
@@ -207,24 +207,32 @@ public class ConfigurationUtils {
   }
 
   static void validateHiveMetastoreCredentials(
-      AbstractConfiguration config) throws Exception {
-    MetaSourceFactory.getHiveMetaSource(config);
+      AbstractConfiguration config) throws MmaException {
+    try {
+      MetaSourceFactory.getHiveMetaSource(config);
+    } catch (Exception e) {
+      throw new MmaException("Invalid Hive configuration", e);
+    }
   }
 
   static void validateHiveJdbcCredentials(
       String hiveJdbcUrl,
       String username,
-      String password) throws ClassNotFoundException, SQLException {
-    Class.forName("org.apache.hive.jdbc.HiveDriver");
-    try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, username, password)) {
-      try (Statement stmt = conn.createStatement()) {
-        try (ResultSet rs = stmt.executeQuery("SELECT current_database()")) {
-          if (rs.next() && !"default".equalsIgnoreCase(rs.getString(1))) {
-            throw new IllegalArgumentException(
-                "Invalid Hive JDBC connection URL, please use the default database");
+      String password) throws MmaException {
+    try {
+      Class.forName("org.apache.hive.jdbc.HiveDriver");
+      try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, username, password)) {
+        try (Statement stmt = conn.createStatement()) {
+          try (ResultSet rs = stmt.executeQuery("SELECT current_database()")) {
+            if (rs.next() && !"default".equalsIgnoreCase(rs.getString(1))) {
+              throw new IllegalArgumentException(
+                  "Invalid Hive JDBC connection URL, please use the default database");
+            }
           }
         }
       }
+    } catch (SQLException | ClassNotFoundException e) {
+      throw new MmaException("Invalid Hive configuration", e);
     }
   }
 
