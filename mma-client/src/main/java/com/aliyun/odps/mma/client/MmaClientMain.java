@@ -18,12 +18,12 @@ import com.aliyun.odps.mma.config.ObjectType;
 
 public class MmaClientMain {
 
-  private static final String SUBMIT_JOB_ACTION = "SubmitJob";
-  private static final String LIST_JOBS_ACTION = "ListJobs";
-  private static final String GET_JOB_INFO_ACTION = "GetJobInfo";
-  private static final String STOP_JOB_ACTION = "StopJob";
-  private static final String DELETE_JOB_ACTION = "DeleteJob";
-  private static final String RESET_JOB_ACTION = "ResetJob";
+  private static final String SUBMIT_JOB_ACTION = "SUBMITJOB";
+  private static final String LIST_JOBS_ACTION = "LISTJOBS";
+  private static final String GET_JOB_INFO_ACTION = "GETJOBINFO";
+  private static final String STOP_JOB_ACTION = "STOPJOB";
+  private static final String DELETE_JOB_ACTION = "DELETEJOB";
+  private static final String RESET_JOB_ACTION = "RESETJOB";
 
   private static final String HOST_LONG_OPT = "host";
   private static final String PORT_LONG_OPT = "port";
@@ -219,7 +219,7 @@ public class MmaClientMain {
     int port = cmd.hasOption(PORT_LONG_OPT) ?
         Integer.valueOf(cmd.getOptionValue(PORT_LONG_OPT)) : DEFAULT_PORT;
     MmaClient mmaClient = new MmaClient(host, port);
-    String action = cmd.getOptionValue(ACTION_OPT);
+    String action = cmd.getOptionValue(ACTION_OPT).toUpperCase();
     int returnCode;
     switch (action) {
       case SUBMIT_JOB_ACTION:
@@ -241,7 +241,7 @@ public class MmaClientMain {
         returnCode = resetJob(mmaClient, cmd);
         break;
       default:
-        throw new IllegalArgumentException("Unsupported action " + action);
+        throw new IllegalArgumentException("Unsupported action: " + action);
     }
 
     System.exit(returnCode);
