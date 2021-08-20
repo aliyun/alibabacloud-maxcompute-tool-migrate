@@ -68,7 +68,7 @@ public class MmaServerConfiguration extends AbstractConfiguration {
   public static final String RESOURCE_DATA_WORKER = "mma.resource.data.worker";
   public static final String RESOURCE_DATA_WORKER_DEFAULT_VALUE = "25";
   public static final String RESOURCE_METADATA_WORKER = "mma.resource.metadata.worker";
-  public static final String RESOURCE_METADATA_WORKER_DEFAULT_VALUE = "10";
+  public static final String RESOURCE_METADATA_WORKER_DEFAULT_VALUE = "5";
 
   private static MmaServerConfiguration instance;
 
