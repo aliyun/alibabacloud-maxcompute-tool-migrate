@@ -53,8 +53,9 @@ public class McToOssTableSetUpTask extends DagTask {
 
     if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
       for (TableMetaModel partitionGroup : partitionGroups) {
+        int idx = 0;
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
-            this.getId() + ".AddExternalPartitions",
+            this.getId() + ".AddExternalPartitions.part." + idx,
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
             config.get(JobConfiguration.SOURCE_CATALOG_NAME),
@@ -64,6 +65,7 @@ public class McToOssTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcAddPartitionsAction);
         dag.addEdge(mcCreateOssExternalTableAction, mcAddPartitionsAction);
+        idx += 1;
       }
     }
   }
