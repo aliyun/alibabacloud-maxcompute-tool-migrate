@@ -63,6 +63,8 @@ public class AllTasksPage extends WebUiPage {
     content.add(
         UiUtils.tasksTable(
             parameterPath,
+            null,
+            null,
             request,
             "running",
             "runningTask",
@@ -77,38 +79,12 @@ public class AllTasksPage extends WebUiPage {
     content.add(
         UiUtils.tasksTable(
             parameterPath,
+            null,
+            null,
             request,
             "failed",
             "failedTask",
             failedTasks,
-            LOG
-        )
-    );
-    List<Task> succeededTasks = jobScheduler.getSucceededTasks();
-    content.add(
-        h4("Succeeded Tasks (" + succeededTasks.size() + ")").withId("succeeded")
-    );
-    content.add(
-        UiUtils.tasksTable(
-            parameterPath,
-            request,
-            "succeeded",
-            "succeededTask",
-            succeededTasks,
-            LOG
-        )
-    );
-    List<Task> canceledTasks = jobScheduler.getCanceledTasks();
-    content.add(
-        h4("Canceled Tasks (" + canceledTasks.size() + ")").withId("canceled")
-    );
-    content.add(
-        UiUtils.tasksTable(
-            parameterPath,
-            request,
-            "canceled",
-            "canceledTask",
-            canceledTasks,
             LOG
         )
     );

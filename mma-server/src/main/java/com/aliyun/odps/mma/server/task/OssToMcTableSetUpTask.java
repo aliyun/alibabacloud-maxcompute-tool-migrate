@@ -62,9 +62,10 @@ public class OssToMcTableSetUpTask extends DagTask {
           .stream()
           .map(TablePartitionGroup::getSource)
           .collect(Collectors.toList());
+      int idx = 0;
       for (TableMetaModel partitionGroup : sourceGroups) {
         McAddPartitionsAction mcAddExternalPartitionsAction = new McAddPartitionsAction(
-            this.getId() + ".AddExternalPartitions",
+            this.getId() + ".AddExternalPartitions.part." + idx,
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
             executionProject,
@@ -74,6 +75,7 @@ public class OssToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcAddExternalPartitionsAction);
         dag.addEdge(mcCreateOssExternalTableAction, mcAddExternalPartitionsAction);
+        idx += 1;
       }
     }
 
@@ -92,9 +94,10 @@ public class OssToMcTableSetUpTask extends DagTask {
           .stream()
           .map(TablePartitionGroup::getDest)
           .collect(Collectors.toList());
+      int idx = 0;
       for (TableMetaModel managedPartitionGroup : destGroups) {
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
-            this.getId() + ".AddPartitions",
+            this.getId() + ".AddPartitions.part." + idx,
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
             executionProject,
@@ -104,6 +107,7 @@ public class OssToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcAddPartitionsAction);
         dag.addEdge(mcCreateTableAction, mcAddPartitionsAction);
+        idx += 1;
       }
     }
   }

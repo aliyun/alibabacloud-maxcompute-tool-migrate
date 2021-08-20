@@ -346,6 +346,8 @@ public class UiUtils {
 
   private static class TaskPagedTable extends PagedTable<TaskTableRowData> {
 
+    private String rootJobId;
+    private String jobId;
     private String taskTag;
     private String tableHeaderId;
     private String parameterPath;
@@ -355,6 +357,8 @@ public class UiUtils {
                    String tableHeaderId,
                    int pageSize,
                    String parameterPath,
+                   String rootJobId,
+                   String jobId,
                    List<Task> tasks) {
       super(taskTag + "-table",
             taskTag + ".pageSize",
@@ -364,6 +368,8 @@ public class UiUtils {
       this.taskTag = taskTag;
       this.tableHeaderId = tableHeaderId;
       this.parameterPath = parameterPath;
+      this.rootJobId = rootJobId;
+      this.jobId = jobId;
       this.pageSize = pageSize;
     }
 
@@ -396,10 +402,20 @@ public class UiUtils {
 
     @Override
     public String pageLink(int page) {
-      return parameterPath + "?" +
-          getPageNumberFormField() + "=" + page + "&" +
-          getPageSizeFormField() + "=" + pageSize +
-          "#" + tableHeaderId;
+      StringBuilder sb = new StringBuilder(parameterPath);
+      sb.append("?")
+        .append(getPageNumberFormField()).append("=").append(page)
+        .append("&")
+        .append(getPageSizeFormField()).append("=").append(pageSize);
+      if (!StringUtils.isBlank(jobId)) {
+        sb.append("&")
+          .append(Constants.ROOT_JOB_ID_PARAM).append("=").append(rootJobId)
+          .append("&")
+          .append(Constants.JOB_ID_PARAM).append("=").append(jobId);
+      }
+      sb.append("#")
+        .append(tableHeaderId);
+      return sb.toString();
     }
 
     @Override
@@ -407,13 +423,28 @@ public class UiUtils {
       return parameterPath;
     }
 
+    @Override
+    public Map<String, String> getAdditionalPageNavigationInputs() {
+      if (StringUtils.isBlank(jobId)) {
+        // jobId is not null means this table belongs to a job page
+        return Collections.emptyMap();
+      }
+
+      Map<String, String> ret = new HashMap<>();
+      ret.put(Constants.ROOT_JOB_ID_PARAM, rootJobId);
+      ret.put(Constants.JOB_ID_PARAM, jobId);
+      return ret;
+    }
+
     private String taskPageLink(String id) {
-      return String.format("%s/task?taskId=%s&taskTag=%s", parameterPath, id, taskTag);
+      return String.format("/tasks/task?taskId=%s&taskTag=%s", id, taskTag);
     }
   }
 
   public static DomContent tasksTable(
       String parameterPath,
+      String rootJobId,
+      String jobId,
       HttpServletRequest request,
       String tableHeaderId,
       String taskTag,
@@ -442,6 +473,8 @@ public class UiUtils {
         tableHeaderId,
         taskPageSize,
         parameterPath,
+        rootJobId,
+        jobId,
         tasks
     ).table(page);
   }

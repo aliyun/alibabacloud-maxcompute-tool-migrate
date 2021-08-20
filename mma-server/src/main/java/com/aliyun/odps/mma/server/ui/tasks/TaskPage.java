@@ -30,6 +30,7 @@ import static j2html.TagCreator.th;
 import static j2html.TagCreator.tr;
 import static j2html.TagCreator.ul;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -58,6 +59,7 @@ import com.aliyun.odps.mma.server.ui.WebUiPage;
 import com.aliyun.odps.mma.server.ui.WebUiTab;
 import com.aliyun.odps.mma.server.ui.utils.UiUtils;
 import com.aliyun.odps.mma.util.Constants;
+import com.aliyun.odps.utils.StringUtils;
 import j2html.attributes.Attribute;
 import j2html.tags.DomContent;
 
@@ -167,6 +169,7 @@ public class TaskPage extends WebUiPage {
     @Override
     public String pageLink(int page) {
       return parameterPath + "?" +
+          Constants.TASK_ID_PARAM + "=" + taskId + "&" +
           getPageNumberFormField() + "=" + page + "&" +
           getPageSizeFormField() + "=" + pageSize +
           "#" + tableHeaderId;
@@ -175,6 +178,12 @@ public class TaskPage extends WebUiPage {
     @Override
     public String goButtonFormPath() {
       return parameterPath;
+    }
+
+    @Override
+    public Map<String, String> getAdditionalPageNavigationInputs() {
+      return StringUtils.isBlank(taskId) ?
+          Collections.emptyMap() : Collections.singletonMap(Constants.TASK_ID_PARAM, taskId);
     }
 
     private String actionPageLink(String id) {
