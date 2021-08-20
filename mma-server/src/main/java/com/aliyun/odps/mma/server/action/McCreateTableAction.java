@@ -3,6 +3,7 @@ package com.aliyun.odps.mma.server.action;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
@@ -22,6 +23,7 @@ public class McCreateTableAction extends McSqlAction {
       ActionExecutionContext context) {
     super(id, accessKeyId, accessKeySecret, executionProject, endpoint, task, context);
     this.tableMetaModel = tableMetaModel;
+    resourceMap.put(Resource.METADATA_WORKER, 1L);
   }
 
   @Override
