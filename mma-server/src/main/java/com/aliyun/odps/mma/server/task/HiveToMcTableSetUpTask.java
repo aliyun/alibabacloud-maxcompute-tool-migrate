@@ -60,9 +60,10 @@ public class HiveToMcTableSetUpTask extends DagTask {
       dag.addVertex(mcDropTableAction);
       dag.addEdge(mcDropTableAction, mcCreateTableAction);
     } else {
+      int idx = 0;
       for (TableMetaModel managedPartitionGroup : partitionGroups) {
         McDropPartitionAction mcDropPartitionAction = new McDropPartitionAction(
-            this.getId() + ".DropPartitions",
+            this.getId() + ".DropPartitions.part." + idx,
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
             executionProject,
@@ -73,7 +74,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
         dag.addVertex(mcDropPartitionAction);
         dag.addEdge(mcCreateTableAction, mcDropPartitionAction);
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
-            this.getId() + ".AddPartitions",
+            this.getId() + ".AddPartitions.part." + idx,
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
             executionProject,
@@ -83,6 +84,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcAddPartitionsAction);
         dag.addEdge(mcDropPartitionAction, mcAddPartitionsAction);
+        idx += 1;
       }
     }
   }

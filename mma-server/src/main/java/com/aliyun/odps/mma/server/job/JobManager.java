@@ -367,7 +367,7 @@ public class JobManager {
     }
   }
 
-  public synchronized Job getJobById(String jobId) {
+  public Job getJobById(String jobId) {
     LOG.info("Get job, job id: {}", jobId);
 
     com.aliyun.odps.mma.server.meta.generated.Job record =
@@ -528,7 +528,7 @@ public class JobManager {
     return new PartitionJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
-  public synchronized Job getSubJobById(Job parentJob, String subJobId) {
+  public Job getSubJobById(Job parentJob, String subJobId) {
     LOG.info("Get sub job, parent job id: {}, job id: {}", parentJob.getId(), subJobId);
     com.aliyun.odps.mma.server.meta.generated.Job subRecord =
         metaManager.getSubJobById(parentJob.getId(), subJobId);
@@ -538,7 +538,7 @@ public class JobManager {
     return getJobInternal(parentJob, subRecord);
   }
 
-  public synchronized List<Job> listJobs() {
+  public List<Job> listJobs() {
     LOG.info("List jobs");
     List<com.aliyun.odps.mma.server.meta.generated.Job> records =
         metaManager.listJobs();
@@ -555,7 +555,7 @@ public class JobManager {
     return ret;
   }
 
-  public synchronized List<Job> listJobsByStatus(JobStatus jobStatus) {
+  public List<Job> listJobsByStatus(JobStatus jobStatus) {
     return listJobByStatusInternal(jobStatus);
   }
 
@@ -575,7 +575,7 @@ public class JobManager {
     return ret;
   }
 
-  public synchronized List<Job> listSubJobs(Job parentJob) {
+  public List<Job> listSubJobs(Job parentJob) {
     LOG.info("List sub jobs, parent job id: {}", parentJob.getId());
     List<com.aliyun.odps.mma.server.meta.generated.Job> records =
         metaManager.listSubJobs(parentJob.getId());
@@ -592,7 +592,7 @@ public class JobManager {
     return ret;
   }
 
-  public synchronized List<Job> listSubJobsByStatus(Job parentJob, JobStatus jobStatus) {
+  public List<Job> listSubJobsByStatus(Job parentJob, JobStatus jobStatus) {
     LOG.info(
         "List sub jobs by status, parent job id: {}, status: {}",
         parentJob,
