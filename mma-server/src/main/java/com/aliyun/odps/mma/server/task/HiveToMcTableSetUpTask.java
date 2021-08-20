@@ -3,7 +3,7 @@ package com.aliyun.odps.mma.server.task;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.server.McDropPartitionAction;
+import com.aliyun.odps.mma.server.action.McDropPartitionAction;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McAddPartitionsAction;
 import com.aliyun.odps.mma.server.action.McCreateTableAction;

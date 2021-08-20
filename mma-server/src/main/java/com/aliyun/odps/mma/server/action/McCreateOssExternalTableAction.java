@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.server.OssExternalTableConfig;
 import com.aliyun.odps.mma.server.OssUtils;
@@ -44,6 +45,7 @@ public class McCreateOssExternalTableAction extends McSqlAction {
     this.ossPath = ossPath;
     this.ossEndpoint = ossEndpoint;
     this.ossTableMetaModel = ossTableMetaModel;
+    resourceMap.put(Resource.METADATA_WORKER, 1L);
   }
 
   @Override
