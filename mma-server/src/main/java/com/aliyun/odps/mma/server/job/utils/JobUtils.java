@@ -19,11 +19,14 @@
 
 package com.aliyun.odps.mma.server.job.utils;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.PartitionOrderType;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.meta.generated.Job;
@@ -94,5 +97,48 @@ public class JobUtils
     } else {
       return jobStatus;
     }
+  }
+
+  public static boolean partitionFilter(JobConfiguration config, List<String> partitionValues) {
+    List<String> partitionBegin = config.getPartitionBegin();
+    List<String> partitionEnd = config.getPartitionEnd();
+    List<PartitionOrderType> partitionOrders = config.getPartitionOrderType();
+
+    // 1/2 == 1/2/3
+    // begin      end       p
+    // 1/2        2/1       1/2       p==begin && p<end
+    // 1/2        1/2       1/2/3     p==begin && p==end
+    // 1/2        1/2/3     1/2/3     p==begin && p==end
+    // 1/2/3      1/2       1/2/3     p==begin && p==end
+    Comparator<List<String>> cmp = (o1, o2) -> {
+      int len1 = o1.size();
+      int len2 = o2.size();
+      int minLen = Math.min(len1, len2);
+
+      int ret = 0;
+      for (int i = 0; i < minLen; i++) {
+        switch (partitionOrders.get(i)) {
+          case num:
+            ret = (int) (Double.parseDouble(o1.get(i)) - Double.parseDouble(o2.get(i)));
+            break;
+          case lex:
+          default:
+            ret = o1.get(i).compareTo(o2.get(i));
+        }
+        if (ret != 0) {
+          return ret;
+        }
+      }
+      return ret;
+    };
+
+    if(cmp.compare(partitionBegin, partitionEnd) > 0){
+      List<String> tmp = partitionBegin;
+      partitionBegin = partitionEnd;
+      partitionEnd = tmp;
+    }
+
+    return cmp.compare(partitionValues, partitionBegin) >= 0
+           && cmp.compare(partitionValues, partitionEnd) <= 0;
   }
 }

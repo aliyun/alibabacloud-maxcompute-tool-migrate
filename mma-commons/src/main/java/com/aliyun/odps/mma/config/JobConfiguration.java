@@ -19,8 +19,12 @@
 
 package com.aliyun.odps.mma.config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -58,6 +62,13 @@ public class JobConfiguration extends AbstractConfiguration {
   public static final String DEST_OBJECT_NAME = "mma.object.dest.name";
 
   /**
+   * partition range
+   */
+  public static final String PARTITION_BEGIN = "mma.filter.partition.begin";
+  public static final String PARTITION_END = "mma.filter.partition.end";
+  public static final String PARTITION_ORDER = "mma.filter.partition.order";
+
+  /**
    * Job attributes.
    */
   public static final String JOB_ID = "mma.job.id";
@@ -81,6 +92,7 @@ public class JobConfiguration extends AbstractConfiguration {
     // 2. MC(metadata), MC(metadata) -> OSS(metadata), OSS(data)
     // 3. OSS(metadata), OSS(data) -> MC(metadata), MC(data)
     validateJobId();
+    validPartitionFilter();
     MetaSourceType metaSourceType = MetaSourceType.valueOf(configuration.get(METADATA_SOURCE_TYPE));
     DataSourceType dataSourceType = DataSourceType.valueOf(configuration.get(DATA_SOURCE_TYPE));
     MetaDestType metaDestType = MetaDestType.valueOf(configuration.get(METADATA_DEST_TYPE));
@@ -103,6 +115,30 @@ public class JobConfiguration extends AbstractConfiguration {
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
+  }
+
+  public List<String> getPartitionBegin() {
+    if (!containsKey(PARTITION_BEGIN)){
+      return new ArrayList<>();
+    }
+    return Arrays.asList(get(PARTITION_BEGIN).split(","));
+  }
+
+  public List<String> getPartitionEnd() {
+    if (!containsKey(PARTITION_END)){
+      return new ArrayList<>();
+    }
+    return Arrays.asList(get(PARTITION_END).split(","));
+  }
+
+  public List<PartitionOrderType> getPartitionOrderType() {
+    if (!containsKey(PARTITION_ORDER)) {
+      return new ArrayList<>();
+    }
+    return Arrays
+        .stream(get(PARTITION_ORDER).split(","))
+        .map(PartitionOrderType::valueOf)
+        .collect(Collectors.toList());
   }
 
   private void validateMcToOssCredentials() throws MmaException {
@@ -130,6 +166,18 @@ public class JobConfiguration extends AbstractConfiguration {
     String jobId = get(JobConfiguration.JOB_ID);
     if(!StringUtils.isBlank(jobId) && !JOB_ID_PATTERN.matcher(jobId).matches()){
       throw new MmaException("Invalid job Id. Job id pattern: [A-Za-z0-9_-]+");
+    }
+  }
+
+  private void validPartitionFilter() throws MmaException {
+    int beginSize = getPartitionBegin().size();
+    int endSize = getPartitionEnd().size();
+    int orderTypeSize = getPartitionOrderType().size();
+    int minTypeSize = Math.max(beginSize, endSize);
+    if (orderTypeSize < minTypeSize) {
+      throw new MmaException(
+          String.format("ERROR: partitionOrderType not enough, current size: %d, need >= %d",
+                        orderTypeSize, minTypeSize));
     }
   }
 }

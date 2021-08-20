@@ -228,6 +228,7 @@ public abstract class AbstractTableJob extends AbstractJob {
       Map<String, Long> partitionIdentifierToLastModificationTime = tableMetaModel
           .getPartitions()
           .stream()
+          .filter(p -> JobUtils.partitionFilter(config, p.getPartitionValues()))
           .collect(
               Collectors.toMap(
                   p -> ConfigurationUtils.toPartitionIdentifier(tableName, p.getPartitionValues()),
