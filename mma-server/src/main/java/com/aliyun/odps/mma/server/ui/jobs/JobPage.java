@@ -8,6 +8,7 @@ import static j2html.TagCreator.span;
 import static j2html.TagCreator.strong;
 import static j2html.TagCreator.ul;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -110,18 +111,32 @@ public class JobPage extends WebUiPage {
       // Sub job table
       // A table job may contain thousands of sub jobs. Thus, display the sub job table only when
       List<Job> subJobs = job.getSubJobs();
-
+      List<Job> subJobsToShow = new LinkedList<>();
       content.add(
           h4("Sub jobs (" + subJobs.size() + ")").withId("jobs")
       );
       if (subJobs.size() > SUB_JOB_TABLE_SIZE_LIMIT) {
         content.add(
-            h5("Displaying only the failed ones since the number of sub jobs is too large")
+            h5("Displaying only 100 sub jobs since the number of sub jobs is too large")
         );
-        subJobs = subJobs
+        List<Job> failedSubJobs = subJobs
             .stream()
             .filter(j -> JobStatus.FAILED.equals(j.getStatus()))
             .collect(Collectors.toList());
+        if (failedSubJobs.size() > 100) {
+          subJobsToShow.addAll(failedSubJobs.subList(0, 100));
+        } else {
+          subJobsToShow.addAll(failedSubJobs);
+          subJobsToShow.addAll(
+              subJobs
+                  .stream()
+                  .filter(j -> !JobStatus.FAILED.equals(j.getStatus()))
+                  .limit(100 - failedSubJobs.size())
+                  .collect(Collectors.toList())
+          );
+        }
+      } else {
+        subJobsToShow.addAll(subJobs);
       }
 
       String subJobTableParameterPath =
@@ -134,14 +149,13 @@ public class JobPage extends WebUiPage {
               "jobs",
               parameterRootJobId,
               parameterJobId,
-              subJobs,
+              subJobsToShow,
               LOG)
       );
     }
 
-    // Task table
-    // HACK: hard coded parameter path
-    String taskTableParameterPath = "/tasks";
+    String taskTableParameterPath =
+        String.join("/", parent.getBasePath(), getPrefix());
     List<Task> tasks = job.getTasks();
     if (!tasks.isEmpty()) {
       content.add(
@@ -150,6 +164,8 @@ public class JobPage extends WebUiPage {
       content.add(
           UiUtils.tasksTable(
               taskTableParameterPath,
+              parameterRootJobId,
+              job.getId(),
               request,
               "tasks",
               "tasks",
