@@ -14,21 +14,25 @@
 当用户通过 MMA client 向 MMA server 提交一个迁移 Job 后，MMA 首先会将该 Job 的配置记录在元数据中，并初始化其状态为 PENDING。
 
 随后，MMA 调度器将会把这个 Job 状态置为 RUNNING，向 Hive 请求这张表的元数据，并开始调度执行。这个 Job 在 MMA 中会被拆分为若干
-个 Task，每一个 Task 负责表中的一部分数据。每一个 Task 将会包含如下图所示的，由若干个 Action 组成的 DAG：
+个 Task，每一个 Task 负责表中的一部分数据的传输，每个 Task 又回拆分为若干个 Action 进行具体传输和验证。在逻辑结构上，每一个 Job 将会包含若干个 Task 组成的 DAG，而每一个 Task 又会包含若干个 Action 组成的 DAG。整体的流程大致如下：
 
-```$xslt
-            CreateTable (在 MC 中创建表)
-                 |
-            AddPartition (在 MC 中添加分区，仅限分区表)
-                 |
-            DataTransfer (数据传输)
-         +-------+-------+
-         |               |
-Source Verification   Dest Verification
-         |               |
-         +-------+-------+
-                 |
-      Compare Verification Result (对比验证结果)
+```
+ ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+ │                                     HiveToMcTableJob                                         │
+ │                                                                              								│
+ │ ┌───────────────────────────┐                                                                │
+ │ │         SetUpTask         │     ┌────────────────────────────────────────────────────────┐ │
+ │ │                           │     │               TableDataTransmissionTask                │ │
+ │ │      DropTableAction      │     │                                                        │ │
+ │ │             |             │     │              TableDataTransmissionAction（数据传输）     │ │
+ │ │     CreateTableAction     ├────►│                   |               |                    │ │
+ │ │             |             │     │ HiveVerificationAction          McVerificationAction   │ │
+ │ │    DropPartitionAction    │     │                   |               |                    │ │
+ │ │             |             │     │                   VerificationAction（对比验证结果）      │ │
+ │ │     AddPartitionAction    │     └────────────────────────────────────────────────────────┘ │
+ │ └───────────────────────────┘                                                                │
+ │                                                                                              │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 上图中数据传输的原理是利用 Hive 的分布式计算能力，实现了一个 Hive UDTF，在 Hive UDTF 中实现了上传数据至 MaxCompute 的逻辑，并将一个数据迁移任务转化为一个或多个形如：
@@ -95,7 +99,7 @@ $ curl http://service.cn-hangzhou.maxcompute.aliyun-inc.com/api
 
 ## <a name="Configuration"></a>配置
 
-目录结构
+配置目录包含文件如下：
 
 ```
 MMA_HOME
@@ -120,11 +124,11 @@ mma 的配置文件一般不手动修改，使用工具进行管理，主要包�
 | 参数名                | 含义                                                        | 示例                                |
 | :-------------------- | :---------------------------------------------------------- | :---------------------------------- |
 | Hive metastore URI(s) | 见 hive-site.xml 中"hive.metastore.uris"                      | thrift://hostname:9083              |
-| Hive JDBC 连接串       | 通过 beeline 使用 Hive 时输入的 JDBC 连接串, 前缀为 jdbc:hive2     | jdbc:hive2://hostname:10000/default |
+| Hive JDBC 连接串       | 通过 beeline 使用 Hive 时输入的 JDBC 连接串，必须为 default 库, 前缀为 jdbc:hive2 | jdbc:hive2://hostname:10000/default |
 | Hive JDBC 连接用户名   | 通常通过 beeline 使用 Hive 时输入的 JDBC 连接用户名, 默认值为 Hive | Hive                                |
 | Hive JDBC 连接密码     | 通常通过 beeline 使用 Hive 时输入的 JDBC 连接密码, 默认值为空     |                                     |
 
-在使用 Kerberos 的情况下，配置过程需要提供以下 Hive Security 参数
+在使用 Kerberos 的情况下，配置过程需要提供以下 Hive Security 参数：
 
 | 参数名                   | 含义                                                      | 示例                   |
 | ------------------------ | --------------------------------------------------------- | ---------------------- |
@@ -162,7 +166,7 @@ CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTr
 
 ### 进度推送
 
-MMA 支持向钉钉群推送进度信息。目前支持任务（Job）级别的 状态总结（SUMMARY），迁移成功（SUCCESS）以及迁移失败（FAIL）三种类型的事件。
+MMA 支持向钉钉群推送进度信息。目前支持任务（Job）级别的 状态总结（SUMMARY），迁移成功（SUCCEEDED）以及迁移失败（FAILED）三种类型的事件。
 
 - 准备：使用本功能前需要创建一个钉钉群，并获取钉钉群自定义机器人的 webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。
 
@@ -270,7 +274,7 @@ $ /path/to/mma/bin/mma-client --action SubmitJob --conf mma_migration_config.jso
 Submitting job, this may take a few minutes
 OK
 ```
-任务提交成功时，MMA client 会打印 ```Job submitted``` 并结束进程，返回值为 0：
+任务提交成功时，MMA client 会打印 ```OK``` 并结束进程，返回值为 0：
 
 #### <a name="GetJobInfo"></a>查看任务状态
 
@@ -293,11 +297,11 @@ Job ID: 2263e913e9ba4130ac1e930b909dafab, status: FAILED, progress: 0.00%
 Job ID: cf2c5f2f335041a1a1729b340c1d5fde, status: SUCCEEDED, progress: 0.00%
 OK
 ```
-MMA 支持通过 WebUI 查看目前正在运行的迁移任务，见 [Web UI](#WebUI)
+MMA 支持通过 WebUI 查看所有迁移任务，见 [Web UI](#WebUI)
 
 #### <a name="RemoveJob"></a>删除迁移任务
 
-执行以下命令，可以删除状态为 SUCCEEDED 或 FAILED 的迁移任务。
+执行以下命令，可以删除状态为 SUCCEEDED，FAILED，CANCELED 的迁移任务。
 ```console
 $ /path/to/mma/bin/mma-client --action DeleteJob --jobid YOUR_JOB_ID
 OK
@@ -305,9 +309,9 @@ OK
 
 #### <a name="ResetJob"></a>重置迁移任务
 
-- 状态为 `SUCCESS` `FAIL` `CANCEL` 三种状态下的任务可以被重置
-- 当需要增量同步时，重置 `SUCCESS` 状态下的任务
-- 当需要重试失败任务时，重置 `FAIL` `CANCEL` 状态下的任务
+- 状态为 `SUCCEEDED` `FAILED` `CANCELED` 三种状态下的任务可以被重置
+- 当需要增量同步时，重置 `SUCCEEDED` 状态下的任务
+- 当需要重试失败任务时，重置 `FAILED` `CANCELED` 状态下的任务
 
 ```console
 $ /path/to/mma/bin/mma-client --action ResetJob --jobid YOUR_JOB_ID
@@ -531,4 +535,4 @@ MMA 会不断更新功能，并修复已知问题，提高稳定性，因此我�
 
 ## 4. 进度条一直不动
 目前进度条是基于完成的分区数量显示进度的，因此会出现跳变的情况（对于非分区表会直接从 0 跳到 100）。这一点将在后续版本优化，
-目前可以通过 ```tailf mma/log/mma_server.LOG``` 来监控。
+目前可以通过 Web UI 监控进度。
