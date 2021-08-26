@@ -127,7 +127,7 @@ public class OssToMcTableJob extends AbstractTableJob {
     String rootJobId = getRootJobId();
     if (isPartitioned) {
       // External table's metadata doesn't contain partition size. So the adaptive way won't work.
-      List<TablePartitionGroup> groups = getStaticTablePartitionGroups(
+      List<TablePartitionGroup> groups = getTablePartitionGroups(
           metaSource,
           ossTableMetaModel,
           mcTableMetaModel,

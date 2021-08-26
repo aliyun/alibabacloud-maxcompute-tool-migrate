@@ -118,11 +118,8 @@ public class HiveToMcTableJob extends AbstractTableJob {
     String rootJobId = getRootJobId();
     if (isPartitioned) {
       // External table's metadata doesn't contain partition size. So the adaptive way won't work.
-      List<TablePartitionGroup> groups = getStaticTablePartitionGroups(
-          metaSource,
-          hiveTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
+      List<TablePartitionGroup> groups = getTablePartitionGroups(
+          metaSource, hiveTableMetaModel, mcTableMetaModel, pendingSubJobs);
 
       for (int i = 0; i < groups.size(); i++) {
         String taskId = taskIdPrefix + ".DataTransmission" + ".part." + i;
