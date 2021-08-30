@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.OdpsType;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.data.Record;
@@ -111,7 +112,11 @@ public class McSqlExecutor extends AbstractActionExecutor {
       for (Record r : records) {
         List<Object> row = new ArrayList<>(columnCount);
         for (int i = 0; i < columnCount; i++) {
-          row.add(r.get(i));
+          if (r.getColumns()[i].getTypeInfo().getOdpsType().equals(OdpsType.STRING)) {
+            row.add(r.getString(i));
+          } else {
+            row.add(r.get(i));
+          }
         }
         ret.add(row);
       }

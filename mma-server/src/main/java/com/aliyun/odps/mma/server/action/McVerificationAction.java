@@ -66,6 +66,7 @@ public class McVerificationAction extends McSqlAction {
 
   @Override
   void handleResult(List<List<Object>> result) {
+    ActionUtils.toVerificationResult(result);
     ((McSqlActionInfo) actionInfo).setResult(result);
     if (isSourceVerification) {
       actionExecutionContext.setSourceVerificationResult(result);
