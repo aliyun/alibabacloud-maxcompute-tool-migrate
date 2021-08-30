@@ -227,28 +227,43 @@ public class UiUtils {
                   Integer.toString(verificationActionInfo.getFailedPartitions().size()))
 
           );
-          if (verificationActionInfo.getFailedPartitions().size() != 0) {
-            Map<String, Long> partitionValuesToSourceNumRecord =
-                verificationActionInfo.getPartitionValuesToSourceNumRecord();
-            Map<String, Long> partitionValuesToDestNumRecord =
-                verificationActionInfo.getPartitionValuesToDestNumRecord();
-            listEntries.add(
-                li(
-                    strong("Failed partitions: "),
-                    ul(
-                        verificationActionInfo
-                            .getFailedPartitions()
-                            .stream()
-                            .map(pvs -> getFailedPartitionActionInfoEntry(
-                                pvs,
-                                partitionValuesToSourceNumRecord.get(pvs),
-                                partitionValuesToDestNumRecord.get(pvs))
-                            )
-                            .toArray(DomContent[]::new)
-                    )
-                )
-            );
-          }
+          Map<String, Long> partitionValuesToSourceNumRecord =
+              verificationActionInfo.getPartitionValuesToSourceNumRecord();
+          Map<String, Long> partitionValuesToDestNumRecord =
+              verificationActionInfo.getPartitionValuesToDestNumRecord();
+          listEntries.add(
+              li(
+                  strong("Successful partitions: "),
+                  ul(
+                      verificationActionInfo
+                          .getSucceededPartitions()
+                          .stream()
+                          .map(pvs -> getPartitionActionInfoEntry(
+                              pvs,
+                              partitionValuesToSourceNumRecord.get(pvs),
+                              partitionValuesToDestNumRecord.get(pvs))
+                          )
+                          .toArray(DomContent[]::new)
+                  )
+              )
+          );
+          listEntries.add(
+              li(
+                  strong("Failed partitions: "),
+                  ul(
+                      verificationActionInfo
+                          .getFailedPartitions()
+                          .stream()
+                          .map(pvs -> getPartitionActionInfoEntry(
+                              pvs,
+                              partitionValuesToSourceNumRecord.get(pvs),
+                              partitionValuesToDestNumRecord.get(pvs))
+                          )
+                          .toArray(DomContent[]::new)
+                  )
+              )
+          );
+
         } else {
           listEntries.add(
               actionInfoEntry("Passed", "N/A")
@@ -264,6 +279,16 @@ public class UiUtils {
           listEntries.add(
               actionInfoEntry("Passed", verificationActionInfo.passed().toString())
           );
+          listEntries.add(
+              actionInfoEntry(
+                  "Source record number",
+                  Long.toString(verificationActionInfo.getSourceNumRecord()))
+          );
+          listEntries.add(
+              actionInfoEntry(
+                  "Dest record number",
+                  Long.toString(verificationActionInfo.getDestNumRecord()))
+          );
         } else {
           listEntries.add(
               actionInfoEntry("Passed", "N/A")
@@ -278,7 +303,7 @@ public class UiUtils {
     }
   }
 
-  private static DomContent getFailedPartitionActionInfoEntry(
+  private static DomContent getPartitionActionInfoEntry(
       String partitionValuesStr,
       Long sourceNumRecord,
       Long destNumRecord) {
