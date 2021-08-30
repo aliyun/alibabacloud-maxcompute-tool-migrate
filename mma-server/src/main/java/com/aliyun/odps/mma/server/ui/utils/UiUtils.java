@@ -434,7 +434,8 @@ public class UiUtils {
         .append(getPageSizeFormField()).append("=").append(pageSize);
       if (!StringUtils.isBlank(jobId)) {
         sb.append("&")
-          .append(Constants.ROOT_JOB_ID_PARAM).append("=").append(rootJobId)
+          .append(Constants.ROOT_JOB_ID_PARAM).append("=")
+          .append(StringUtils.defaultIfBlank(rootJobId, ""))
           .append("&")
           .append(Constants.JOB_ID_PARAM).append("=").append(jobId);
       }
