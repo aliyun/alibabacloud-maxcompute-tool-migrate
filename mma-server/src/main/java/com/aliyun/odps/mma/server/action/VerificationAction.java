@@ -116,7 +116,7 @@ public class VerificationAction extends DefaultAction {
         }  if (destRecordCount.isEmpty()) {
           LOG.error("ActionId: {}, dest partition not found, partition: {}",
                     id, partitionValues);
-          actionInfo.setPartitionValuesToDestNumRecord(
+          actionInfo.setPartitionValuesToSourceNumRecord(
               partitionValuesStr,
               (long) sourceRecordCount.get(0));
           actionInfo.setPartitionValuesToDestNumRecord(partitionValuesStr, null);
