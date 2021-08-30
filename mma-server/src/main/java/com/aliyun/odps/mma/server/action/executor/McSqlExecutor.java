@@ -112,7 +112,8 @@ public class McSqlExecutor extends AbstractActionExecutor {
       for (Record r : records) {
         List<Object> row = new ArrayList<>(columnCount);
         for (int i = 0; i < columnCount; i++) {
-          if (r.getColumns()[i].getTypeInfo().getOdpsType().equals(OdpsType.STRING)) {
+          if (OdpsType.STRING.equals(r.getColumns()[i].getTypeInfo().getOdpsType())) {
+            // record.get() return byte[] when type==String, use getString() to get String type
             row.add(r.getString(i));
           } else {
             row.add(r.get(i));
