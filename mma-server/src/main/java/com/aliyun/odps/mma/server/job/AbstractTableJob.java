@@ -408,7 +408,7 @@ public abstract class AbstractTableJob extends AbstractJob {
 
       List<PartitionMetaModel> currentPartitionGroup = new LinkedList<>();
       List<Job> jobs = new LinkedList<>();
-      LOG.debug("Database: {}, table: {}, assemble {} th partition group",
+      LOG.info("Database: {}, table: {}, assemble {} th partition group",
                 source.getDatabase(), source.getTable(), ret.size());
       long sum = 0L;
       // Keep adding partitions until the total size exceeds splitSizeInByte or the number of
@@ -418,7 +418,7 @@ public abstract class AbstractTableJob extends AbstractJob {
         if (sum + partitionMetaModels.get(i).getSize() <= groupDataSizeInByte) {
           currentPartitionGroup.add(partitionMetaModels.get(i));
           jobs.add(pendingSubJobs.get(i));
-          LOG.debug(
+          LOG.info(
               "Database: {}, table: {}, add partition: {}, size: {} to partition group",
               source.getDatabase(),
               source.getTable(),
@@ -433,7 +433,7 @@ public abstract class AbstractTableJob extends AbstractJob {
       sourceBuilder.partitions(currentPartitionGroup);
       destBuilder.partitions(currentPartitionGroup);
 
-      LOG.debug(
+      LOG.info(
           "Database: {}, table: {}, {} th partition group, num partitions: {}, size: {}",
           source.getDatabase(),
           source.getTable(),
