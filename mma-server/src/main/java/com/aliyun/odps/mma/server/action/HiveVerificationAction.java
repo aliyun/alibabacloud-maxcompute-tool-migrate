@@ -70,6 +70,7 @@ public class HiveVerificationAction extends HiveSqlAction {
 
   @Override
   void handleResult(List<List<Object>> result) {
+    result = ActionUtils.toVerificationResult(result);
     ((HiveSqlActionInfo) actionInfo).setResult(result);
     if (isSourceVerification) {
       actionExecutionContext.setSourceVerificationResult(result);
