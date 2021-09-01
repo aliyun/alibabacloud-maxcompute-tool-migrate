@@ -244,7 +244,13 @@ public class JobManager {
 
     if (isPartitioned) {
       // Add each partition as a sub job
+      JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
       for (PartitionMetaModel partitionMetaModel : tableMetaModel.getPartitions()) {
+
+        if (!partitionFilter.filter(partitionMetaModel.getPartitionValues())) {
+          continue;
+        }
+
         String subJobId = JobUtils.generateJobId(true);
         Map<String, String> subConfig = new HashMap<>(config);
         String partitionIdentifier = ConfigurationUtils.toPartitionIdentifier(

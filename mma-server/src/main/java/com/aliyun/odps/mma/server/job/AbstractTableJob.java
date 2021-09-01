@@ -225,9 +225,11 @@ public abstract class AbstractTableJob extends AbstractJob {
 
     boolean hasNewSubJob = false;
     if (!tableMetaModel.getPartitionColumns().isEmpty()) {
+      JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
       Map<String, Long> partitionIdentifierToLastModificationTime = tableMetaModel
           .getPartitions()
           .stream()
+          .filter(p -> partitionFilter.filter(p.getPartitionValues()))
           .collect(
               Collectors.toMap(
                   p -> ConfigurationUtils.toPartitionIdentifier(tableName, p.getPartitionValues()),
