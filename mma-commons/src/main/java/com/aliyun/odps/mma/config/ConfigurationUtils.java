@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -44,6 +45,46 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
 public class ConfigurationUtils {
+
+
+  public static class PartitionComparator implements Comparator<List<String>> {
+
+    List<PartitionOrderType> partitionOrders;
+
+    public PartitionComparator(List<PartitionOrderType> partitionOrders){
+      this.partitionOrders = partitionOrders;
+    }
+
+    @Override
+    public int compare(List<String> o1, List<String> o2) {
+      // 1/2 == 1/2/3
+      // begin      end       p
+      // 1/2        2/1       1/2       p==begin && p<end
+      // 1/2        1/2       1/2/3     p==begin && p==end
+      // 1/2        1/2/3     1/2/3     p==begin && p==end
+      // 1/2/3      1/2       1/2/3     p==begin && p==end
+      int len1 = o1.size();
+      int len2 = o2.size();
+      int minLen = Math.min(len1, len2);
+
+      int ret = 0;
+      for (int i = 0; i < minLen; i++) {
+        switch (partitionOrders.get(i)) {
+          case num:
+            ret = (int) (Double.parseDouble(o1.get(i)) - Double.parseDouble(o2.get(i)));
+            break;
+          case lex:
+          default:
+            ret = o1.get(i).compareTo(o2.get(i));
+        }
+        if (ret != 0) {
+          return ret;
+        }
+      }
+      return ret;
+    }
+  }
+
 
   private static String getCannotBeNullOrEmptyErrorMessage(String key) {
     return key + " cannot be null or empty";

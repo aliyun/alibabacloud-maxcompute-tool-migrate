@@ -2,10 +2,13 @@ package com.aliyun.odps.mma.client;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -26,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.util.GsonUtils;
+import com.csvreader.CsvReader;
 
 public class MmaJobConfigurationGenerator {
 
@@ -34,7 +38,9 @@ public class MmaJobConfigurationGenerator {
   /**
    *  Acceptable formats:
    *    source_db.source_tbl:dest_db.dest_tbl
-   *    source_db.source_tbl("pt_val1", "pt_val2", ...):dest_db.dest_tbl
+   *    source_db.source_tbl("pt_begin", "pt_end", "order_type1/order_type2/...") dest_db.dest_tbl
+   *    pt_begin = pt_end = pt_v1,pt_v2,... (pt_begin <= pt_end)
+   *    order_type = num or lex
    */
   private static final Pattern TABLE_MAPPING_LINE_PATTERN =
       Pattern.compile("([^()]+)\\.([^()]+)(\\([^()]+\\))?:([^()]+)\\.([^()]+)");
@@ -192,20 +198,17 @@ public class MmaJobConfigurationGenerator {
             "Destination table cannot be null or empty");
 
         List<String> partitionValues = null;
+
         if (matcher.group(3) != null) {
           // Remove parentheses
-//          String partitionValuesStr = matcher.group(3).substring(1, matcher.group(3).length() - 1);
-//          CsvReader csvReader = new CsvReader(partitionValuesStr);
-//          if (csvReader.readRecord()) {
-//            partitionValues = new LinkedList<>(Arrays.asList(csvReader.getValues()));
-//          } else {
-//            System.err.println("[ERROR] Invalid partition values: " + matcher.group(3));
-//            continue;
-//          }
-          // TODO: support partition level migration
-          System.err.println("[WARNING] Invalid line: " + line
-                                 + "\nPartition level migration is not supported yet");
-          continue;
+          String partitionValuesStr = matcher.group(3).substring(1, matcher.group(3).length() - 1);
+          CsvReader csvReader = new CsvReader(new StringReader(partitionValuesStr));
+          if (csvReader.readRecord()) {
+            partitionValues = Arrays.asList(csvReader.getValues());
+          } else {
+            System.err.println("[ERROR] Invalid partition values: " + matcher.group(3));
+            continue;
+          }
         }
         Map<String, String> builder = new HashMap<>();
         builder.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLE.name());
@@ -213,6 +216,11 @@ public class MmaJobConfigurationGenerator {
         builder.put(JobConfiguration.SOURCE_OBJECT_NAME, sourceTbl);
         builder.put(JobConfiguration.DEST_CATALOG_NAME, destCatalog);
         builder.put(JobConfiguration.DEST_OBJECT_NAME, destTbl);
+        if (partitionValues != null) {
+          builder.put(JobConfiguration.PARTITION_BEGIN, partitionValues.get(0));
+          builder.put(JobConfiguration.PARTITION_END, partitionValues.get(1));
+          builder.put(JobConfiguration.PARTITION_ORDER, partitionValues.get(2));
+        }
         String json = GsonUtils.GSON.toJson(builder);
         writeToFile(
             cmd,

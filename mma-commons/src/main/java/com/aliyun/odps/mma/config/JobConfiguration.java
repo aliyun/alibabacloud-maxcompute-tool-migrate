@@ -21,6 +21,7 @@ package com.aliyun.odps.mma.config;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -73,6 +74,7 @@ public class JobConfiguration extends AbstractConfiguration {
    */
   public static final String JOB_ID = "mma.job.id";
   private static Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+  private static String SPLIT_PATTERN = "\\s*,\\s*";
 
   public JobConfiguration(Map<String, String> configuration) {
     super(configuration);
@@ -121,14 +123,14 @@ public class JobConfiguration extends AbstractConfiguration {
     if (!containsKey(PARTITION_BEGIN)){
       return new ArrayList<>();
     }
-    return Arrays.asList(get(PARTITION_BEGIN).split(","));
+    return Arrays.asList(get(PARTITION_BEGIN).split(SPLIT_PATTERN));
   }
 
   public List<String> getPartitionEnd() {
     if (!containsKey(PARTITION_END)){
       return new ArrayList<>();
     }
-    return Arrays.asList(get(PARTITION_END).split(","));
+    return Arrays.asList(get(PARTITION_END).split(SPLIT_PATTERN));
   }
 
   public List<PartitionOrderType> getPartitionOrderType() {
@@ -136,7 +138,7 @@ public class JobConfiguration extends AbstractConfiguration {
       return new ArrayList<>();
     }
     return Arrays
-        .stream(get(PARTITION_ORDER).split(","))
+        .stream(get(PARTITION_ORDER).split(SPLIT_PATTERN))
         .map(PartitionOrderType::valueOf)
         .collect(Collectors.toList());
   }
@@ -170,14 +172,22 @@ public class JobConfiguration extends AbstractConfiguration {
   }
 
   private void validPartitionFilter() throws MmaException {
-    int beginSize = getPartitionBegin().size();
-    int endSize = getPartitionEnd().size();
-    int orderTypeSize = getPartitionOrderType().size();
-    int minTypeSize = Math.max(beginSize, endSize);
+    List<String> begin = getPartitionBegin();
+    List<String> end = getPartitionEnd();
+    List<PartitionOrderType> orderType = getPartitionOrderType();
+
+    int orderTypeSize = orderType.size();
+    int minTypeSize = Math.max(begin.size(), end.size());
     if (orderTypeSize < minTypeSize) {
       throw new MmaException(
           String.format("ERROR: partitionOrderType not enough, current size: %d, need >= %d",
                         orderTypeSize, minTypeSize));
+    }
+
+    Comparator<List<String>> cmp =
+        new ConfigurationUtils.PartitionComparator(orderType);
+    if(cmp.compare(begin, end) > 0){
+      throw new MmaException(String.format("ERROR: partition end %s < begin %s", begin, end));
     }
   }
 }
