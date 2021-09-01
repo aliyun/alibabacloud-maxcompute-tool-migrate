@@ -19,11 +19,16 @@
 
 package com.aliyun.odps.mma.server.job.utils;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.aliyun.odps.Partition;
+import com.aliyun.odps.mma.config.ConfigurationUtils;
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.PartitionOrderType;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.meta.generated.Job;
@@ -93,6 +98,25 @@ public class JobUtils
       }
     } else {
       return jobStatus;
+    }
+  }
+
+  public static class PartitionFilter {
+    List<String> partitionBegin;
+    List<String> partitionEnd;
+    List<PartitionOrderType> partitionOrders;
+    Comparator<List<String>> cmp;
+
+    public PartitionFilter(JobConfiguration config) {
+      this.partitionBegin = config.getPartitionBegin();
+      this.partitionEnd = config.getPartitionEnd();
+      this.partitionOrders = config.getPartitionOrderType();
+      this.cmp = new ConfigurationUtils.PartitionComparator(partitionOrders);
+    }
+
+    public boolean filter(List<String> partitionValues) {
+      return cmp.compare(partitionValues, partitionBegin) >= 0
+             && cmp.compare(partitionValues, partitionEnd) <= 0;
     }
   }
 }

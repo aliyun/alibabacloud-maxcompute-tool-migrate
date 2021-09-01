@@ -19,11 +19,17 @@
 
 package com.aliyun.odps.mma.config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
@@ -41,6 +47,9 @@ public class JobConfiguration extends AbstractConfiguration {
   public static final String SOURCE_OBJECT_TYPES = "mma.object.source.types";
 //  public static final String SOURCE_SCHEMA_NAME = "mma.object.source.schema.name";
   public static final String SOURCE_OBJECT_NAME = "mma.object.source.name";
+  public static final String PARTITION_BEGIN = "mma.filter.partition.begin";
+  public static final String PARTITION_END = "mma.filter.partition.end";
+  public static final String PARTITION_ORDER = "mma.filter.partition.orders";
 
   /**
    * Source Object attributes.
@@ -57,11 +66,17 @@ public class JobConfiguration extends AbstractConfiguration {
 //  public static final String DEST_SCHEMA_NAME = "mma.object.dest.schema.name";
   public static final String DEST_OBJECT_NAME = "mma.object.dest.name";
 
+
   /**
    * Job attributes.
    */
   public static final String JOB_ID = "mma.job.id";
-  private static Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+
+  /**
+   * Regex patterns
+   */
+  private static final Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+  private static final String SPLIT_PATTERN = "\\s*/\\s*";
 
   public JobConfiguration(Map<String, String> configuration) {
     super(configuration);
@@ -81,6 +96,7 @@ public class JobConfiguration extends AbstractConfiguration {
     // 2. MC(metadata), MC(metadata) -> OSS(metadata), OSS(data)
     // 3. OSS(metadata), OSS(data) -> MC(metadata), MC(data)
     validateJobId();
+    validPartitionFilter();
     MetaSourceType metaSourceType = MetaSourceType.valueOf(configuration.get(METADATA_SOURCE_TYPE));
     DataSourceType dataSourceType = DataSourceType.valueOf(configuration.get(DATA_SOURCE_TYPE));
     MetaDestType metaDestType = MetaDestType.valueOf(configuration.get(METADATA_DEST_TYPE));
@@ -103,6 +119,30 @@ public class JobConfiguration extends AbstractConfiguration {
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
+  }
+
+  public List<String> getPartitionBegin() {
+    if (!containsKey(PARTITION_BEGIN)){
+      return new ArrayList<>();
+    }
+    return Arrays.asList(get(PARTITION_BEGIN).split(SPLIT_PATTERN));
+  }
+
+  public List<String> getPartitionEnd() {
+    if (!containsKey(PARTITION_END)){
+      return new ArrayList<>();
+    }
+    return Arrays.asList(get(PARTITION_END).split(SPLIT_PATTERN));
+  }
+
+  public List<PartitionOrderType> getPartitionOrderType() {
+    if (!containsKey(PARTITION_ORDER)) {
+      return new ArrayList<>();
+    }
+    return Arrays
+        .stream(get(PARTITION_ORDER).split(SPLIT_PATTERN))
+        .map(PartitionOrderType::valueOf)
+        .collect(Collectors.toList());
   }
 
   private void validateMcToOssCredentials() throws MmaException {
@@ -130,6 +170,26 @@ public class JobConfiguration extends AbstractConfiguration {
     String jobId = get(JobConfiguration.JOB_ID);
     if(!StringUtils.isBlank(jobId) && !JOB_ID_PATTERN.matcher(jobId).matches()){
       throw new MmaException("Invalid job Id. Job id pattern: [A-Za-z0-9_-]+");
+    }
+  }
+
+  private void validPartitionFilter() throws MmaException {
+    List<String> begin = getPartitionBegin();
+    List<String> end = getPartitionEnd();
+    List<PartitionOrderType> orderType = getPartitionOrderType();
+
+    int orderTypeSize = orderType.size();
+    int minTypeSize = Math.max(begin.size(), end.size());
+    if (orderTypeSize < minTypeSize) {
+      throw new MmaException(
+          String.format("ERROR: partitionOrderType not enough, current size: %d, need >= %d",
+                        orderTypeSize, minTypeSize));
+    }
+
+    Comparator<List<String>> cmp =
+        new ConfigurationUtils.PartitionComparator(orderType);
+    if(cmp.compare(begin, end) > 0){
+      throw new MmaException(String.format("ERROR: partition end %s < begin %s", begin, end));
     }
   }
 }
