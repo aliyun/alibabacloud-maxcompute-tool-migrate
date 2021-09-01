@@ -101,14 +101,22 @@ public class JobUtils
     }
   }
 
-  public static boolean partitionFilter(JobConfiguration config, List<String> partitionValues) {
-    List<String> partitionBegin = config.getPartitionBegin();
-    List<String> partitionEnd = config.getPartitionEnd();
-    List<PartitionOrderType> partitionOrders = config.getPartitionOrderType();
+  public static class PartitionFilter {
+    List<String> partitionBegin;
+    List<String> partitionEnd;
+    List<PartitionOrderType> partitionOrders;
+    Comparator<List<String>> cmp;
 
-    Comparator<List<String>> cmp = new ConfigurationUtils.PartitionComparator(partitionOrders);
+    public PartitionFilter(JobConfiguration config) {
+      this.partitionBegin = config.getPartitionBegin();
+      this.partitionEnd = config.getPartitionEnd();
+      this.partitionOrders = config.getPartitionOrderType();
+      this.cmp = new ConfigurationUtils.PartitionComparator(partitionOrders);
+    }
 
-    return cmp.compare(partitionValues, partitionBegin) >= 0
-           && cmp.compare(partitionValues, partitionEnd) <= 0;
+    public boolean filter(List<String> partitionValues) {
+      return cmp.compare(partitionValues, partitionBegin) >= 0
+             && cmp.compare(partitionValues, partitionEnd) <= 0;
+    }
   }
 }

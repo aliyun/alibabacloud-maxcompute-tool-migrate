@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
@@ -46,6 +47,9 @@ public class JobConfiguration extends AbstractConfiguration {
   public static final String SOURCE_OBJECT_TYPES = "mma.object.source.types";
 //  public static final String SOURCE_SCHEMA_NAME = "mma.object.source.schema.name";
   public static final String SOURCE_OBJECT_NAME = "mma.object.source.name";
+  public static final String PARTITION_BEGIN = "mma.filter.partition.begin";
+  public static final String PARTITION_END = "mma.filter.partition.end";
+  public static final String PARTITION_ORDER = "mma.filter.partition.orders";
 
   /**
    * Source Object attributes.
@@ -62,19 +66,17 @@ public class JobConfiguration extends AbstractConfiguration {
 //  public static final String DEST_SCHEMA_NAME = "mma.object.dest.schema.name";
   public static final String DEST_OBJECT_NAME = "mma.object.dest.name";
 
-  /**
-   * partition range
-   */
-  public static final String PARTITION_BEGIN = "mma.filter.partition.begin";
-  public static final String PARTITION_END = "mma.filter.partition.end";
-  public static final String PARTITION_ORDER = "mma.filter.partition.order";
 
   /**
    * Job attributes.
    */
   public static final String JOB_ID = "mma.job.id";
-  private static Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
-  private static String SPLIT_PATTERN = "\\s*,\\s*";
+
+  /**
+   * Regex patterns
+   */
+  private static final Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+  private static final String SPLIT_PATTERN = "\\s*/\\s*";
 
   public JobConfiguration(Map<String, String> configuration) {
     super(configuration);

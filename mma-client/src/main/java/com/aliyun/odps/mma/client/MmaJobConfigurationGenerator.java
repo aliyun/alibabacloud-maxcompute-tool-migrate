@@ -38,6 +38,7 @@ public class MmaJobConfigurationGenerator {
   /**
    *  Acceptable formats:
    *    source_db.source_tbl:dest_db.dest_tbl
+   *    TODO fix partition filter
    *    source_db.source_tbl("pt_begin", "pt_end", "order_type1/order_type2/...") dest_db.dest_tbl
    *    pt_begin = pt_end = pt_v1,pt_v2,... (pt_begin <= pt_end)
    *    order_type = num or lex
@@ -197,30 +198,30 @@ public class MmaJobConfigurationGenerator {
             matcher.group(5),
             "Destination table cannot be null or empty");
 
-        List<String> partitionValues = null;
+//        List<String> partitionValues = null;
 
-        if (matcher.group(3) != null) {
-          // Remove parentheses
-          String partitionValuesStr = matcher.group(3).substring(1, matcher.group(3).length() - 1);
-          CsvReader csvReader = new CsvReader(new StringReader(partitionValuesStr));
-          if (csvReader.readRecord()) {
-            partitionValues = Arrays.asList(csvReader.getValues());
-          } else {
-            System.err.println("[ERROR] Invalid partition values: " + matcher.group(3));
-            continue;
-          }
-        }
+//        if (matcher.group(3) != null) {
+//          // Remove parentheses
+//          String partitionValuesStr = matcher.group(3).substring(1, matcher.group(3).length() - 1);
+//          CsvReader csvReader = new CsvReader(new StringReader(partitionValuesStr));
+//          if (csvReader.readRecord()) {
+//            partitionValues = Arrays.asList(csvReader.getValues());
+//          } else {
+//            System.err.println("[ERROR] Invalid partition values: " + matcher.group(3));
+//            continue;
+//          }
+//        }
         Map<String, String> builder = new HashMap<>();
         builder.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLE.name());
         builder.put(JobConfiguration.SOURCE_CATALOG_NAME, sourceCatalog);
         builder.put(JobConfiguration.SOURCE_OBJECT_NAME, sourceTbl);
         builder.put(JobConfiguration.DEST_CATALOG_NAME, destCatalog);
         builder.put(JobConfiguration.DEST_OBJECT_NAME, destTbl);
-        if (partitionValues != null) {
-          builder.put(JobConfiguration.PARTITION_BEGIN, partitionValues.get(0));
-          builder.put(JobConfiguration.PARTITION_END, partitionValues.get(1));
-          builder.put(JobConfiguration.PARTITION_ORDER, partitionValues.get(2));
-        }
+//        if (partitionValues != null) {
+//          builder.put(JobConfiguration.PARTITION_BEGIN, partitionValues.get(0));
+//          builder.put(JobConfiguration.PARTITION_END, partitionValues.get(1));
+//          builder.put(JobConfiguration.PARTITION_ORDER, partitionValues.get(2));
+//        }
         String json = GsonUtils.GSON.toJson(builder);
         writeToFile(
             cmd,
