@@ -16,8 +16,9 @@
     <module>mma-commons</module>
     <module>distribution</module>
     <!-- this module requires internal dependencies, thus it cannot be compiled on github -->
-    <!-- for sql checker -->
+    <!-- sql checker begin -->
     <!--<module>sql-checker</module>-->
+    <!-- sql checker end -->
   </modules>
 
   <properties>
@@ -304,7 +305,7 @@
         <artifactId>commons-codec</artifactId>
         <version>1.9</version>
       </dependency>
-      <!-- for sql checker -->
+      <!-- sql checker begin -->
       <!--<dependency>-->
         <!--<groupId>com.aliyun.odps</groupId>-->
         <!--<artifactId>odps-compiler</artifactId>-->
@@ -327,6 +328,7 @@
         <!--<artifactId>guava</artifactId>-->
         <!--<version>19.0</version>-->
       <!--</dependency>-->
+      <!-- sql checker end -->
     </dependencies>
   </dependencyManagement>
 

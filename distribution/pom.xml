@@ -30,13 +30,14 @@
       <version>${project.version}</version>
       <type>zip</type>
     </dependency>
-    <!-- for sql checker -->
+    <!-- sql checker begin -->
     <!--<dependency>-->
       <!--<groupId>com.aliyun.odps</groupId>-->
       <!--<artifactId>sql-checker</artifactId>-->
       <!--<version>${project.version}</version>-->
       <!--<type>zip</type>-->
     <!--</dependency>-->
+    <!-- sql checker end -->
   </dependencies>
 
   <build>
