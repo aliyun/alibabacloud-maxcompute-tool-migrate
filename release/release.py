@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from github import Github, UnknownObjectException
 
 
@@ -95,4 +96,5 @@ if __name__ == '__main__':
     sql_checker_files = ['pom.xml', 'distribution/pom.xml',
                          'distribution/src/assembly/assembly.xml']
     BRANCHES = ['release/hive-1.x', 'release/hive-2.x', 'release/hive-3.x']
-    release_mma(BRANCHES, '0.1.0')
+    version = sys.argv[1]
+    release_mma(BRANCHES, version)
