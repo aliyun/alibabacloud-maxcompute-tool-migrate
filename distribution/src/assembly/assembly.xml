@@ -32,8 +32,9 @@
         <include>com.aliyun.odps:mma-client:zip:${project.version}</include>
         <include>com.aliyun.odps:mma-commons:zip:${project.version}</include>
         <include>com.aliyun.odps:mma-server:zip:${project.version}</include>
-        <!-- for sql checker -->
+        <!-- sql checker begin -->
         <!--<include>com.aliyun.odps:sql-checker:zip:${project.version}</include>-->
+        <!-- sql checker end -->
       </includes>
       <outputDirectory>${file.separator}</outputDirectory>
       <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
@@ -54,11 +55,12 @@
       <outputDirectory>res</outputDirectory>
       <directory>src/assembly/res</directory>
     </fileSet>
-    <!-- for sql checker -->
+    <!-- sql checker begin -->
     <!--<fileSet>-->
       <!--<outputDirectory>bin</outputDirectory>-->
       <!--<directory>../sql-checker/src/assembly/bin</directory>-->
     <!--</fileSet>-->
+    <!-- sql checker end -->
   </fileSets>
   <files>
     <file>
