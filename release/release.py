@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from github import Github, UnknownObjectException
+from github import Github
 
 
 def run(cmd):
@@ -9,10 +9,10 @@ def run(cmd):
     print(p.stdout)
 
 
-def uncomment_file():
-    begin = '<!-- sql checker begin -->'
-    end = '<!-- sql checker end -->'
-    for file in sql_checker_files:
+def uncomment_file(files_list, tag_name):
+    begin = f'<!-- {tag_name} begin -->'
+    end = f'<!-- {tag_name} end -->'
+    for file in files_list:
         with open(file, 'r') as f:
             lines = f.readlines()
         uncomment = False
@@ -41,7 +41,7 @@ def package_branch(branch, version):
     hive_version = branch.split('/')[1]
     print(f'Build release branch origin/release/{branch}')
     run(f'git checkout --quiet {branch}')
-    uncomment_file()
+    uncomment_file(sql_checker_files, 'sql checker')
     run(f'mvn -U -q clean package -DskipTests')
     output_file = f'mma-{version}-{hive_version}.zip'
     run(f'mv distribution/target/mma-{version}.zip {output_file}')
@@ -62,8 +62,8 @@ def release_to_github(files, tag):
     g = Github(token)
     repo = g.get_repo('aliyun/alibabacloud-maxcompute-tool-migrate')
 
-    try:
-        release = repo.get_release(tag)
+    release = repo.get_releases()[0]
+    if release.tag_name == tag:
 
         print(f'Release {tag} exists, update assets...')
 
@@ -78,7 +78,7 @@ def release_to_github(files, tag):
         for file in files:
             print(f'Updating {file}')
             release.upload_asset(file)
-    except UnknownObjectException:
+    else:
         print(f'Create release {tag}...')
         release = repo.create_git_release(tag=tag, name=tag, prerelease=True, message='')
         for file in files:
