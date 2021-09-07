@@ -268,7 +268,7 @@ public class McMetaSource implements MetaSource {
   private ColumnMetaModel getColumnMetaModelInternal(Column column) {
     return new ColumnMetaModel(
         column.getName(),
-        column.getTypeInfo().getOdpsType().name(),
+        column.getTypeInfo().getTypeName(),
         column.getComment());
   }
 

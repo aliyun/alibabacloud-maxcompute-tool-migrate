@@ -242,6 +242,10 @@ public class OssUtils
     return builder.toString();
   }
 
+  public static String getTempTableName(String tableName, String jobId) {
+    return "temp_table_" + tableName + "_by_mma_" + jobId;
+  }
+
   private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
     return (new OSSClientBuilder()).build(
         ossConfig.getOssLocalEndpoint(),

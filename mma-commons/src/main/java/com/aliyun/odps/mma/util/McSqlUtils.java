@@ -348,8 +348,9 @@ public class McSqlUtils {
                      .append(":")
                      .append(ossConfig.getOssAccessKey()).append("@");
     }
-    String ossEndpoint = ossConfig.getOssEndpoint().startsWith(ossPrefix) ?
+    String endpoint = ossConfig.getOssEndpoint().startsWith(ossPrefix) ?
         ossConfig.getOssEndpoint().substring(ossPrefix.length()) : ossConfig.getOssEndpoint();
+    String ossEndpoint = getInternalEndpoint(endpoint);
     String ossBucket = ossConfig.getOssBucket();
     locationBuilder.append(ossEndpoint);
     if (!ossEndpoint.endsWith("/")) {
@@ -514,5 +515,14 @@ public class McSqlUtils {
     }
 
     return sb.toString();
+  }
+
+  private static String getInternalEndpoint(String endpoint) {
+     String internal = "internal";
+     if (endpoint.contains(internal)) {
+       return endpoint;
+     }
+     String[] arr = endpoint.split("\\.");
+     return String.format("%s-%s.%s.%s", arr[0], internal, arr[1], arr[2]);
   }
 }

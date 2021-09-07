@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,6 +32,7 @@ import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
+import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -64,12 +65,17 @@ public class OssToMcTableJob extends AbstractTableJob {
       String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
       String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
 
-      // The OSS table shares the database name of the MC table. But the table name is a temp name.
       TableMetaModelBuilder ossTableMetaModelBuilder =
           new TableMetaModelBuilder(metaSource.getTableMeta(catalogName, tableName));
-      ossTableMetaModelBuilder.database(JobConfiguration.DEST_CATALOG_NAME);
-      ossTableMetaModelBuilder.table("temp_table_" + tableName + "_by_mma_" + getRootJobId());
+      ossTableMetaModelBuilder.database(config.get(JobConfiguration.DEST_CATALOG_NAME));
       TableMetaModel ossTableMetaModel = ossTableMetaModelBuilder.build();
+
+      // The External table shares the database name of the MC table. But the table name is a temp name.
+      TableMetaModelBuilder externalTableMetaModelBuilder = new TableMetaModelBuilder(ossTableMetaModel);
+      externalTableMetaModelBuilder.table(
+          OssUtils.getTempTableName(tableName, getRootJobId()));
+      externalTableMetaModelBuilder.location(tableName);
+      TableMetaModel externalTableMetaModel = externalTableMetaModelBuilder.build();
 
       SchemaTransformResult schemaTransformResult = SchemaTransformerFactory
           .get(DataSourceType.OSS)
@@ -86,13 +92,15 @@ public class OssToMcTableJob extends AbstractTableJob {
           metaSource,
           ossTableMetaModel,
           mcTableMetaModel,
+          externalTableMetaModel,
           pendingSubJobs);
       List<Task> dataTransmissionTasks = getDataTransmissionTasks(
           metaSource,
           ossTableMetaModel,
           mcTableMetaModel,
+          externalTableMetaModel,
           pendingSubJobs);
-      Task cleanUpTask = getCleanUpTask(ossTableMetaModel);
+      Task cleanUpTask = getCleanUpTask(externalTableMetaModel);
       dag.addVertex(setUpTask);
       dataTransmissionTasks.forEach(dag::addVertex);
       dag.addVertex(cleanUpTask);
@@ -111,6 +119,7 @@ public class OssToMcTableJob extends AbstractTableJob {
       MetaSource metaSource,
       TableMetaModel ossTableMetaModel,
       TableMetaModel mcTableMetaModel,
+      TableMetaModel mcExternalTableMetaModel,
       List<Job> pendingSubJobs) throws Exception {
     List<TablePartitionGroup> groups = null;
     if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
@@ -125,7 +134,7 @@ public class OssToMcTableJob extends AbstractTableJob {
         taskIdPrefix + ".SetUp",
         getRootJobId(),
         config,
-        ossTableMetaModel,
+        mcExternalTableMetaModel,
         mcTableMetaModel,
         groups,
         this);
@@ -135,6 +144,7 @@ public class OssToMcTableJob extends AbstractTableJob {
       MetaSource metaSource,
       TableMetaModel ossTableMetaModel,
       TableMetaModel mcTableMetaModel,
+      TableMetaModel externalTableMetaModel,
       List<Job> pendingSubJobs) throws Exception {
     List<Task> ret = new LinkedList<>();
 
@@ -155,8 +165,8 @@ public class OssToMcTableJob extends AbstractTableJob {
             taskId,
             rootJobId,
             config,
-            groups.get(i).getSource(),
-            groups.get(i).getDest(),
+            externalTableMetaModel,
+            mcTableMetaModel,
             this,
             groups.get(i).getJobs());
         LOG.info(
@@ -171,7 +181,7 @@ public class OssToMcTableJob extends AbstractTableJob {
           taskIdPrefix + ".DataTransmission",
           rootJobId,
           config,
-          ossTableMetaModel,
+          externalTableMetaModel,
           mcTableMetaModel,
           this,
           Collections.emptyList());
@@ -181,13 +191,13 @@ public class OssToMcTableJob extends AbstractTableJob {
     return ret;
   }
 
-  private Task getCleanUpTask(TableMetaModel ossTableMetaModel) {
+  private Task getCleanUpTask(TableMetaModel mcExternalTableMetaModel) {
     String taskIdPrefix = generateTaskIdPrefix();
     return new OssToMcTableCleanUpTask(
         taskIdPrefix + ".CleanUp",
         getRootJobId(),
         config,
-        ossTableMetaModel,
+        mcExternalTableMetaModel,
         this);
   }
 

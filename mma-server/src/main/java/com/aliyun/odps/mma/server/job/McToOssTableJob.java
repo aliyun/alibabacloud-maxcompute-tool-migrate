@@ -32,6 +32,7 @@ import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
+import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -74,7 +75,8 @@ public class McToOssTableJob extends AbstractTableJob {
       TableMetaModelBuilder ossTableMetaModelBuilder =
           new TableMetaModelBuilder(schemaTransformResult.getTableMetaModel());
       ossTableMetaModelBuilder.table(
-          "_temp_table_" + tableName + "_by_mma_" + getRootJobId());
+          OssUtils.getTempTableName(tableName, getRootJobId()));
+      ossTableMetaModelBuilder.location(tableName);
       TableMetaModel ossTableMetaModel = ossTableMetaModelBuilder.build();
 
       List<Job> pendingSubJobs = null;

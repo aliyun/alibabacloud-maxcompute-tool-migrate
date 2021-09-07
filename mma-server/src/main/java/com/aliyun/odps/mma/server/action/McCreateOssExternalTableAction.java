@@ -71,7 +71,7 @@ public class McCreateOssExternalTableAction extends McSqlAction {
         task.getRootJobId(),
         ObjectType.TABLE.name(),
         ossTableMetaModel.getDatabase(),
-        ossTableMetaModel.getTable());
+        ossTableMetaModel.getLocation());
     OssConfig ossConfig = new OssConfig(
         ossEndpoint,
         ossEndpoint,
