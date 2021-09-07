@@ -68,8 +68,8 @@ public class McToOssTableSetUpTask extends DagTask {
     dag.addVertex(mcCreateOssExternalTableAction);
 
     if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
+      int idx = 0;
       for (TableMetaModel partitionGroup : partitionGroups) {
-        int idx = 0;
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddExternalPartitions.part." + idx,
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
