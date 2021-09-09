@@ -45,7 +45,8 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
    * Metadata source credentials.
    */
   // OSS
-  public static final String METADATA_SOURCE_OSS_ENDPOINT = "mma.metadata.source.oss.endpoint";
+  public static final String METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL = "mma.metadata.source.oss.endpoint.external";
+  public static final String METADATA_SOURCE_OSS_ENDPOINT_INTERNAL = "mma.metadata.source.oss.endpoint.internal";
   public static final String METADATA_SOURCE_OSS_BUCKET = "mma.metadata.source.oss.bucket";
   public static final String METADATA_SOURCE_OSS_PATH = "mma.metadata.source.oss.path";
   public static final String METADATA_SOURCE_OSS_ACCESS_KEY_ID = "mma.metadata.source.oss.access.key.id";
@@ -77,7 +78,8 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
    * Data source credentials.
    */
   // OSS
-  public static final String DATA_SOURCE_OSS_ENDPOINT = "mma.data.source.oss.endpoint";
+  public static final String DATA_SOURCE_OSS_ENDPOINT_EXTERNAL = "mma.data.source.oss.endpoint.external";
+  public static final String DATA_SOURCE_OSS_ENDPOINT_INTERNAL = "mma.data.source.oss.endpoint.internal";
   public static final String DATA_SOURCE_OSS_BUCKET = "mma.data.source.oss.bucket";
   public static final String DATA_SOURCE_OSS_PATH = "mma.data.source.oss.path";
   public static final String DATA_SOURCE_OSS_ACCESS_KEY_ID = "mma.data.source.oss.access.key.id";
@@ -101,11 +103,13 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
    * Metadata destination credentials.
    */
   // OSS
-  public static final String METADATA_DEST_OSS_ENDPOINT = "mma.metadata.dest.oss.endpoint";
+  public static final String METADATA_DEST_OSS_ENDPOINT_EXTERNAL = "mma.metadata.dest.oss.endpoint.external";
+  public static final String METADATA_DEST_OSS_ENDPOINT_INTERNAL= "mma.metadata.dest.oss.endpoint.internal";
   public static final String METADATA_DEST_OSS_BUCKET = "mma.metadata.dest.oss.bucket";
   public static final String METADATA_DEST_OSS_ACCESS_KEY_ID = "mma.metadata.dest.oss.access.key.id";
   public static final String METADATA_DEST_OSS_ACCESS_KEY_SECRET = "mma.metadata.dest.oss.access.key.secret";
   public static final String METADATA_DEST_OSS_ROLE_ARN = "mma.metadata.dest.oss.role.arn";
+  public static final String METADATA_DEST_OSS_PATH = "mma.metadata.dest.oss.path";
   // MaxCompute
   public static final String METADATA_DEST_MC_ENDPOINT = "mma.metadata.dest.mc.endpoint";
   public static final String METADATA_DEST_MC_ACCESS_KEY_ID = "mma.metadata.dest.mc.access.key.id";
@@ -121,11 +125,13 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
    * Data destination credentials.
    */
   // OSS
-  public static final String DATA_DEST_OSS_ENDPOINT = "mma.data.dest.oss.endpoint";
+  public static final String DATA_DEST_OSS_ENDPOINT_EXTERNAL = "mma.data.dest.oss.endpoint.external";
+  public static final String DATA_DEST_OSS_ENDPOINT_INTERNAL = "mma.data.dest.oss.endpoint.internal";
   public static final String DATA_DEST_OSS_BUCKET = "mma.data.dest.oss.bucket";
   public static final String DATA_DEST_OSS_ACCESS_KEY_ID = "mma.data.dest.oss.access.key.id";
   public static final String DATA_DEST_OSS_ACCESS_KEY_SECRET = "mma.data.dest.oss.access.key.secret";
   public static final String DATA_DEST_OSS_ROLE_ARN = "mma.data.dest.oss.role.arn";
+  public static final String DATA_DEST_OSS_PATH = "mma.data.dest.oss.path";
   // MaxCompute
   public static final String DATA_DEST_MC_ENDPOINT = "mma.data.dest.mc.endpoint";
   public static final String DATA_DEST_MC_ACCESS_KEY_ID = "mma.data.dest.mc.access.key.id";

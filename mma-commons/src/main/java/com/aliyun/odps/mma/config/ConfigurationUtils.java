@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -114,35 +114,21 @@ public class ConfigurationUtils {
   }
 
   public static void validateOssMetaSource(AbstractConfiguration config) throws MmaException {
-    String endpoint = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT));
-    String bucket = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET));
-    String accessKeyId = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID));
-    String accessKeySecret = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
-    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+    validateOssConfig(config,
+                      AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL,
+                      AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL,
+                      AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET,
+                      AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID,
+                      AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET);
   }
 
   public static void validateOssDataSource(AbstractConfiguration config) throws MmaException {
-    String endpoint = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_SOURCE_OSS_ENDPOINT),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_ENDPOINT));
-    String bucket = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_SOURCE_OSS_BUCKET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_BUCKET));
-    String accessKeyId = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_ID),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_ID));
-    String accessKeySecret = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_SECRET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_SECRET));
-    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+    validateOssConfig(config,
+                      AbstractConfiguration.DATA_SOURCE_OSS_ENDPOINT_INTERNAL,
+                      AbstractConfiguration.DATA_SOURCE_OSS_ENDPOINT_EXTERNAL,
+                      AbstractConfiguration.DATA_SOURCE_OSS_BUCKET,
+                      AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_ID,
+                      AbstractConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_SECRET);
   }
 
   public static void validateHiveMetaSource(AbstractConfiguration config) throws MmaException {
@@ -187,35 +173,21 @@ public class ConfigurationUtils {
   }
 
   public static void validateOssMetaDest(AbstractConfiguration config) throws MmaException {
-    String endpoint = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT));
-    String bucket = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_BUCKET));
-    String accessKeyId = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID));
-    String accessKeySecret = Validate.notBlank(
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
-    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+    validateOssConfig(config,
+                      AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_INTERNAL,
+                      AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_EXTERNAL,
+                      AbstractConfiguration.METADATA_DEST_OSS_BUCKET,
+                      AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID,
+                      AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET);
   }
 
   public static void validateOssDataDest(AbstractConfiguration config) throws MmaException {
-    String endpoint = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_DEST_OSS_ENDPOINT),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_ENDPOINT));
-    String bucket = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_DEST_OSS_BUCKET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_BUCKET));
-    String accessKeyId = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID));
-    String accessKeySecret = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET));
-    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
+    validateOssConfig(config,
+                      AbstractConfiguration.DATA_DEST_OSS_ENDPOINT_INTERNAL,
+                      AbstractConfiguration.DATA_DEST_OSS_ENDPOINT_EXTERNAL,
+                      AbstractConfiguration.DATA_DEST_OSS_BUCKET,
+                      AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID,
+                      AbstractConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET);
   }
 
   static void validateMcCredentials(
@@ -231,6 +203,32 @@ public class ConfigurationUtils {
     } catch (Exception e) {
       throw new MmaException("Invalid MaxCompute configuration", e);
     }
+  }
+
+  private static void validateOssConfig(AbstractConfiguration config,
+                                        String internalEndpoint,
+                                        String externalEndpoint,
+                                        String bucketKey,
+                                        String keyIdKey,
+                                        String keySecretKey) throws MmaException {
+    String endpoint = Validate.notBlank(
+        config.get(internalEndpoint),
+        getCannotBeNullOrEmptyErrorMessage(internalEndpoint));
+    if (config.containsKey(externalEndpoint)) {
+      endpoint = Validate.notBlank(
+          config.get(externalEndpoint),
+          getCannotBeNullOrEmptyErrorMessage(externalEndpoint));
+    }
+    String bucket = Validate.notBlank(
+        config.get(bucketKey),
+        getCannotBeNullOrEmptyErrorMessage(bucketKey));
+    String accessKeyId = Validate.notBlank(
+        config.get(keyIdKey),
+        getCannotBeNullOrEmptyErrorMessage(keyIdKey));
+    String accessKeySecret = Validate.notBlank(
+        config.get(keySecretKey),
+        getCannotBeNullOrEmptyErrorMessage(keySecretKey));
+    validateOssCredentials(endpoint, bucket, accessKeyId, accessKeySecret);
   }
 
   static void validateOssCredentials(

@@ -16,6 +16,7 @@
 
 package com.aliyun.odps.mma.server.job;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,8 +28,10 @@ import org.apache.logging.log4j.Logger;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
@@ -43,8 +46,10 @@ import com.aliyun.odps.mma.server.task.OssToMcTableDataTransmissionTask;
 import com.aliyun.odps.mma.server.task.OssToMcTableSetUpTask;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.server.task.TaskProgress;
+import com.aliyun.odps.mma.util.McSqlUtils;
 
 public class OssToMcTableJob extends AbstractTableJob {
+
   private static final Logger LOG = LogManager.getLogger(OssToMcTableJob.class);
 
   OssToMcTableJob(
@@ -61,26 +66,46 @@ public class OssToMcTableJob extends AbstractTableJob {
     LOG.info("Generate the DAG, job id: {}", record.getJobId());
 
     try {
+      OssConfig ossConfig = new OssConfig(
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+      String[] locations = OssUtils.getOssPaths(
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_PATH),
+          config.get(JobConfiguration.JOB_ID),
+          config.get(JobConfiguration.OBJECT_TYPE),
+          config.get(JobConfiguration.SOURCE_CATALOG_NAME),
+          config.get(JobConfiguration.SOURCE_OBJECT_NAME));
+      String metadataLocation = locations[0];
+      String dataLocation = locations[1];
+
       MetaSource metaSource = metaSourceFactory.getMetaSource(config);
-      String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
-      String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
 
-      TableMetaModelBuilder ossTableMetaModelBuilder =
-          new TableMetaModelBuilder(metaSource.getTableMeta(catalogName, tableName));
-      ossTableMetaModelBuilder.database(config.get(JobConfiguration.DEST_CATALOG_NAME));
-      TableMetaModel ossTableMetaModel = ossTableMetaModelBuilder.build();
-
-      // The External table shares the database name of the MC table. But the table name is a temp name.
-      TableMetaModelBuilder externalTableMetaModelBuilder = new TableMetaModelBuilder(ossTableMetaModel);
-      externalTableMetaModelBuilder.table(
-          OssUtils.getTempTableName(tableName, getRootJobId()));
-      externalTableMetaModelBuilder.location(tableName);
-      TableMetaModel externalTableMetaModel = externalTableMetaModelBuilder.build();
+      // model        catalog           table             location
+      // oss          source catalog    source table      oss !metadata location
+      // mc           dest catalog      dest table
+      // external     dest catalog      dest table        ak + oss !data location
+      TableMetaModel ossTableMetaModel = metaSource.getTableMeta(
+          config.get(JobConfiguration.SOURCE_CATALOG_NAME),
+          config.get(JobConfiguration.SOURCE_OBJECT_NAME));
 
       SchemaTransformResult schemaTransformResult = SchemaTransformerFactory
           .get(DataSourceType.OSS)
           .transform(ossTableMetaModel, config);
-      TableMetaModel mcTableMetaModel = schemaTransformResult.getTableMetaModel();
+      TableMetaModelBuilder builder =
+          new TableMetaModelBuilder(schemaTransformResult.getTableMetaModel());
+      TableMetaModel mcTableMetaModel =
+          builder.database(config.get(JobConfiguration.DEST_CATALOG_NAME))
+              .table(config.get(JobConfiguration.DEST_OBJECT_NAME))
+              .build();
+
+      TableMetaModel externalTableMetaModel =
+          McSqlUtils.getMcExternalTable(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
+
+      OssUtils.getTableModelLogInfo(mcTableMetaModel, ossTableMetaModel, externalTableMetaModel);
 
       List<Job> pendingSubJobs = null;
       if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
@@ -123,11 +148,11 @@ public class OssToMcTableJob extends AbstractTableJob {
       List<Job> pendingSubJobs) throws Exception {
     List<TablePartitionGroup> groups = null;
     if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
-      groups = getStaticTablePartitionGroups(
-          metaSource,
-          ossTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
+      groups = getGroups(metaSource,
+                         ossTableMetaModel,
+                         mcTableMetaModel,
+                         mcExternalTableMetaModel,
+                         pendingSubJobs);
     }
     String taskIdPrefix = generateTaskIdPrefix();
     return new OssToMcTableSetUpTask(
@@ -153,11 +178,11 @@ public class OssToMcTableJob extends AbstractTableJob {
     String rootJobId = getRootJobId();
     if (isPartitioned) {
       // External table's metadata doesn't contain partition size. So the adaptive way won't work.
-      List<TablePartitionGroup> groups = getStaticTablePartitionGroups(
-          metaSource,
-          ossTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
+      List<TablePartitionGroup> groups = getGroups(metaSource,
+                                                   ossTableMetaModel,
+                                                   mcTableMetaModel,
+                                                   externalTableMetaModel,
+                                                   pendingSubJobs);
 
       for (int i = 0; i < groups.size(); i++) {
         String taskId = taskIdPrefix + ".DataTransmission" + ".part." + i;
@@ -165,8 +190,8 @@ public class OssToMcTableJob extends AbstractTableJob {
             taskId,
             rootJobId,
             config,
-            externalTableMetaModel,
-            mcTableMetaModel,
+            groups.get(i).getSource(),
+            groups.get(i).getDest(),
             this,
             groups.get(i).getJobs());
         LOG.info(
@@ -199,6 +224,32 @@ public class OssToMcTableJob extends AbstractTableJob {
         config,
         mcExternalTableMetaModel,
         this);
+  }
+
+  private List<TablePartitionGroup> getGroups(
+      MetaSource metaSource,
+      TableMetaModel ossTableMetaModel,
+      TableMetaModel mcTableMetaModel,
+      TableMetaModel mcExternalMetaModel,
+      List<Job> pendingSubJobs
+  ) throws Exception {
+    // get pt group(source: ossModel, dest) by ossTableMetaModel
+    // transform pt group to (source: externalModel, dest)
+    List<TablePartitionGroup> groups = getStaticTablePartitionGroups(
+        metaSource,
+        ossTableMetaModel,
+        mcTableMetaModel,
+        pendingSubJobs);
+    List<TablePartitionGroup> newGroups = new ArrayList<>();
+    for (TablePartitionGroup group : groups) {
+      TableMetaModel source = group.getSource();
+      TableMetaModelBuilder builder = new TableMetaModelBuilder(source);
+      builder.database(mcExternalMetaModel.getDatabase())
+          .table(mcExternalMetaModel.getTable())
+          .location(mcExternalMetaModel.getLocation());
+      newGroups.add(new TablePartitionGroup(builder.build(), group.getDest(), group.getJobs()));
+    }
+    return newGroups;
   }
 
   @Override

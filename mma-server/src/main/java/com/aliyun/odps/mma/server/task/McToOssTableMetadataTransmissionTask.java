@@ -17,6 +17,7 @@
 package com.aliyun.odps.mma.server.task;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McToOssTableMetadataTransmissionAction;
 import com.aliyun.odps.mma.server.job.Job;
@@ -25,17 +26,20 @@ import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 public class McToOssTableMetadataTransmissionTask extends DagTask {
 
   private TableMetaModel tableMetaModel;
+  private OssConfig ossConfig;
   private Job job;
 
   public McToOssTableMetadataTransmissionTask(
       String id,
       String rootJobId,
       JobConfiguration config,
+      OssConfig ossConfig,
       TableMetaModel tableMetaModel,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
     this.tableMetaModel = tableMetaModel;
+    this.ossConfig = ossConfig;
     init();
   }
 
@@ -44,11 +48,7 @@ public class McToOssTableMetadataTransmissionTask extends DagTask {
     McToOssTableMetadataTransmissionAction action = new McToOssTableMetadataTransmissionAction(
         id + ".MetadataTransmission",
         tableMetaModel,
-        config.get(JobConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
-        config.get(JobConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
-        config.get(JobConfiguration.METADATA_DEST_OSS_ROLE_ARN),
-        config.get(JobConfiguration.METADATA_DEST_OSS_BUCKET),
-        config.get(JobConfiguration.METADATA_DEST_OSS_ENDPOINT),
+        ossConfig,
         this,
         context);
     dag.addVertex(action);

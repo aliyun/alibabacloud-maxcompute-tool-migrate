@@ -26,21 +26,21 @@ import com.aliyun.odps.mma.server.job.Job;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 
 public class McToOssTableSetUpTask extends DagTask {
-  private TableMetaModel ossTableMetaModel;
-  private List<TableMetaModel> partitionGroups;
+  private TableMetaModel mcExternalMetaModel;
+  private List<TableMetaModel> partitionGroupDests;
   private Job job;
 
   public McToOssTableSetUpTask(
       String id,
       String rootJobId,
       JobConfiguration config,
-      TableMetaModel ossTableMetaModel,
-      List<TableMetaModel> partitionGroups,
+      TableMetaModel mcExternalMetaModel,
+      List<TableMetaModel> partitionGroupDests,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
-    this.ossTableMetaModel = ossTableMetaModel;
-    this.partitionGroups = partitionGroups;
+    this.mcExternalMetaModel = mcExternalMetaModel;
+    this.partitionGroupDests = partitionGroupDests;
     init();
   }
 
@@ -56,27 +56,21 @@ public class McToOssTableSetUpTask extends DagTask {
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
             executionProject,
             config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
-            config.get(JobConfiguration.DATA_DEST_OSS_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_OSS_ACCESS_KEY_SECRET),
-            config.get(JobConfiguration.DATA_DEST_OSS_ROLE_ARN),
-            config.get(JobConfiguration.DATA_DEST_OSS_BUCKET),
-            null,
-            config.get(JobConfiguration.DATA_DEST_OSS_ENDPOINT),
-            ossTableMetaModel,
+            mcExternalMetaModel,
             this,
             context);
     dag.addVertex(mcCreateOssExternalTableAction);
 
-    if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
+    if (!mcExternalMetaModel.getPartitionColumns().isEmpty()) {
       int idx = 0;
-      for (TableMetaModel partitionGroup : partitionGroups) {
+      for (TableMetaModel groupDestMetaModel: partitionGroupDests) {
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddExternalPartitions.part." + idx,
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
             config.get(JobConfiguration.SOURCE_CATALOG_NAME),
             config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
-            partitionGroup,
+            groupDestMetaModel,
             this,
             context);
         dag.addVertex(mcAddPartitionsAction);
