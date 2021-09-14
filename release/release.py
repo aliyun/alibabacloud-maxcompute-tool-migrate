@@ -20,9 +20,10 @@ from github import Github
 
 def run(cmd):
     print(f'Run cmd {cmd}')
-    p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, text=True)
+    p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     p.check_returncode()
     print(f'Output: {p.stdout}')
+    print(f'Error: {p.stderr}')
 
 
 def uncomment_file(files_list, tag_name):
@@ -57,6 +58,7 @@ def package_branch(branch, version):
     hive_version = branch.split('/')[1]
     print(f'Build release branch origin/release/{branch}')
     run(f'git checkout --quiet {branch}')
+    run(f'git pull')
     uncomment_file(sql_checker_files, 'sql checker')
     run(f'mvn -U -q clean package -DskipTests')
     output_file = f'mma-{version}-{hive_version}.zip'
@@ -104,6 +106,8 @@ def release_to_github(files, tag):
 
 def release_mma(branches, version):
     release_packages = []
+    run('git checkout master')
+    run('git pull')
     for i, branch in enumerate(branches):
         release_packages.append(package_branch(branch, version))
     run('git checkout master')
