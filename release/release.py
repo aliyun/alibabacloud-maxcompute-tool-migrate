@@ -4,7 +4,7 @@ from github import Github
 
 
 def run(cmd):
-    p = subprocess.run(cmd)
+    p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
     p.check_returncode()
     print(p.stdout)
 
