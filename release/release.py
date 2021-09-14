@@ -19,9 +19,10 @@ from github import Github
 
 
 def run(cmd):
-    p = subprocess.run(cmd)
+    print(f'Run cmd {cmd}')
+    p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, text=True)
     p.check_returncode()
-    print(p.stdout)
+    print(f'Output: {p.stdout}')
 
 
 def uncomment_file(files_list, tag_name):
@@ -97,6 +98,7 @@ def release_to_github(files, tag):
         print(f'Create release {tag}...')
         release = repo.create_git_release(tag=tag, name=tag, prerelease=True, message='')
         for file in files:
+            print(f'Updating {file}')
             release.upload_asset(file)
 
 
@@ -104,6 +106,7 @@ def release_mma(branches, version):
     release_packages = []
     for i, branch in enumerate(branches):
         release_packages.append(package_branch(branch, version))
+    run('git checkout master')
     release_to_github(release_packages, f'v{version}')
 
 
