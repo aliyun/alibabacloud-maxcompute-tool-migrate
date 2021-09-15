@@ -247,6 +247,16 @@ MMA_HOME
     				--tablemapping ${table_mapping_file}
     ```
     执行完成后，`conf/` 目录下将会生成 MMA 迁移任务的配置文件 `${objectType}-${sourceCatalog}-${destCatalog}-${job_id}.json`。
+    
+  - 指定迁移分区
+    ```json
+    {
+      "mma.filter.partition.begin":"2020/01",
+      "mma.filter.partition.end":"2020/05",
+      "mma.filter.partition.orders":"lex/lex"
+    }
+    ```
+    修改配置文件，添加这样三个属性。`begin` 和 `end` 指定了迁移的分区范围为 [`begin`, `end`]，两者需要满足 `begin` <= `end`。`orders` 指定了每个分区列的排序类型，`lex` 为普通字典序（"7" > "11"），`num` 为数字序（"7" < "11"），一般使用 `lex` 即可。
 
 - 库级别任务配置
 
@@ -261,6 +271,7 @@ MMA_HOME
 - 其他命令行选项
 
   `-jobid` 可以指定 Job ID，`-output` 可以指定配置文件输出路径。
+  
 
 ### 任务管理
 
