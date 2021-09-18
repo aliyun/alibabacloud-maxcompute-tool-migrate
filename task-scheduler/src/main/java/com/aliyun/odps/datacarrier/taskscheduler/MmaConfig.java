@@ -54,9 +54,9 @@ public class MmaConfig {
       if (ddlSettings != null) {
         this.ddlSettings.putAll(ddlSettings);
       }
-      if (migrationSettings != null) {
-        this.migrationSettings.putAll(migrationSettings);
-      }
+//      if (migrationSettings != null) {
+//        this.migrationSettings.putAll(migrationSettings);
+//      }
       if (verifySettings != null) {
         this.verifySettings.putAll(verifySettings);
       }
@@ -77,7 +77,7 @@ public class MmaConfig {
     public void initialize(Map<String, String> globalSettings) {
       for(Map.Entry<String, String> entry : globalSettings.entrySet()) {
         ddlSettings.putIfAbsent(entry.getKey(), entry.getValue());
-        migrationSettings.putIfAbsent(entry.getKey(), entry.getValue());
+//        migrationSettings.putIfAbsent(entry.getKey(), entry.getValue());
         verifySettings.putIfAbsent(entry.getKey(), entry.getValue());
       }
       initialized = true;

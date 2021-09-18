@@ -65,14 +65,14 @@ public class MmaConfigUtils {
 
   public static final Map<String, String> HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS = new HashMap<>();
   static {
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.fetch.task.conversion", "none");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.execution.engine", "mr");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.speculative", "false");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
-    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "4096");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.fetch.task.conversion", "none");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("hive.execution.engine", "mr");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.max.split.size", "512000000");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.task.timeout", "3600000");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.maxattempts", "0");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.speculative", "false");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
+//    HIVE_TO_MC_DEFAULT_MIGRATION_SETTINGS.put("mapreduce.map.memory.mb", "4096");
   }
 
 

@@ -38,7 +38,7 @@ mkdir mma
 echo "Done"
 
 echo "Install local jars"
-mvn --quiet install:install-file \
+mvn -gs settings.xml --quiet install:install-file \
 -Dfile=task-scheduler/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar \
 -DgroupId=com.dingtalk \
 -DartifactId=dingtalk-sdk \
@@ -47,7 +47,7 @@ mvn --quiet install:install-file \
 echo "Done"
 
 echo "Compile"
-mvn --quiet clean package -DskipTests
+mvn -gs settings.xml --quiet clean package -DskipTests
 echo "Done"
 
 echo "Assemble"

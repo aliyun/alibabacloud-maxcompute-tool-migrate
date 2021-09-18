@@ -67,10 +67,10 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
         try (HiveStatement stmt = (HiveStatement) conn.createStatement()) {
-          settings.put("mapreduce.job.name", actionId);
-          for (Entry<String, String> entry : settings.entrySet()) {
-            stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());
-          }
+//          settings.put("mapreduce.job.name", actionId);
+//          for (Entry<String, String> entry : settings.entrySet()) {
+//            stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());
+//          }
 
           Runnable logging = () -> {
             while (stmt.hasMoreLogs()) {

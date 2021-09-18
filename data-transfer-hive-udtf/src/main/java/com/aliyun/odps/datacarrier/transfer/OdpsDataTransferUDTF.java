@@ -116,13 +116,17 @@ public class OdpsDataTransferUDTF extends GenericUDTF {
     try {
       if(odps == null) {
         OdpsConfig odpsConfig =
-            new OdpsConfig(mapredContext, "hdfs:///tmp/odps_config.ini");
+//            new OdpsConfig(mapredContext, "hdfs:///tmp/odps_config.ini");
+            new OdpsConfig(mapredContext, "INIFILE");
         AliyunAccount account =
             new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
         odps = new Odps(account);
         odps.setEndpoint(odpsConfig.getOdpsEndpoint());
         odps.setUserAgent("MMA");
         tunnel = new TableTunnel(odps);
+        String tunnelEndpoint = "ENDPOINT";
+        tunnel.setEndpoint(tunnelEndpoint);
+
         if (!StringUtils.isNullOrEmpty(odpsConfig.getTunnelEndpoint())) {
           if (!StringUtils.isNullOrEmpty(odpsConfig.getTunnelEndpoint2())) {
             tunnel.setEndpoint(ThreadLocalRandom.current().nextBoolean() ?
