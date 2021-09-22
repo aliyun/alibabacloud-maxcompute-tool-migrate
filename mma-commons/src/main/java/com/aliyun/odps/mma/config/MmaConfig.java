@@ -108,19 +108,20 @@ public class MmaConfig {
 
   public static class OssConfig implements Config {
 
-    private String ossEndPointForMC;
-    private String ossEndPointForMMA;
+    private String ossEndPointForMc;
+    private String ossEndPointForMma;
     private String ossBucket;
     private String ossRoleArn;
     private String ossAccessId;
     private String ossAccessKey;
     private String metadataPath;
     private String dataPath;
+    public static final String PREFIX = "oss://";
 
     public OssConfig(String internalEndpoint, String externalEndpoint, String ossBucket,
                      String roleArn, String accessId, String accessKey) {
-      this.ossEndPointForMC = internalEndpoint;
-      this.ossEndPointForMMA = externalEndpoint == null ? internalEndpoint : externalEndpoint;
+      this.ossEndPointForMc = internalEndpoint;
+      this.ossEndPointForMma = externalEndpoint == null ? internalEndpoint : externalEndpoint;
       this.ossBucket = ossBucket;
       this.ossRoleArn = roleArn;
       this.ossAccessId = accessId;
@@ -130,8 +131,8 @@ public class MmaConfig {
     @Override
     public boolean validate() {
       // TODO: try to connect
-      if (StringUtils.isNullOrEmpty(ossEndPointForMC) ||
-          StringUtils.isNullOrEmpty(ossEndPointForMMA) ||
+      if (StringUtils.isNullOrEmpty(ossEndPointForMc) ||
+          StringUtils.isNullOrEmpty(ossEndPointForMma) ||
           StringUtils.isNullOrEmpty(ossBucket)) {
         return false;
       }
@@ -147,12 +148,12 @@ public class MmaConfig {
       return true;
     }
 
-    public String getEndpointForMC() {
-      return ossEndPointForMC;
+    public String getEndpointForMc() {
+      return ossEndPointForMc;
     }
 
-    public String getEndpointForMMA() {
-      return ossEndPointForMMA;
+    public String getEndpointForMma() {
+      return ossEndPointForMma;
     }
 
     public String getOssBucket() {
@@ -174,8 +175,8 @@ public class MmaConfig {
     @Override
     public String toString() {
       return "OssDataSource {"
-             + "ossEndpoint='" + Objects.toString(ossEndPointForMC, "null") + '\''
-             + ", ossLocalEndpoint='" + Objects.toString(ossEndPointForMMA, "null") + '\''
+             + "ossEndpoint='" + Objects.toString(ossEndPointForMc, "null") + '\''
+             + ", ossLocalEndpoint='" + Objects.toString(ossEndPointForMma, "null") + '\''
              + ", ossBucket='" + Objects.toString(ossBucket, "null") + '\''
              + ", ossRoleArn='" + Objects.toString(ossRoleArn, "null") + '\''
              + '}';

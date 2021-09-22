@@ -85,6 +85,7 @@ public class McToOssTableJob extends AbstractTableJob {
 
       MetaSource metaSource = metaSourceFactory.getMetaSource(config);
 
+      // Difference between mcTableMetaModel, ossTableMetaModel and mcExternalTableMetaModel
       // model        catalog           table             location
       // mc           source catalog    source table
       // oss          dest catalog      dest table        oss !metadata location
@@ -104,9 +105,10 @@ public class McToOssTableJob extends AbstractTableJob {
       TableMetaModel ossTableMetaModel = ossTableMetaModelBuilder.build();
 
       TableMetaModel mcExternalTableMetaModel =
-          McSqlUtils.getMcExternalTable(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
+          McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
 
-      OssUtils.getTableModelLogInfo(mcTableMetaModel, ossTableMetaModel, mcExternalTableMetaModel);
+      // for local debug
+      // OssUtils.getTableModelLogInfo(mcTableMetaModel, ossTableMetaModel, mcExternalTableMetaModel);
 
       List<Job> pendingSubJobs = null;
       if (!mcTableMetaModel.getPartitionColumns().isEmpty()) {
@@ -115,8 +117,8 @@ public class McToOssTableJob extends AbstractTableJob {
 
       DirectedAcyclicGraph<Task, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
-      // ossTableMetaModel for metadata transmission task
-      // mcExternalTableMetaModel for data transmission tasks
+      // ossTableMetaModel is for metadata transmission task
+      // mcExternalTableMetaModel is for data transmission tasks
       Task metadataTransmissionTask = getMetadataTransmissionTask(ossTableMetaModel, ossConfig);
       Task setUpTask = getSetUpTask(
           metaSource,

@@ -57,7 +57,7 @@ public class OssUtils
       String fileName,
       InputStream inputStream) {
     LOG.info("Create oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMMA(), ossConfig.getOssBucket());
+        .getEndpointForMma(), ossConfig.getOssBucket());
 
     OSS ossClient = createOssClient(ossConfig);
 
@@ -69,7 +69,7 @@ public class OssUtils
 
   public static String readFile(MmaConfig.OssConfig ossConfig, String fileName) throws IOException {
     LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMMA(), ossConfig.getOssBucket());
+        .getEndpointForMma(), ossConfig.getOssBucket());
 
     OSS ossClient = createOssClient(ossConfig);
     OSSObject ossObject = ossClient.getObject(ossConfig.getOssBucket(), fileName);
@@ -89,7 +89,7 @@ public class OssUtils
 
   public static InputStream openInputStream(MmaConfig.OssConfig ossConfig, String fileName) {
     LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMMA(), ossConfig.getOssBucket());
+        .getEndpointForMma(), ossConfig.getOssBucket());
 
     OSS ossClient = createOssClient(ossConfig);
     OSSObject ossObject = ossClient.getObject(ossConfig.getOssBucket(), fileName);
@@ -98,7 +98,7 @@ public class OssUtils
 
   public static boolean exists(MmaConfig.OssConfig ossConfig, String fileName) {
     LOG.info("Check oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMMA(), ossConfig.getOssBucket());
+        .getEndpointForMma(), ossConfig.getOssBucket());
 
     OSS ossClient = createOssClient(ossConfig);
     boolean exists = ossClient.doesObjectExist(ossConfig.getOssBucket(), fileName);
@@ -112,7 +112,7 @@ public class OssUtils
       String fileName) throws IOException {
 
     LOG.info("Download oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMMA(), ossConfig.getOssBucket());
+        .getEndpointForMma(), ossConfig.getOssBucket());
 
     OSS ossClient = createOssClient(ossConfig);
 
@@ -211,13 +211,13 @@ public class OssUtils
       String catalogName,
       String objectName,
       boolean isMetadata) {
-    // prefix / data(metadata) / dbname / TABLE / tablename / (file)
+    // prefix / data(metadata) / catalog name / object type(eg: TABLE) / object name / (file)
     StringBuilder builder = new StringBuilder();
     if (StringUtils.isNullOrEmpty(ossPathPrefix)) {
       ossPathPrefix = getFolderNameWithSeparator("mma") + getFolderNameWithSeparator(rootJobId);
     }
-    String dataType = isMetadata ? "metadata":"data";
-    String filename = isMetadata ? Constants.EXPORT_META_FILE_NAME:"";
+    String dataType = isMetadata ? "metadata" : "data";
+    String filename = isMetadata ? Constants.EXPORT_META_FILE_NAME : "";
 
     builder.append(getFolderNameWithSeparator(ossPathPrefix))
            .append(getFolderNameWithSeparator(dataType))
@@ -255,7 +255,7 @@ public class OssUtils
 
   private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
     return (new OSSClientBuilder()).build(
-        ossConfig.getEndpointForMMA(),
+        ossConfig.getEndpointForMma(),
         ossConfig.getOssAccessId(),
         ossConfig.getOssAccessKey());
   }

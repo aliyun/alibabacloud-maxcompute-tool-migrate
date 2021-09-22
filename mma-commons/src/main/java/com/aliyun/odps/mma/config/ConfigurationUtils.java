@@ -206,18 +206,22 @@ public class ConfigurationUtils {
   }
 
   private static void validateOssConfig(AbstractConfiguration config,
-                                        String internalEndpoint,
-                                        String externalEndpoint,
+                                        String internalEndpointKey,
+                                        String externalEndpointKey,
                                         String bucketKey,
                                         String keyIdKey,
                                         String keySecretKey) throws MmaException {
+    // endpoint setting table(note: MC always need internal endpoint to visit OSS):
+    // server location              |       endpoint internal     |     endpoint external   |
+    // mma_server on AliYun         |       set for mc and mma    |                         |
+    // mma_server not on AliYun     |       set for mc            |     set for mma         |
     String endpoint = Validate.notBlank(
-        config.get(internalEndpoint),
-        getCannotBeNullOrEmptyErrorMessage(internalEndpoint));
-    if (config.containsKey(externalEndpoint)) {
+        config.get(internalEndpointKey),
+        getCannotBeNullOrEmptyErrorMessage(internalEndpointKey));
+    if (config.containsKey(externalEndpointKey)) {
       endpoint = Validate.notBlank(
-          config.get(externalEndpoint),
-          getCannotBeNullOrEmptyErrorMessage(externalEndpoint));
+          config.get(externalEndpointKey),
+          getCannotBeNullOrEmptyErrorMessage(externalEndpointKey));
     }
     String bucket = Validate.notBlank(
         config.get(bucketKey),

@@ -27,7 +27,7 @@ import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 
 public class McToOssTableSetUpTask extends DagTask {
   private TableMetaModel mcExternalMetaModel;
-  private List<TableMetaModel> partitionGroupDests;
+  private List<TableMetaModel> partitionGroupsDestMetaModels;
   private Job job;
 
   public McToOssTableSetUpTask(
@@ -35,12 +35,12 @@ public class McToOssTableSetUpTask extends DagTask {
       String rootJobId,
       JobConfiguration config,
       TableMetaModel mcExternalMetaModel,
-      List<TableMetaModel> partitionGroupDests,
+      List<TableMetaModel> partitionGroupsDestMetaModels,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
     this.mcExternalMetaModel = mcExternalMetaModel;
-    this.partitionGroupDests = partitionGroupDests;
+    this.partitionGroupsDestMetaModels = partitionGroupsDestMetaModels;
     init();
   }
 
@@ -63,7 +63,7 @@ public class McToOssTableSetUpTask extends DagTask {
 
     if (!mcExternalMetaModel.getPartitionColumns().isEmpty()) {
       int idx = 0;
-      for (TableMetaModel groupDestMetaModel: partitionGroupDests) {
+      for (TableMetaModel groupDestMetaModel: partitionGroupsDestMetaModels) {
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddExternalPartitions.part." + idx,
             config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),

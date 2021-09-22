@@ -116,33 +116,10 @@ public class McSqlUtils {
 
   private static String getCreateOssExternalTableCondition(TableMetaModel tableMetaModel) {
     StringBuilder sb = new StringBuilder();
-//    OssExternalTableConfig ossExternalTableConfig = (OssExternalTableConfig) externalTableConfig;
-//
-//    if (!StringUtils.isNullOrEmpty(ossExternalTableConfig.getRoleRan())) {
-//      tableMetaModel.serDeProperties.put("odps.properties.rolearn",
-//                                         ossExternalTableConfig.getRoleRan());
-//    }
-//
-//    sb.append("ROW FORMAT serde 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'\n");
-//    if (tableMetaModel.serDeProperties != null && !tableMetaModel.serDeProperties.isEmpty()) {
-//      sb.append("WITH SERDEPROPERTIES (").append("\n");
-//      List<String> propertyStrings = new LinkedList<>();
-//      for (Entry<String, String> property : tableMetaModel.serDeProperties.entrySet()) {
-//        String propertyString = String.format(
-//            "'%s'='%s'",
-//            StringEscapeUtils.escapeJava(property.getKey()),
-//            StringEscapeUtils.escapeJava(property.getValue()));
-//        propertyStrings.add(propertyString);
-//      }
-//      sb.append(String.join(",\n", propertyStrings)).append(")\n");
-//    }
 
     // TODO: support other formats & compression methods
     sb.append("\nSTORED AS ORC")
         .append("\nLOCATION '").append(tableMetaModel.getLocation()).append("'");
-//      .append("\nTBLPROPERTIES (")
-//      .append("\n'mcfed.mapreduce.output.fileoutputformat.compress'='true',")
-//      .append("\n'mcfed.mapreduce.output.fileoutputformat.compress.codec'='com.hadoop.compression.lzo.LzoCodec');");
     return sb.toString();
   }
 
@@ -332,12 +309,11 @@ public class McSqlUtils {
 //        String.join(",", resources) + "';\n";
 //  }
 
-  public static TableMetaModel getMcExternalTable(
+  public static TableMetaModel getMcExternalTableMetaModel(
       TableMetaModel mcTableMetaModel,
       OssConfig ossConfig,
       String location,
       String rootJobId) {
-    // external     mc catalog    temp(mc table)      ak + oss !data location
     TableMetaModelBuilder builder = new TableMetaModelBuilder(mcTableMetaModel);
     return builder.table("temp_table_" + mcTableMetaModel.getTable() + "_by_mma_" + rootJobId)
                   .location(McSqlUtils.getMcExternalTableLocation(ossConfig, location))
@@ -351,11 +327,12 @@ public class McSqlUtils {
     //    LOCATION 'oss://${endpoint}/${bucket}/${userfilePath}/'
     // else, Location format is:
     //    LOCATION 'oss://${accessKeyId}:${accessKeySecret}@${endpoint}/${bucket}/${userPath}/'
-    if (StringUtils.isNullOrEmpty(ossConfig.getEndpointForMC())
+    if (StringUtils.isNullOrEmpty(ossConfig.getEndpointForMc())
         || StringUtils.isNullOrEmpty(ossConfig.getOssBucket())) {
       throw new IllegalArgumentException("Undefined OSS endpoint or OSS bucket");
     }
-    String ossPrefix = "oss://";
+    String ossPrefix = OssConfig.PREFIX;
+
     StringBuilder locationBuilder = new StringBuilder(ossPrefix);
 
     if (StringUtils.isNullOrEmpty(ossConfig.getOssRoleArn())) {
@@ -364,34 +341,14 @@ public class McSqlUtils {
                      .append(ossConfig.getOssAccessKey()).append("@");
     }
 
-    String ossEndpoint = ossConfig.getEndpointForMC();
+    String ossEndpoint = ossConfig.getEndpointForMc();
     if (ossEndpoint.startsWith(ossPrefix)) {
       ossEndpoint = ossEndpoint.substring(ossPrefix.length());
     }
-//    String ossEndpoint = endpoint.startsWith(ossPrefix) ? endpoint.substring(ossPrefix.length()) : endpoint;
-//    String ossEndpoint = getInternalEndpoint(endpoint);
-//    locationBuilder.append(ossEndpoint);
-//    if (!ossEndpoint.endsWith("/")) {
-//      locationBuilder.append("/");
-//    }
-
     String ossBucket = ossConfig.getOssBucket();
     String combinedPath = Paths.get(ossEndpoint, ossBucket, location).toString();
     locationBuilder.append(combinedPath);
 
-//    locationBuilder.append(ossBucket);
-//    if (!ossBucket.endsWith("/")) {
-//      locationBuilder.append("/");
-//    }
-//
-//    if (ossFilePath.startsWith("/")) {
-//      locationBuilder.append(ossFilePath.substring(1));
-//    } else {
-//      locationBuilder.append(ossFilePath);
-//    }
-//    if (!ossFilePath.endsWith("/")) {
-//      locationBuilder.append("/");
-//    }
     return locationBuilder.toString();
   }
 

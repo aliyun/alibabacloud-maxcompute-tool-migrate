@@ -46,16 +46,16 @@ public class MetaSourceFactory {
             config.get(AbstractConfiguration.METADATA_SOURCE_MC_ENDPOINT));
       }
       case "OSS": {
-        String mmaEndpoint = config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL);
+        String ossEndpointForMma = config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL);
         if (config.containsKey(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL)) {
-          mmaEndpoint = config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL);
+          ossEndpointForMma = config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL);
         }
         return new OssMetaSource(
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET),
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
             config.get(AbstractConfiguration.METADATA_SOURCE_OSS_PATH),
-            mmaEndpoint);
+            ossEndpointForMma);
       }
       case "Hive": {
         return HiveMetaSourceFactory.getHiveMetaSource(config);
