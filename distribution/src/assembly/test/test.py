@@ -13,108 +13,104 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import argparse
 import os
+import argparse
 import unittest
-import mma_test.utils as utils
-import shutil
-import time
 
 from typing import Dict
 from mma_test.test_hive import TestHive
+from mma_test.test_config import TestConfig
 
 
 def get_test_suites_map() -> Dict[str, unittest.TestSuite]:
-    test_suites = {}
-    test_suites[TestHive.__name__] = (
-        unittest.defaultTestLoader.loadTestsFromTestCase(TestHive))
-
+    test_suites = {
+        TestHive.__name__: (unittest.defaultTestLoader.loadTestsFromTestCase(TestHive)),
+        TestConfig.__name__: (unittest.defaultTestLoader.loadTestsFromTestCase(TestConfig))
+    }
     return test_suites
+
+
+def list_test_cases(level=0, filter=None):
+    """
+        level 0: list test suites
+        level 1: list test cases
+    """
+    if filter is not None and filter not in suites:
+        raise Exception("Test suite not found: %s" % filter)
+
+    for suite_name in suites.keys():
+        if filter is not None and suite_name != filter:
+            continue
+
+        print(suite_name)
+
+        if level > 0:
+            suite = suites[suite_name]
+            for test in suite._tests:
+                print('\t' + test.id().split(".")[-1])
+    exit(0)
 
 
 if __name__ == '__main__':
     suites = get_test_suites_map()
 
     parser = argparse.ArgumentParser(description='MMA FT runner')
-    parser.add_argument(
-        "--list_test_suites",
-        required=False,
-        const=True,
-        action="store_const",
-        default=False,
-        help="list available test suites")
-    parser.add_argument(
-        "--list_test_cases",
-        required=False,
-        type=str,
-        help="list test cases of specified test suite")
-    parser.add_argument(
-        "--run_test_suite",
-        required=False,
-        help="run specified test suite")
-    parser.add_argument(
-        "--run_test_case",
-        required=False,
-        help="run specified test case, should be in format suite.case")
-    parser.add_argument(
-        "--fail_fast",
-        required=False,
-        const=True,
-        action="store_const",
-        default=False,
-        help="fail fast")
+    parser.add_argument("--list_all",
+                        const=True,
+                        action="store_const",
+                        default=False,
+                        help="list all test suites and cases")
+    parser.add_argument("--list_test_suites",
+                        const=True,
+                        action="store_const",
+                        default=False,
+                        help="list available test suites")
+    parser.add_argument("--list_test_cases",
+                        type=str,
+                        help="list test cases of specified test suite")
+    parser.add_argument("--run",
+                        nargs='?',
+                        default='all',
+                        help="[suite]/[suite.case] run specified test suite/case")
+    parser.add_argument("--fail_fast",
+                        const=True,
+                        action="store_const",
+                        default=True,
+                        help="fail fast")
 
     args = parser.parse_args()
 
+    if args.list_all:
+        list_test_cases(1)
+
     if args.list_test_suites:
-        for suite in suites.keys():
-            print(suite)
-        exit(0)
+        list_test_cases(0)
 
     if args.list_test_cases is not None:
-        suite_name = args.list_test_cases
-        if suite_name in suites:
-            suite = suites[suite_name]
-            for test in suite._tests:
-                print(test.id().split(".")[-1])
-            exit(0)
+        list_test_cases(1, args.list_test_cases)
+
+    s = unittest.TestSuite()
+
+    if args.run is None:
+        print("Run all cases")
+        s.addTests(suites.values())
+    elif "." not in args.run:
+        test_suite = args.run
+        print(f"Run test suite: {test_suite}")
+        if test_suite in suites:
+            s.addTest(suites[test_suite])
         else:
-            raise Exception("Test suite not found: %s" % suite_name)
+            raise Exception(f"Invalid test suite {test_suite}")
+    else:
+        splits = args.run.split('.')
+        if len(splits) != 2:
+            raise Exception(f"Invalid testcase: {args.run}")
+        test_suite, test_case = splits
+        print(f"Run test case: {test_suite}.{test_case}")
+        for test in suites[splits[0]]._tests:
+            if splits[1] == test.id().split(".")[-1]:
+                s.addTest(test)
 
-    if args.run_test_suite is not None and args.run_test_case is not None:
-        err_msg = ("--run_test_suite and "
-                   "--run_test_case cannot present at the same time")
-        raise Exception(err_msg)
-
-    os.makedirs(utils.get_test_temp_dir(), exist_ok=True)
-    print("Start MMA server")
-    mma_server_sp = utils.start_mma_server()
-    print("MMA server pid: %s" % str(mma_server_sp.pid))
-    time.sleep(10)
-
-    try:
-        s = unittest.TestSuite()
-        if args.run_test_suite is not None:
-            if args.run_test_suite in suites:
-                s.addTest(suites[args.run_test_suite])
-            else:
-                raise Exception("Invalid test suite")
-        elif args.run_test_case is not None:
-            splits = args.run_test_case.split(".")
-            if len(splits) != 2:
-                raise Exception("Invalid testcase: %s" % args.run_test_case)
-            for test in suites[splits[0]]._tests:
-                if splits[1] == test.id().split(".")[-1]:
-                    s.addTest(test)
-        else:
-            s.addTests(suites.values())
-
-        runner = unittest.TextTestRunner(
-            verbosity=3, failfast=args.fail_fast, buffer=True)
-        runner.run(s)
-    finally:
-        print("Stop MMA server")
-        utils.stop_mma_server(mma_server_sp)
-        shutil.rmtree(utils.get_test_temp_dir())
-
-
+    runner = unittest.TextTestRunner(
+        verbosity=3, failfast=args.fail_fast, buffer=True)
+    runner.run(s)
