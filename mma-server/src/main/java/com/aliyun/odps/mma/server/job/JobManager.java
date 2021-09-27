@@ -133,6 +133,10 @@ public class JobManager {
       case TABLE: {
         return addTableJob(null, config);
       }
+      case RESOURCE:
+      case FUNCTION: {
+        return addSimpleTransmissionJob(null, config);
+      }
       default:
         throw new IllegalArgumentException("Unsupported object type " + objectType);
     }
@@ -182,6 +186,12 @@ public class JobManager {
           }
           break;
         }
+        case RESOURCE: {
+          // TODO
+        }
+        case FUNCTION: {
+          // TODO
+        }
         default:
           throw new IllegalArgumentException("Unsupported object type " + objectType);
       }
@@ -216,6 +226,49 @@ public class JobManager {
         config);
   }
 
+  private String addSimpleTransmissionJob(
+      String parentJobId,
+      JobConfiguration config) {
+    boolean isSubJob = !StringUtils.isBlank(parentJobId);
+    String jobId;
+    if (!isSubJob && config.containsKey(JobConfiguration.JOB_ID)) {
+      jobId = config.get(JobConfiguration.JOB_ID);
+    } else {
+      jobId = JobUtils.generateJobId(isSubJob);
+    }
+
+    if (StringUtils.isBlank(jobId)) {
+      jobId = JobUtils.generateJobId(false);
+    }
+
+    String jobPriorityString = config.getOrDefault(
+        JobConfiguration.JOB_PRIORITY,
+        JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE);
+    int jobPriority = Integer.valueOf(jobPriorityString);
+    String jobMaxAttemptTimesString = config.getOrDefault(
+        JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
+        JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
+    int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
+
+    if (isSubJob) {
+      metaManager.addSubJob(
+          parentJobId,
+          jobId,
+          jobPriority,
+          jobMaxAttemptTimes,
+          config.toString(),
+          false);
+    } else {
+      metaManager.addJob(
+          jobId,
+          jobPriority,
+          jobMaxAttemptTimes,
+          config.toString(),
+          false);
+    }
+    return jobId;
+  }
+
   private String addOssToMcJob(JobConfiguration config) throws Exception {
     ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
     switch (objectType) {
@@ -224,6 +277,11 @@ public class JobManager {
       }
       case TABLE: {
         return addTableJob(null, config);
+      }
+      case RESOURCE:
+      case FUNCTION:
+      {
+        return addSimpleTransmissionJob(null, config);
       }
       default:
         throw new IllegalArgumentException("Unsupported object type " + objectType);
@@ -461,6 +519,12 @@ public class JobManager {
       case PARTITION: {
         return getPartitionJob(parentJob, record);
       }
+      case RESOURCE: {
+        return getMcToOssResourceJob(parentJob, record);
+      }
+      case FUNCTION: {
+        return getMcToOssFunctionJob(parentJob, record);
+      }
       default:
         throw new IllegalArgumentException("Unsupported object type " + objectType);
     }
@@ -480,6 +544,12 @@ public class JobManager {
       }
       case PARTITION: {
         return getPartitionJob(parentJob, record);
+      }
+      case RESOURCE: {
+        return getOssToMcResourceJob(parentJob, record);
+      }
+      case FUNCTION: {
+        return getOssToMcFunctionJob(parentJob, record);
       }
       default:
         throw new IllegalArgumentException("Unsupported object type " + objectType);
@@ -532,6 +602,18 @@ public class JobManager {
         parentJob, record, this, metaManager, metaSourceFactory);
   }
 
+  private Job getMcToOssResourceJob(
+      Job parentJob,
+      com.aliyun.odps.mma.server.meta.generated.Job record) {
+    return new McToOssResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getMcToOssFunctionJob(
+      Job parentJob,
+      com.aliyun.odps.mma.server.meta.generated.Job record) {
+    return new McToOssFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
   private Job getOssToMcCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
@@ -542,6 +624,18 @@ public class JobManager {
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
     return new OssToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getOssToMcResourceJob(
+      Job parentJob,
+      com.aliyun.odps.mma.server.meta.generated.Job record) {
+    return new OssToMcResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getOssToMcFunctionJob(
+      Job parentJob,
+      com.aliyun.odps.mma.server.meta.generated.Job record) {
+    return new OssToMcFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   private Job getPartitionJob(

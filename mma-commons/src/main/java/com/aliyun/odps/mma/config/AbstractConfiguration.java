@@ -51,6 +51,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String METADATA_SOURCE_OSS_PATH = "mma.metadata.source.oss.path";
   public static final String METADATA_SOURCE_OSS_ACCESS_KEY_ID = "mma.metadata.source.oss.access.key.id";
   public static final String METADATA_SOURCE_OSS_ACCESS_KEY_SECRET = "mma.metadata.source.oss.access.key.secret";
+  public static final String METADATA_SOURCE_OSS_ROLE_ARN = "mma.metadata.source.oss.role.arn";
   // MaxCompute
   public static final String METADATA_SOURCE_MC_ENDPOINT = "mma.metadata.source.mc.endpoint";
   public static final String METADATA_SOURCE_MC_ACCESS_KEY_ID = "mma.metadata.source.mc.access.key.id";

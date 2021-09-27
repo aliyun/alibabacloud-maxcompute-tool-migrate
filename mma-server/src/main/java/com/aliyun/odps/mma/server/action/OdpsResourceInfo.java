@@ -16,42 +16,100 @@
 
 package com.aliyun.odps.mma.server.action;
 
-//import com.aliyun.odps.Resource;
-//
-//public class OdpsResourceInfo {
-//
-//  private String alias;
-//  private Resource.Type type;
-//  private String comment;
-//  private String tableName;
-//  private String partitionSpec;
-//
-//  public OdpsResourceInfo(String alias, Resource.Type type, String comment, String tableName, String partitionSpec) {
-//    this.alias = alias;
-//    this.type = type;
-//    this.comment = comment;
-//    this.tableName = tableName;
-//    this.partitionSpec = partitionSpec;
-//  }
-//
-//  public Resource.Type getType() {
-//    return type;
-//  }
-//
-//  public String getAlias() {
-//    return alias;
-//  }
-//
-//  public String getComment() {
-//    return comment;
-//  }
-//
-//  public String getTableName() {
-//    return tableName;
-//  }
-//
-//  public String getPartitionSpec() {
-//    return partitionSpec;
-//  }
-//
-//}
+import com.aliyun.odps.ArchiveResource;
+import com.aliyun.odps.FileResource;
+import com.aliyun.odps.JarResource;
+import com.aliyun.odps.PartitionSpec;
+import com.aliyun.odps.PyResource;
+import com.aliyun.odps.Resource;
+import com.aliyun.odps.TableResource;
+import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.utils.StringUtils;
+
+public class OdpsResourceInfo {
+
+  private String alias;
+  private Resource.Type type;
+  private String comment;
+  private String tableName;
+  private String partitionSpec;
+
+  public OdpsResourceInfo(String alias, Resource.Type type, String comment, String tableName, String partitionSpec) {
+    this.alias = alias;
+    this.type = type;
+    this.comment = comment;
+    this.tableName = tableName;
+    this.partitionSpec = partitionSpec;
+  }
+
+  public OdpsResourceInfo(Resource resource) {
+    String tableName = null;
+    String partitionSpec = null;
+    if (Resource.Type.TABLE.equals(resource.getType())) {
+      TableResource tableResource = (TableResource) resource;
+      tableName = tableResource.getSourceTable().getName();
+      PartitionSpec spec = tableResource.getSourceTablePartition();
+      if (spec != null) {
+        partitionSpec = spec.toString();
+      }
+    }
+
+    this.alias = resource.getName();
+    this.type = resource.getType();
+    this.comment = resource.getComment();
+    this.tableName = tableName;
+    this.partitionSpec = partitionSpec;
+  }
+
+  public Resource toResource() throws MmaException {
+    Resource resource;
+    switch (type) {
+      case ARCHIVE:
+        resource = new ArchiveResource();
+        break;
+      case PY:
+        resource = new PyResource();
+        break;
+      case JAR:
+        resource = new JarResource();
+        break;
+      case FILE:
+        resource = new FileResource();
+        break;
+      case TABLE:
+        PartitionSpec spec = null;
+        if (!StringUtils.isNullOrEmpty(partitionSpec)) {
+          spec = new PartitionSpec(partitionSpec);
+        }
+        resource = new TableResource(getTableName(), null, spec);
+        break;
+      default:
+        throw new MmaException("Unknown resource type: " + getType());
+    }
+
+    resource.setName(alias);
+    resource.setComment(comment);
+    return resource;
+  }
+
+  public Resource.Type getType() {
+    return type;
+  }
+
+  public String getAlias() {
+    return alias;
+  }
+
+  public String getComment() {
+    return comment;
+  }
+
+  public String getTableName() {
+    return tableName;
+  }
+
+  public String getPartitionSpec() {
+    return partitionSpec;
+  }
+
+}

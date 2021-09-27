@@ -19,14 +19,14 @@ package com.aliyun.odps.mma.server.job;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.config.ObjectType;
-import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
-import com.aliyun.odps.mma.server.task.McToOssSimpleTransmissionTask;
+import com.aliyun.odps.mma.server.meta.MetaManager;
+import com.aliyun.odps.mma.server.task.OssToMcSimpleTransmissionTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class McToOssResourceJob extends SimpleTransmissionJob {
+public class OssToMcFunctionJob extends SimpleTransmissionJob {
 
-  public McToOssResourceJob(
+  public OssToMcFunctionJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record,
       JobManager jobManager,
@@ -39,18 +39,19 @@ public class McToOssResourceJob extends SimpleTransmissionJob {
   Task generateTask() {
     String taskIdPrefix = generateTaskIdPrefix();
     OssConfig ossConfig = new OssConfig(
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_INTERNAL),
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_EXTERNAL),
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
-    return new McToOssSimpleTransmissionTask(
-        taskIdPrefix + ".resourceTransmission",
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL),
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL),
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ROLE_ARN),
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+    return new OssToMcSimpleTransmissionTask(
+        taskIdPrefix + ".functionTransmission",
         getRootJobId(),
         config,
         ossConfig,
-        ObjectType.RESOURCE,
+        ObjectType.FUNCTION,
          this);
   }
+
 }
