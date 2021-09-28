@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.job.JobStatus;
@@ -30,10 +31,14 @@ import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class OssToMcCatalogJob extends CatalogJob {
-  private static final Logger LOG = LogManager.getLogger(OssToMcCatalogJob.class);
+/**
+ * mc -> oss & oss -> mc
+ */
+public class McOSSCatalogJob extends CatalogJob {
 
-  public OssToMcCatalogJob(
+  private static final Logger LOG = LogManager.getLogger(McOSSCatalogJob.class);
+
+  public McOSSCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record,
       JobManager jobManager,
@@ -48,21 +53,29 @@ public class OssToMcCatalogJob extends CatalogJob {
     List<Task> ret = new LinkedList<>();
 
     // Firstly, execute table jobs
-    List<Job> nonSucceededJobTable = subJobs
+    getJobsByObjectType(ret, subJobs, ObjectType.TABLE);
+    // Then, execute resource jobs
+    getJobsByObjectType(ret, subJobs, ObjectType.RESOURCE);
+    // Finally, execute function jobs
+    getJobsByObjectType(ret, subJobs, ObjectType.FUNCTION);
+    return ret;
+  }
+
+
+  void getJobsByObjectType(List<Task> ret, List<Job> subJobs, ObjectType objectType) {
+    List<Job> nonSucceededJob = subJobs
         .stream()
-        .filter(j -> ObjectType.TABLE.name().equals(j.getJobConfiguration().get(JobConfiguration.OBJECT_TYPE)))
+        .filter(j -> objectType.name()
+            .equals(j.getJobConfiguration().get(JobConfiguration.OBJECT_TYPE)))
         .filter(j -> !JobStatus.SUCCEEDED.equals(j.getStatus()))
         .collect(Collectors.toList());
-    if (!nonSucceededJobTable.isEmpty()) {
-      for (Job j : nonSucceededJobTable) {
-        ret.addAll(j.getExecutableTasks());
-      }
-      return ret;
-    }
+    for (Job job : nonSucceededJob) {
+      String debug = config.getOrDefault(AbstractConfiguration.DEBUG_MODE,
+                                         AbstractConfiguration.DEBUG_MODE_DEFAULT_VALUE);
+      if (Boolean.parseBoolean(debug)) {
 
-    // TODO
-    // Then, execute resource jobs
-    // Finally, execute function jobs
-    return ret;
+      }
+      ret.addAll(job.getExecutableTasks());
+    }
   }
 }

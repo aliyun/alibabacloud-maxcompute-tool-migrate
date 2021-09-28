@@ -379,6 +379,10 @@ public interface MetaSource {
    */
   List<String> listTables(String databaseName) throws Exception;
 
+  List<String> listResources(String databaseName) throws Exception;
+
+  List<String> listFunctions(String databaseName) throws Exception;
+
   /**
    * Get partition list of specified table
    *

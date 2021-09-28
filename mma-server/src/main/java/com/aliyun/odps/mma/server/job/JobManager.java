@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.DataDestType;
 import com.aliyun.odps.mma.config.DataSourceType;
@@ -96,14 +97,14 @@ public class JobManager {
         && dataDestType.equals(DataDestType.OSS)) {
       return addMcToOssJob(config);
     } else if (metaSourceType.equals(MetaSourceType.OSS)
-        && dataSourceType.equals(DataSourceType.OSS)
-        && metaDestType.equals(MetaDestType.MaxCompute)
-        && dataDestType.equals(DataDestType.MaxCompute)) {
+               && dataSourceType.equals(DataSourceType.OSS)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
       return addOssToMcJob(config);
     } else if (metaSourceType.equals(MetaSourceType.Hive)
-        && dataSourceType.equals(DataSourceType.Hive)
-        && metaDestType.equals(MetaDestType.MaxCompute)
-        && dataDestType.equals(DataDestType.MaxCompute)) {
+               && dataSourceType.equals(DataSourceType.Hive)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
       return addHiveToMcJob(config);
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
@@ -170,30 +171,37 @@ public class JobManager {
     }
 
     for (ObjectType objectType : objectTypes) {
+      List<String> objNames;
       switch (objectType) {
-        case TABLE: {
-          List<String> tableNames = metaSource.listTables(catalogName);
-          for (String tableName : tableNames) {
-            Map<String, String> subConfig = new HashMap<>(config);
-            subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, tableName);
-            subConfig.put(JobConfiguration.DEST_OBJECT_NAME, tableName);
-            subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLE.name());
-            addTableJob(
-                jobId,
-                catalogName,
-                tableName,
-                new JobConfiguration(subConfig));
+        case TABLE:
+          objNames = metaSource.listTables(catalogName);
+          if (Boolean.parseBoolean(config.getOrDefault(AbstractConfiguration.DEBUG_MODE,
+                                                       AbstractConfiguration.DEBUG_MODE_DEFAULT_VALUE))) {
+            // debug mode
+            objNames = new ArrayList<>();
+            objNames = objNames.subList(0, 2);
           }
           break;
-        }
-        case RESOURCE: {
-          // TODO
-        }
-        case FUNCTION: {
-          // TODO
-        }
+        case RESOURCE:
+          objNames = metaSource.listResources(catalogName);
+          break;
+        case FUNCTION:
+          objNames = metaSource.listFunctions(catalogName);
+          break;
         default:
           throw new IllegalArgumentException("Unsupported object type " + objectType);
+      }
+      for (String objName : objNames) {
+        LOG.info("add {} job, object name: {}", objectType, objName);
+        Map<String, String> subConfig = new HashMap<>(config);
+        subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, objName);
+        subConfig.put(JobConfiguration.DEST_OBJECT_NAME, objName);
+        subConfig.put(JobConfiguration.OBJECT_TYPE, objectType.name());
+        if (ObjectType.TABLE.equals(objectType)){
+          addTableJob(jobId, catalogName, objName, new JobConfiguration(subConfig));
+        } else {
+          addSimpleTransmissionJob(jobId, new JobConfiguration(subConfig));
+        }
       }
     }
 
@@ -279,8 +287,7 @@ public class JobManager {
         return addTableJob(null, config);
       }
       case RESOURCE:
-      case FUNCTION:
-      {
+      case FUNCTION: {
         return addSimpleTransmissionJob(null, config);
       }
       default:
@@ -389,7 +396,7 @@ public class JobManager {
         JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
         JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
     int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
-    switch(objectType) {
+    switch (objectType) {
       case TABLE: {
         throw new IllegalArgumentException("Unsupported object type " + objectType);
       }
@@ -487,14 +494,14 @@ public class JobManager {
         && dataDestType.equals(DataDestType.OSS)) {
       job = getMcToOssJob(parentJob, config, record);
     } else if (metaSourceType.equals(MetaSourceType.OSS)
-        && dataSourceType.equals(DataSourceType.OSS)
-        && metaDestType.equals(MetaDestType.MaxCompute)
-        && dataDestType.equals(DataDestType.MaxCompute)) {
+               && dataSourceType.equals(DataSourceType.OSS)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
       job = getOssToMcJob(parentJob, config, record);
     } else if (metaSourceType.equals(MetaSourceType.Hive)
-        && dataSourceType.equals(DataSourceType.Hive)
-        && metaDestType.equals(MetaDestType.MaxCompute)
-        && dataDestType.equals(DataDestType.MaxCompute)) {
+               && dataSourceType.equals(DataSourceType.Hive)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
       job = getHiveToMcJob(parentJob, config, record);
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
@@ -591,8 +598,7 @@ public class JobManager {
   private Job getMcToOssCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new CatalogJob(
-        parentJob, record, this, metaManager, metaSourceFactory);
+    return new McOSSCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   private Job getMcToOssTableJob(
@@ -617,7 +623,7 @@ public class JobManager {
   private Job getOssToMcCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new OssToMcCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+    return new McOSSCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   private Job getOssToMcTableJob(

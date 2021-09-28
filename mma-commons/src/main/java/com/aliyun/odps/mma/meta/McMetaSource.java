@@ -23,11 +23,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.aliyun.odps.Column;
+import com.aliyun.odps.Function;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.Partition;
 import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.Project;
+import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.Account;
@@ -39,11 +41,10 @@ public class McMetaSource implements MetaSource {
 
   private static final List<ObjectType> SUPPORTED_OBJECT_TYPES;
   static {
-    // TODO:
     SUPPORTED_OBJECT_TYPES = new ArrayList<>(1);
     SUPPORTED_OBJECT_TYPES.add(ObjectType.TABLE);
-//    SUPPORTED_OBJECT_TYPES.add(ObjectType.RESOURCE);
-//    SUPPORTED_OBJECT_TYPES.add(ObjectType.FUNCTION);
+    SUPPORTED_OBJECT_TYPES.add(ObjectType.RESOURCE);
+    SUPPORTED_OBJECT_TYPES.add(ObjectType.FUNCTION);
   }
 
   private Odps odps;
@@ -95,6 +96,28 @@ public class McMetaSource implements MetaSource {
       tables.add(table.getName());
     }
     return tables;
+  }
+
+  @Override
+  public List<String> listResources(String databaseName) throws Exception {
+    List<String> resources = new ArrayList<>();
+    Iterator<Resource> iterator = odps.resources().iterator(databaseName);
+    while(iterator.hasNext()) {
+      Resource resource = iterator.next();
+      resources.add(resource.getName());
+    }
+    return resources;
+  }
+
+  @Override
+  public List<String> listFunctions(String databaseName) throws Exception {
+    List<String> functions = new ArrayList<>();
+    Iterator<Function> iterator = odps.functions().iterator(databaseName);
+    while(iterator.hasNext()) {
+      Function function = iterator.next();
+      functions.add(function.getName());
+    }
+    return functions;
   }
 
 //  public List<String> listViews(String databaseName) {

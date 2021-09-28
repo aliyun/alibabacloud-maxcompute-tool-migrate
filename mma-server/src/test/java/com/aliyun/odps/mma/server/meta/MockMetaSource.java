@@ -135,6 +135,16 @@ public class MockMetaSource implements MetaSource {
   }
 
   @Override
+  public List<String> listResources(String databaseName) throws Exception {
+    return null;
+  }
+
+  @Override
+  public List<String> listFunctions(String databaseName) throws Exception {
+    return null;
+  }
+
+  @Override
   public List<List<String>> listPartitions(String databaseName, String tableName) throws Exception {
     if (hasTable(databaseName, tableName)) {
       return TBL_NAME_2_TBL_META

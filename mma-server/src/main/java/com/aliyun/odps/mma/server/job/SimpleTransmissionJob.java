@@ -36,6 +36,7 @@ public abstract class SimpleTransmissionJob extends AbstractJob{
     }
     if (task == null) {
       // Exception happened when generating the DAG.
+      LOG.info("job {} has not tasks");
       return Collections.emptyList();
     }
 
@@ -64,6 +65,19 @@ public abstract class SimpleTransmissionJob extends AbstractJob{
       currentJob = getParentJob();
     }
     return currentJob.getId();
+  }
+
+  @Override
+  public synchronized boolean retry() {
+    boolean retry = super.retry();
+    if (retry) {
+      try {
+        task = generateTask();
+      } catch (Exception e) {
+        return false;
+      }
+    }
+    return retry;
   }
 
   @Override
