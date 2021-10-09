@@ -415,12 +415,12 @@ public abstract class AbstractTableJob extends AbstractJob {
                  partitionMetaModels.get(i).getSize());
         sourceBuilder.partitions(Collections.singletonList(partitionMetaModels.get(i)));
         destBuilder.partitions(Collections.singletonList(partitionMetaModels.get(i)));
-        i++;
         ret.add(
             new TablePartitionGroup(
                 sourceBuilder.build(),
                 destBuilder.build(),
                 Collections.singletonList(pendingSubJobs.get(i))));
+        i++;
         continue;
       }
 
