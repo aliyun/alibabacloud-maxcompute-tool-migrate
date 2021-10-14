@@ -21,10 +21,11 @@ import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.MetaManager;
-import com.aliyun.odps.mma.server.task.OssToMcSimpleTransmissionTask;
+import com.aliyun.odps.mma.server.task.OssToMcFunctionTask;
+import com.aliyun.odps.mma.server.task.OssToMcResourceTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class OssToMcFunctionJob extends SimpleTransmissionJob {
+public class OssToMcFunctionJob extends AbstractOneTaskJob {
 
   public OssToMcFunctionJob(
       Job parentJob,
@@ -45,12 +46,11 @@ public class OssToMcFunctionJob extends SimpleTransmissionJob {
         config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ROLE_ARN),
         config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
         config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
-    return new OssToMcSimpleTransmissionTask(
+    return new OssToMcFunctionTask(
         taskIdPrefix + ".functionTransmission",
         getRootJobId(),
         config,
         ossConfig,
-        ObjectType.FUNCTION,
          this);
   }
 

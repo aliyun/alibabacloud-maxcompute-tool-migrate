@@ -26,7 +26,7 @@ import com.aliyun.odps.TableResource;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.utils.StringUtils;
 
-public class OdpsResourceInfo {
+public class McResourceInfo {
 
   private String alias;
   private Resource.Type type;
@@ -34,7 +34,7 @@ public class OdpsResourceInfo {
   private String tableName;
   private String partitionSpec;
 
-  public OdpsResourceInfo(String alias, Resource.Type type, String comment, String tableName, String partitionSpec) {
+  public McResourceInfo(String alias, Resource.Type type, String comment, String tableName, String partitionSpec) {
     this.alias = alias;
     this.type = type;
     this.comment = comment;
@@ -42,7 +42,7 @@ public class OdpsResourceInfo {
     this.partitionSpec = partitionSpec;
   }
 
-  public OdpsResourceInfo(Resource resource) {
+  public McResourceInfo(Resource resource) {
     String tableName = null;
     String partitionSpec = null;
     if (Resource.Type.TABLE.equals(resource.getType())) {

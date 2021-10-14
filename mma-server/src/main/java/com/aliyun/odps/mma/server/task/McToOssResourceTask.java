@@ -20,30 +20,26 @@ import com.aliyun.odps.Odps;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
-import com.aliyun.odps.mma.server.action.McToOssSimpleTransmissionAction;
+import com.aliyun.odps.mma.server.action.McToOssResourceAction;
 import com.aliyun.odps.mma.server.job.Job;
 
-public class McToOssSimpleTransmissionTask extends DagTask {
+public class McToOssResourceTask extends DagTask {
 
   private final OssConfig ossConfig;
-  private final ObjectType objectType;
   private final Job job;
 
-  public McToOssSimpleTransmissionTask(
+  public McToOssResourceTask(
       String id,
       String rootJobId,
       JobConfiguration config,
       OssConfig ossConfig,
-      ObjectType objectType,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
     this.ossConfig = ossConfig;
-    this.objectType = objectType;
     init();
   }
 
@@ -66,11 +62,10 @@ public class McToOssSimpleTransmissionTask extends DagTask {
       String metafile = fileNames[0];
       String datafile = fileNames[1] + config.get(JobConfiguration.DEST_OBJECT_NAME);
 
-      McToOssSimpleTransmissionAction action = new McToOssSimpleTransmissionAction(
+      McToOssResourceAction action = new McToOssResourceAction(
           id + ".Transmission",
           odps,
           config,
-          objectType,
           ossConfig,
           metafile,
           datafile,

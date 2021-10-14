@@ -22,18 +22,18 @@ import java.util.List;
 import com.aliyun.odps.Function;
 import com.aliyun.odps.Resource;
 
-public class OdpsFunctionInfo {
+public class McFunctionInfo {
   private String functionName;
   private String className;
   private List<String> useList;
 
-  public OdpsFunctionInfo(String functionName, String className, List<String> useList) {
+  public McFunctionInfo(String functionName, String className, List<String> useList) {
     this.functionName = functionName;
     this.className = className;
     this.useList = useList;
   }
 
-  public OdpsFunctionInfo(Function function) {
+  public McFunctionInfo(Function function) {
     // todo check getResourceNames
     List<String> resources = new ArrayList<>();
     function.getResourceNames();

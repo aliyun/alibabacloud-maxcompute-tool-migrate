@@ -15,12 +15,12 @@ import com.aliyun.odps.mma.server.task.TaskProgress;
 /**
  * @author yida
  */
-public abstract class SimpleTransmissionJob extends AbstractJob{
+public abstract class AbstractOneTaskJob extends AbstractJob{
 
-  private static final Logger LOG = LogManager.getLogger(SimpleTransmissionJob.class);
+  private static final Logger LOG = LogManager.getLogger(AbstractOneTaskJob.class);
   private Task task;
 
-  public SimpleTransmissionJob(
+  public AbstractOneTaskJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record,
       JobManager jobManager,

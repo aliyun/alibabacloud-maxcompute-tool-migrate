@@ -1,3 +1,20 @@
+/*
+ * Copyright 1999-2021 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.aliyun.odps.mma.server.action;
 
 
@@ -8,9 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.datanucleus.util.StringUtils;
 
 import com.aliyun.odps.FileResource;
-import com.aliyun.odps.Function;
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.Resource;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
@@ -22,21 +37,19 @@ import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.util.GsonUtils;
 
-public class McToOssSimpleTransmissionAction extends DefaultAction {
+public class McToOssResourceAction extends DefaultAction {
 
-  private static final Logger LOG = LogManager.getLogger(McToOssSimpleTransmissionAction.class);
+  private static final Logger LOG = LogManager.getLogger(McToOssResourceAction.class);
   private final AbstractConfiguration config;
-  private final ObjectType objectType;
   private final OssConfig ossConfig;
   private final Odps odps;
   private final String metafile;
   private final String datafile;
 
-  public McToOssSimpleTransmissionAction(
+  public McToOssResourceAction(
       String id,
       Odps odps,
       AbstractConfiguration config,
-      ObjectType objectType,
       OssConfig ossConfig,
       String metafile,
       String datafile,
@@ -44,7 +57,6 @@ public class McToOssSimpleTransmissionAction extends DefaultAction {
       ActionExecutionContext context) {
     super(id, task, context);
     this.config = config;
-    this.objectType = objectType;
     this.ossConfig = ossConfig;
     this.odps = odps;
     this.metafile = metafile;
@@ -57,7 +69,7 @@ public class McToOssSimpleTransmissionAction extends DefaultAction {
 
   @Override
   public String getName() {
-    return objectType.name() + " transmission";
+    return "Resource transmission";
   }
 
   @Override
@@ -71,24 +83,15 @@ public class McToOssSimpleTransmissionAction extends DefaultAction {
         odps,
         config.get(JobConfiguration.SOURCE_CATALOG_NAME),
         config.get(JobConfiguration.SOURCE_OBJECT_NAME),
-        objectType);
+        ObjectType.RESOURCE);
 
-    if (ObjectType.RESOURCE.equals(objectType)) {
-      resourceTransmission(object);
-    } else if(ObjectType.FUNCTION.equals(objectType)) {
-      functionTransmission(object);
-    }
-    return null;
-  }
-
-  private void resourceTransmission(Object object) throws OdpsException, MmaException {
     Resource resource = (Resource) object;
     if (StringUtils.isEmpty(resource.getName())) {
       LOG.error("Invalid resource name {} for task {}", resource.getName(), id);
       throw new MmaException("ERROR: Resource name is empty");
     }
 
-    OdpsResourceInfo resourceInfo = new OdpsResourceInfo(resource);
+    McResourceInfo resourceInfo = new McResourceInfo(resource);
     String content = GsonUtils.GSON.toJson(resourceInfo);
     LOG.info("Action: {}, resource info: {}", id, content);
     OssUtils.createFile(ossConfig, metafile, content);
@@ -98,13 +101,7 @@ public class McToOssSimpleTransmissionAction extends DefaultAction {
       InputStream stream = odps.resources().getResourceAsStream(fileResource.getProject(), fileResource.getName());
       OssUtils.createFile(ossConfig, datafile, stream);
     }
+    return null;
   }
 
-  private void functionTransmission(Object object) {
-    Function function = (Function)  object;
-    OdpsFunctionInfo functionInfo = new OdpsFunctionInfo(function);
-    String content = GsonUtils.GSON.toJson(functionInfo);
-    LOG.info("Action: {}, function info: {}", id, content);
-    OssUtils.createFile(ossConfig, metafile, content);
-  }
 }

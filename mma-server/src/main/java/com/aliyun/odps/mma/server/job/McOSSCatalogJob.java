@@ -54,8 +54,16 @@ public class McOSSCatalogJob extends CatalogJob {
 
     // Firstly, execute table jobs
     getJobsByObjectType(ret, subJobs, ObjectType.TABLE);
+    if (!ret.isEmpty()) {
+      return ret;
+    }
+
     // Then, execute resource jobs
     getJobsByObjectType(ret, subJobs, ObjectType.RESOURCE);
+    if (!ret.isEmpty()) {
+      return ret;
+    }
+
     // Finally, execute function jobs
     getJobsByObjectType(ret, subJobs, ObjectType.FUNCTION);
     return ret;

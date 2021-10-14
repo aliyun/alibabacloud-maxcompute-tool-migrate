@@ -29,7 +29,7 @@ import com.aliyun.odps.mma.util.GsonUtils;
 
 public abstract class AbstractConfiguration implements Map<String, String>, Configuration {
 
-  public static final String DEBUG_MODE = "mma.debug";
+  public static final String DEBUG_MODE = "mma.debug.enabled";
   public static final String DEBUG_MODE_DEFAULT_VALUE = "false";
 
   /**

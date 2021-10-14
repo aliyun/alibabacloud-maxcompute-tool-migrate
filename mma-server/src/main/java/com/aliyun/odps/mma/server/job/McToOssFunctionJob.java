@@ -18,13 +18,12 @@ package com.aliyun.odps.mma.server.job;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.MetaManager;
-import com.aliyun.odps.mma.server.task.McToOssSimpleTransmissionTask;
+import com.aliyun.odps.mma.server.task.McToOssFunctionTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class McToOssFunctionJob extends SimpleTransmissionJob {
+public class McToOssFunctionJob extends AbstractOneTaskJob {
 
   public McToOssFunctionJob(
       Job parentJob,
@@ -45,12 +44,11 @@ public class McToOssFunctionJob extends SimpleTransmissionJob {
         config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
         config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
         config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
-    return new McToOssSimpleTransmissionTask(
+    return new McToOssFunctionTask(
         taskIdPrefix + ".functionTransmission",
         getRootJobId(),
         config,
         ossConfig,
-        ObjectType.FUNCTION,
          this);
   }
 }

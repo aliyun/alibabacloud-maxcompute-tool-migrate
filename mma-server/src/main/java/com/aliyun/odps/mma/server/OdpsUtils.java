@@ -27,14 +27,13 @@ import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Function;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
-import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.MmaConfig;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.exception.MmaException;
-import com.aliyun.odps.mma.server.action.OdpsFunctionInfo;
+import com.aliyun.odps.mma.server.action.McFunctionInfo;
 
 public class OdpsUtils {
   private static final Logger LOG = LogManager.getLogger(OdpsUtils.class);
@@ -92,7 +91,7 @@ public class OdpsUtils {
   public static void createFunction(
       Odps odps,
       String project,
-      OdpsFunctionInfo functionInfo,
+      McFunctionInfo functionInfo,
       boolean isUpdate) throws OdpsException {
     LOG.info("Create function {}.{} class {}, resources {}, update {}",
              project,
