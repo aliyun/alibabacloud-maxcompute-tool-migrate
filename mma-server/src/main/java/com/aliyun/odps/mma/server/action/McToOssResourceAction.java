@@ -79,13 +79,10 @@ public class McToOssResourceAction extends DefaultAction {
 
   @Override
   public Object call() throws Exception {
-    Object object = OdpsUtils.getObject(
+    Resource resource = OdpsUtils.getResource(
         odps,
         config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-        config.get(JobConfiguration.SOURCE_OBJECT_NAME),
-        ObjectType.RESOURCE);
-
-    Resource resource = (Resource) object;
+        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
     if (StringUtils.isEmpty(resource.getName())) {
       LOG.error("Invalid resource name {} for task {}", resource.getName(), id);
       throw new MmaException("ERROR: Resource name is empty");

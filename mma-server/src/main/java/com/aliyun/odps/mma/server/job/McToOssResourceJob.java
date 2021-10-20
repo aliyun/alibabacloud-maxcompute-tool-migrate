@@ -23,7 +23,7 @@ import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.task.McToOssResourceTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class McToOssResourceJob extends AbstractOneTaskJob {
+public class McToOssResourceJob extends AbstractSingleTaskJob {
 
   public McToOssResourceJob(
       Job parentJob,

@@ -23,7 +23,7 @@ import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.task.McToOssFunctionTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class McToOssFunctionJob extends AbstractOneTaskJob {
+public class McToOssFunctionJob extends AbstractSingleTaskJob {
 
   public McToOssFunctionJob(
       Job parentJob,

@@ -175,12 +175,6 @@ public class JobManager {
       switch (objectType) {
         case TABLE:
           objNames = metaSource.listTables(catalogName);
-          if (Boolean.parseBoolean(config.getOrDefault(AbstractConfiguration.DEBUG_MODE,
-                                                       AbstractConfiguration.DEBUG_MODE_DEFAULT_VALUE))) {
-            // debug mode
-            objNames = new ArrayList<>();
-            objNames = objNames.subList(0, 2);
-          }
           break;
         case RESOURCE:
           objNames = metaSource.listResources(catalogName);
@@ -598,7 +592,7 @@ public class JobManager {
   private Job getMcToOssCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McOSSCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+    return new McToOssCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   private Job getMcToOssTableJob(
@@ -623,7 +617,7 @@ public class JobManager {
   private Job getOssToMcCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McOSSCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+    return new McToOssCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   private Job getOssToMcTableJob(

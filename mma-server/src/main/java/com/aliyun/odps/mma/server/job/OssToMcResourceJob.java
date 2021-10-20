@@ -18,13 +18,12 @@ package com.aliyun.odps.mma.server.job;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.task.OssToMcResourceTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class OssToMcResourceJob extends AbstractOneTaskJob {
+public class OssToMcResourceJob extends AbstractSingleTaskJob {
 
   public OssToMcResourceJob(
       Job parentJob,

@@ -34,11 +34,11 @@ import com.aliyun.odps.mma.server.task.Task;
 /**
  * mc -> oss & oss -> mc
  */
-public class McOSSCatalogJob extends CatalogJob {
+public class McToOssCatalogJob extends CatalogJob {
 
-  private static final Logger LOG = LogManager.getLogger(McOSSCatalogJob.class);
+  private static final Logger LOG = LogManager.getLogger(McToOssCatalogJob.class);
 
-  public McOSSCatalogJob(
+  public McToOssCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record,
       JobManager jobManager,

@@ -73,13 +73,11 @@ public class McToOssFunctionAction extends DefaultAction {
 
   @Override
   public Object call() throws Exception {
-    Object object = OdpsUtils.getObject(
+    Function function = OdpsUtils.getFunction(
         odps,
         config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-        config.get(JobConfiguration.SOURCE_OBJECT_NAME),
-        ObjectType.FUNCTION);
+        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
 
-    Function function = (Function)  object;
     McFunctionInfo functionInfo = new McFunctionInfo(function);
     String content = GsonUtils.GSON.toJson(functionInfo);
     LOG.info("Action: {}, function info: {}", id, content);

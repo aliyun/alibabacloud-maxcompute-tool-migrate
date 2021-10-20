@@ -107,9 +107,6 @@ public class McToOssTableJob extends AbstractTableJob {
       TableMetaModel mcExternalTableMetaModel =
           McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
 
-      // for local debug
-      // OssUtils.getTableModelLogInfo(mcTableMetaModel, ossTableMetaModel, mcExternalTableMetaModel);
-
       List<Job> pendingSubJobs = null;
       if (!mcTableMetaModel.getPartitionColumns().isEmpty()) {
         pendingSubJobs = jobManager.listSubJobsByStatus(this, JobStatus.PENDING);

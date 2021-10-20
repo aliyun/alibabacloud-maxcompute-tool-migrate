@@ -62,13 +62,11 @@ public class OssToMcFunctionTask extends DagTask {
         config.get(JobConfiguration.SOURCE_CATALOG_NAME),
         config.get(JobConfiguration.SOURCE_OBJECT_NAME));
     String metafile = fileNames[0];
-    String datafile = fileNames[1] + config.get(JobConfiguration.SOURCE_OBJECT_NAME);
 
     OssToMcFunctionAction action = new OssToMcFunctionAction(
         id + ".Transmission",
         ossConfig,
         metafile,
-        datafile,
         odps,
         true,
         this,

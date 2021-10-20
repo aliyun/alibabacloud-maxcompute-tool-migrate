@@ -27,6 +27,7 @@ import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Function;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
@@ -70,22 +71,20 @@ public class OdpsUtils {
     return null;
   }
 
-  public static Object getObject(
-      Odps odps, String project, String objName, ObjectType objectType)
-      throws MmaException, OdpsException {
-    if (ObjectType.FUNCTION.equals(objectType)) {
-      if (odps.functions().exists(project, objName)) {
-        return odps.functions().get(project, objName);
-      }
-      throw new MmaException("Function " + objName + " not exists");
-    } else if(ObjectType.RESOURCE.equals(objectType)) {
-      if (odps.resources().exists(project, objName)) {
-        return odps.resources().get(project, objName);
-      }
-      throw new MmaException("Resource " + objName + " not exists");
-    } else {
-      throw new MmaException("Object Type not support: " + objectType);
+  public static Function getFunction(Odps odps, String project, String name)
+      throws OdpsException, MmaException {
+    if (odps.functions().exists(project, name)) {
+      return odps.functions().get(project, name);
     }
+    throw new MmaException("Function " + name + " not exists");
+  }
+
+  public static Resource getResource(Odps odps, String project, String name)
+      throws OdpsException, MmaException {
+    if (odps.resources().exists(project, name)) {
+      return odps.resources().get(project, name);
+    }
+    throw new MmaException("Resource " + name + " not exists");
   }
 
   public static void createFunction(

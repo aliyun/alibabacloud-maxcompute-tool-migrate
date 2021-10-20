@@ -15,12 +15,12 @@ import com.aliyun.odps.mma.server.task.TaskProgress;
 /**
  * @author yida
  */
-public abstract class AbstractOneTaskJob extends AbstractJob{
+public abstract class AbstractSingleTaskJob extends AbstractJob{
 
-  private static final Logger LOG = LogManager.getLogger(AbstractOneTaskJob.class);
+  private static final Logger LOG = LogManager.getLogger(AbstractSingleTaskJob.class);
   private Task task;
 
-  public AbstractOneTaskJob(
+  public AbstractSingleTaskJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record,
       JobManager jobManager,
@@ -31,13 +31,17 @@ public abstract class AbstractOneTaskJob extends AbstractJob{
 
   @Override
   public List<Task> getExecutableTasks() {
-    if (task == null && JobStatus.PENDING.equals(getStatus())) {
-      task = generateTask();
-    }
     if (task == null) {
-      // Exception happened when generating the DAG.
-      LOG.info("job {} has not tasks");
-      return Collections.emptyList();
+      try {
+        task = generateTask();
+      } catch (Exception e) {
+        fail("Task generate fail");
+        return Collections.emptyList();
+      }
+      if (task == null) {
+        fail("Task is null");
+        return Collections.emptyList();
+      }
     }
 
     if (TaskProgress.PENDING.equals(task.getProgress())) {
@@ -55,23 +59,12 @@ public abstract class AbstractOneTaskJob extends AbstractJob{
     return false;
   }
 
-  String getRootJobId() {
-    if (parentJob == null) {
-      return getId();
-    }
-
-    Job currentJob = this;
-    while (currentJob.getParentJob() != null) {
-      currentJob = getParentJob();
-    }
-    return currentJob.getId();
-  }
-
   @Override
   public synchronized boolean retry() {
     boolean retry = super.retry();
     if (retry) {
       try {
+        LOG.info( "Retry job, id: {}, regenerate task", record.getJobId());
         task = generateTask();
       } catch (Exception e) {
         return false;

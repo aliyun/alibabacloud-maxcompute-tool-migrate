@@ -517,18 +517,6 @@ public abstract class AbstractTableJob extends AbstractJob {
     return ret;
   }
 
-  String getRootJobId() {
-    if (parentJob == null) {
-      return getId();
-    }
-
-    Job currentJob = this;
-    while (currentJob.getParentJob() != null) {
-      currentJob = getParentJob();
-    }
-    return currentJob.getId();
-  }
-
   <T extends TableDataTransmissionTask> void handleDataTransmissionTask(T task) {
     String taskId = task.getId();
     if (dag.vertexSet().stream().noneMatch(t -> taskId.equals(t.getId()))) {

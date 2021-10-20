@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;
@@ -35,7 +34,6 @@ public class OssToMcFunctionAction extends DefaultAction {
   private static final Logger LOG = LogManager.getLogger(OssToMcFunctionAction.class);
   private final OssConfig ossConfig;
   private final String metafile;
-  private final String datafile;
   private final Odps odps;
   private final boolean update;
 
@@ -43,7 +41,6 @@ public class OssToMcFunctionAction extends DefaultAction {
       String id,
       OssConfig ossConfig,
       String metafile,
-      String datafile,
       Odps odps,
       boolean update,
       Task task,
@@ -51,7 +48,6 @@ public class OssToMcFunctionAction extends DefaultAction {
     super(id, task, context);
     this.ossConfig = ossConfig;
     this.metafile = metafile;
-    this.datafile = datafile;
     this.odps = odps;
     this.update = update;
   }

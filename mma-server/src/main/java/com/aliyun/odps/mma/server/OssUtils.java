@@ -214,9 +214,9 @@ public class OssUtils
     // prefix / data(metadata) / catalog name / object type(eg: TABLE) / object name / (file)
     StringBuilder builder = new StringBuilder();
     if (StringUtils.isNullOrEmpty(ossPathPrefix)) {
-      ossPathPrefix = getFolderNameWithSeparator("mma") + getFolderNameWithSeparator(rootJobId);
+      ossPathPrefix = getFolderNameWithSeparator(Constants.EXPORT_PREFIX) + getFolderNameWithSeparator(rootJobId);
     }
-    String dataType = isMetadata ? "metadata" : "data";
+    String dataType = isMetadata ? Constants.EXPORT_METADATA_FOLDER : Constants.EXPORT_DATA_FOLDER;
     String filename = isMetadata ? Constants.EXPORT_META_FILE_NAME : "";
 
     builder.append(getFolderNameWithSeparator(ossPathPrefix))
@@ -240,17 +240,6 @@ public class OssUtils
            .append(getFolderNameWithSeparator(folderName))
            .append(getFolderNameWithSeparator(database.toLowerCase()));
     return builder.toString();
-  }
-
-  public static void getTableModelLogInfo(TableMetaModel mcModel,
-                                            TableMetaModel ossModel,
-                                            TableMetaModel externalModel) {
-    LOG.info("MC model location: {}, database: {}, table: {}",
-             mcModel.getLocation(), mcModel.getDatabase(), mcModel.getTable());
-    LOG.info("OSS model location: {}, database: {}, table: {}",
-             ossModel.getLocation(), ossModel.getDatabase(), ossModel.getTable());
-    LOG.info("MC model location: {}, database: {}, table: {}",
-             externalModel.getLocation(), externalModel.getDatabase(), externalModel.getTable());
   }
 
   private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
