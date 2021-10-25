@@ -18,14 +18,14 @@ package com.aliyun.odps.mma.server.job;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
-import com.aliyun.odps.mma.server.task.McToOssResourceTask;
+import com.aliyun.odps.mma.server.meta.MetaManager;
+import com.aliyun.odps.mma.server.task.McToOssFunctionTask;
 import com.aliyun.odps.mma.server.task.Task;
 
-public class McToOssResourceJob extends AbstractSingleTaskJob {
+public class McToOssFunctionJob extends AbstractSingleTaskJob {
 
-  public McToOssResourceJob(
+  public McToOssFunctionJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record,
       JobManager jobManager,
@@ -44,8 +44,8 @@ public class McToOssResourceJob extends AbstractSingleTaskJob {
         config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
         config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
         config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
-    return new McToOssResourceTask(
-        taskIdPrefix + ".resourceTransmission",
+    return new McToOssFunctionTask(
+        taskIdPrefix + ".functionTransmission",
         getRootJobId(),
         config,
         ossConfig,

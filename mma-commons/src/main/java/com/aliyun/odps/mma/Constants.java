@@ -154,6 +154,9 @@ public class Constants {
   public static final String EXPORT_TABLE_FOLDER = "tables/";
   public static final String EXPORT_TABLE_DATA_FOLDER = "data";
   public static final String EXPORT_VIEW_FOLDER = "views/";
+  public static final String EXPORT_PREFIX = "mma";
+  public static final String EXPORT_METADATA_FOLDER = "metadata";
+  public static final String EXPORT_DATA_FOLDER = "data";
   public static final String EXPORT_META_FILE_NAME = "meta.txt";
   public static final String EXPORT_COLUMN_TYPE_FILE_NAME = "column_type.txt";
   public static final String EXPORT_PARTITION_SPEC_FILE_NAME = "partition_spec.txt";
