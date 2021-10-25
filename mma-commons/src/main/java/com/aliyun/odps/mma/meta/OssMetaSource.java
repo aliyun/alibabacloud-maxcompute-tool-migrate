@@ -39,9 +39,10 @@ public class OssMetaSource implements MetaSource {
   private static final String DELIMITER = "/";
   private static final List<ObjectType> SUPPORTED_OBJECT_TYPES;
   static {
-    // TODO:
     SUPPORTED_OBJECT_TYPES = new ArrayList<>(1);
     SUPPORTED_OBJECT_TYPES.add(ObjectType.TABLE);
+    SUPPORTED_OBJECT_TYPES.add(ObjectType.RESOURCE);
+    SUPPORTED_OBJECT_TYPES.add(ObjectType.FUNCTION);
   }
 
   private String ossBucket;
@@ -103,6 +104,18 @@ public class OssMetaSource implements MetaSource {
   @Override
   public List<String> listTables(String databaseName) {
     String prefix = ossPath + "/metadata/" + databaseName + "/TABLE/";
+    return listObjects(prefix);
+  }
+
+  @Override
+  public List<String> listResources(String databaseName) throws Exception {
+    String prefix = ossPath + "/metadata/" + databaseName + "/RESOURCE/";
+    return listObjects(prefix);
+  }
+
+  @Override
+  public List<String> listFunctions(String databaseName) throws Exception {
+    String prefix = ossPath + "/metadata/" + databaseName + "/FUNCTION/";
     return listObjects(prefix);
   }
 
