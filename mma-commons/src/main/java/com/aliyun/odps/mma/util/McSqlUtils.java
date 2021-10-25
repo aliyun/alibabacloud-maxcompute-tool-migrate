@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,20 +16,23 @@
 
 package com.aliyun.odps.mma.util;
 
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.Constants;
-import com.aliyun.odps.mma.config.ExternalTableConfig;
+import com.aliyun.odps.mma.config.ExternalTableStorage;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.utils.StringUtils;
 
 public class McSqlUtils {
+
   static final Logger LOG = LogManager.getLogger(McSqlUtils.class);
 
   public static String getDropTableStatement(String db, String tb) {
@@ -41,21 +44,21 @@ public class McSqlUtils {
   }
 
   public static String getCreateTableStatement(
-      TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
+      TableMetaModel tableMetaModel, ExternalTableStorage storage) {
     StringBuilder sb = new StringBuilder();
-    if (externalTableConfig != null) {
+    if (storage != null) {
       sb.append("CREATE EXTERNAL TABLE IF NOT EXISTS ");
     } else {
       sb.append("CREATE TABLE IF NOT EXISTS ");
     }
     sb.append(tableMetaModel.getDatabase()).append(".")
       .append("`").append(tableMetaModel.getTable()).append("`");
-    sb.append(getCreateTableStatementWithoutDatabaseName(tableMetaModel, externalTableConfig));
+    sb.append(getCreateTableStatementWithoutDatabaseName(tableMetaModel, storage));
     return sb.toString();
   }
 
   private static String getCreateTableStatementWithoutDatabaseName(
-      TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
+      TableMetaModel tableMetaModel, ExternalTableStorage storage) {
     StringBuilder sb = new StringBuilder("(\n");
     for (int i = 0; i < tableMetaModel.getColumns().size(); i++) {
       ColumnMetaModel columnMetaModel = tableMetaModel.getColumns().get(i);
@@ -96,13 +99,13 @@ public class McSqlUtils {
       sb.append("\n)");
     }
 
-    if (externalTableConfig != null) {
-      switch (externalTableConfig.getStorage()) {
+    if (storage != null) {
+      switch (storage) {
         case OSS:
-          sb.append(getCreateOssExternalTableCondition(tableMetaModel, externalTableConfig));
+          sb.append(getCreateOssExternalTableCondition(tableMetaModel));
           break;
         default:
-          throw new IllegalArgumentException("Unknown external table storage: " + externalTableConfig.getStorage().name());
+          throw new IllegalArgumentException("Unknown external table storage: " + storage.name());
       }
     }
 
@@ -111,36 +114,12 @@ public class McSqlUtils {
     return sb.toString();
   }
 
-  private static String getCreateOssExternalTableCondition(
-      TableMetaModel tableMetaModel, ExternalTableConfig externalTableConfig) {
+  private static String getCreateOssExternalTableCondition(TableMetaModel tableMetaModel) {
     StringBuilder sb = new StringBuilder();
-//    OssExternalTableConfig ossExternalTableConfig = (OssExternalTableConfig) externalTableConfig;
-//
-//    if (!StringUtils.isNullOrEmpty(ossExternalTableConfig.getRoleRan())) {
-//      tableMetaModel.serDeProperties.put("odps.properties.rolearn",
-//                                         ossExternalTableConfig.getRoleRan());
-//    }
-//
-//    sb.append("ROW FORMAT serde 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'\n");
-//    if (tableMetaModel.serDeProperties != null && !tableMetaModel.serDeProperties.isEmpty()) {
-//      sb.append("WITH SERDEPROPERTIES (").append("\n");
-//      List<String> propertyStrings = new LinkedList<>();
-//      for (Entry<String, String> property : tableMetaModel.serDeProperties.entrySet()) {
-//        String propertyString = String.format(
-//            "'%s'='%s'",
-//            StringEscapeUtils.escapeJava(property.getKey()),
-//            StringEscapeUtils.escapeJava(property.getValue()));
-//        propertyStrings.add(propertyString);
-//      }
-//      sb.append(String.join(",\n", propertyStrings)).append(")\n");
-//    }
 
     // TODO: support other formats & compression methods
     sb.append("\nSTORED AS ORC")
-      .append("\nLOCATION '").append(externalTableConfig.getLocation()).append("'");
-//      .append("\nTBLPROPERTIES (")
-//      .append("\n'mcfed.mapreduce.output.fileoutputformat.compress'='true',")
-//      .append("\n'mcfed.mapreduce.output.fileoutputformat.compress.codec'='com.hadoop.compression.lzo.LzoCodec');");
+        .append("\nLOCATION '").append(tableMetaModel.getLocation()).append("'");
     return sb.toString();
   }
 
@@ -191,7 +170,7 @@ public class McSqlUtils {
    * @return Add partition statement for multiple partitions
    * @throws IllegalArgumentException when input represents a non partitioned table
    */
-   public static String getAddPartitionStatement(TableMetaModel tableMetaModel) {
+  public static String getAddPartitionStatement(TableMetaModel tableMetaModel) {
     if (tableMetaModel.getPartitionColumns().isEmpty()) {
       throw new IllegalArgumentException("Not a partitioned table");
     }
@@ -253,7 +232,7 @@ public class McSqlUtils {
     return sb.toString();
   }
 
-    public static String getVerifySql(TableMetaModel tableMetaModel) {
+  public static String getVerifySql(TableMetaModel tableMetaModel) {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
 
@@ -330,43 +309,46 @@ public class McSqlUtils {
 //        String.join(",", resources) + "';\n";
 //  }
 
-  public static String getOssTablePath(
-      OssConfig ossConfig, String ossFilePath) {
+  public static TableMetaModel getMcExternalTableMetaModel(
+      TableMetaModel mcTableMetaModel,
+      OssConfig ossConfig,
+      String location,
+      String rootJobId) {
+    TableMetaModelBuilder builder = new TableMetaModelBuilder(mcTableMetaModel);
+    return builder.table("temp_table_" + mcTableMetaModel.getTable() + "_by_mma_" + rootJobId)
+                  .location(McSqlUtils.getMcExternalTableLocation(ossConfig, location))
+                  .build();
+  }
+
+  private static String getMcExternalTableLocation(
+      OssConfig ossConfig, String location) {
     // aliyun doc : https://help.aliyun.com/document_detail/72776.html
     // if use sts, Location format is:
     //    LOCATION 'oss://${endpoint}/${bucket}/${userfilePath}/'
     // else, Location format is:
     //    LOCATION 'oss://${accessKeyId}:${accessKeySecret}@${endpoint}/${bucket}/${userPath}/'
-    if (StringUtils.isNullOrEmpty(ossConfig.getOssEndpoint())
+    if (StringUtils.isNullOrEmpty(ossConfig.getEndpointForMc())
         || StringUtils.isNullOrEmpty(ossConfig.getOssBucket())) {
       throw new IllegalArgumentException("Undefined OSS endpoint or OSS bucket");
     }
-    String ossPrefix = "oss://";
+    String ossPrefix = OssConfig.PREFIX;
+
     StringBuilder locationBuilder = new StringBuilder(ossPrefix);
+
     if (StringUtils.isNullOrEmpty(ossConfig.getOssRoleArn())) {
       locationBuilder.append(ossConfig.getOssAccessId())
                      .append(":")
                      .append(ossConfig.getOssAccessKey()).append("@");
     }
-    String ossEndpoint = ossConfig.getOssEndpoint().startsWith(ossPrefix) ?
-        ossConfig.getOssEndpoint().substring(ossPrefix.length()) : ossConfig.getOssEndpoint();
+
+    String ossEndpoint = ossConfig.getEndpointForMc();
+    if (ossEndpoint.startsWith(ossPrefix)) {
+      ossEndpoint = ossEndpoint.substring(ossPrefix.length());
+    }
     String ossBucket = ossConfig.getOssBucket();
-    locationBuilder.append(ossEndpoint);
-    if (!ossEndpoint.endsWith("/")) {
-      locationBuilder.append("/");
-    }
-    locationBuilder.append(ossBucket);
-    if (!ossBucket.endsWith("/")) {
-      locationBuilder.append("/");
-    }
-    if (ossFilePath.startsWith("/")) {
-      locationBuilder.append(ossFilePath.substring(1));
-    } else {
-      locationBuilder.append(ossFilePath);
-    }
-    if (!ossFilePath.endsWith("/")) {
-      locationBuilder.append("/");
-    }
+    String combinedPath = Paths.get(ossEndpoint, ossBucket, location).toString();
+    locationBuilder.append(combinedPath);
+
     return locationBuilder.toString();
   }
 
@@ -515,4 +497,5 @@ public class McSqlUtils {
 
     return sb.toString();
   }
+
 }

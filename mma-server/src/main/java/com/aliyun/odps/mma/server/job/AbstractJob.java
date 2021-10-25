@@ -359,4 +359,17 @@ public abstract class AbstractJob implements Job {
   String generateTaskIdPrefix() {
     return UUID.randomUUID().toString();
   }
+
+  String getRootJobId() {
+    if (parentJob == null) {
+      return getId();
+    }
+
+    Job currentJob = this;
+    while (currentJob.getParentJob() != null) {
+      currentJob = getParentJob();
+    }
+    return currentJob.getId();
+  }
+
 }

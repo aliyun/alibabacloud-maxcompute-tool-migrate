@@ -29,7 +29,7 @@ import com.aliyun.odps.mma.server.job.Job;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 
 public class OssToMcTableSetUpTask extends DagTask {
-  private TableMetaModel ossTableMetaModel;
+  private TableMetaModel mcExternalTableMetaModel;
   private TableMetaModel mcTableMetaModel;
   private List<TablePartitionGroup> partitionGroups;
   private Job job;
@@ -38,13 +38,13 @@ public class OssToMcTableSetUpTask extends DagTask {
       String id,
       String rootJobId,
       JobConfiguration config,
-      TableMetaModel ossTableMetaModel,
+      TableMetaModel mcExternalTableMetaModel,
       TableMetaModel mcTableMetaModel,
       List<TablePartitionGroup> partitionGroups,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
-    this.ossTableMetaModel = ossTableMetaModel;
+    this.mcExternalTableMetaModel = mcExternalTableMetaModel;
     this.mcTableMetaModel = mcTableMetaModel;
     this.partitionGroups = partitionGroups;
     init();
@@ -62,18 +62,12 @@ public class OssToMcTableSetUpTask extends DagTask {
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
             executionProject,
             config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
-            config.get(JobConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_SOURCE_OSS_ACCESS_KEY_SECRET),
-            config.get(JobConfiguration.DATA_SOURCE_OSS_ROLE_ARN),
-            config.get(JobConfiguration.DATA_SOURCE_OSS_BUCKET),
-            config.get(JobConfiguration.DATA_SOURCE_OSS_PATH),
-            config.get(JobConfiguration.DATA_SOURCE_OSS_ENDPOINT),
-            ossTableMetaModel,
+            mcExternalTableMetaModel,
             this,
             context);
     dag.addVertex(mcCreateOssExternalTableAction);
 
-    if (!ossTableMetaModel.getPartitionColumns().isEmpty()) {
+    if (!mcExternalTableMetaModel.getPartitionColumns().isEmpty()) {
       List<TableMetaModel> sourceGroups = partitionGroups
           .stream()
           .map(TablePartitionGroup::getSource)

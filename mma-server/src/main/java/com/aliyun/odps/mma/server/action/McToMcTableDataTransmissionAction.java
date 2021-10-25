@@ -57,7 +57,7 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
 
   @Override
   public boolean hasResults() {
-    return true;
+    return false;
   }
 
   @Override
