@@ -32,9 +32,21 @@ import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.MmaConfig;
+import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.mma.server.action.McFunctionInfo;
 
 public class OdpsUtils {
   private static final Logger LOG = LogManager.getLogger(OdpsUtils.class);
+
+  public static Odps getOdps(String id, String key, String endpoint, String project) {
+    AliyunAccount aliyunAccount = new AliyunAccount(id, key);
+    Odps odps = new Odps(aliyunAccount);
+    odps.setEndpoint(endpoint);
+    odps.setDefaultProject(project);
+    odps.setUserAgent("MMA");
+    return odps;
+  }
 
   private static Odps getOdps(MmaConfig.OdpsConfig odpsConfig) {
     AliyunAccount aliyunAccount = new AliyunAccount(
@@ -59,63 +71,48 @@ public class OdpsUtils {
     return null;
   }
 
-  public static Function getFunction(
-      MmaConfig.OdpsConfig odpsConfig, String databaseName, String functionName) {
-    Odps odps = getOdps(odpsConfig);
-    try {
-      if (odps.functions().exists(databaseName, functionName)) {
-        return odps.functions().get(databaseName, functionName);
-      }
-    } catch (OdpsException e) {
-      LOG.error("Get function {}.{} failed", databaseName, functionName, e);
+  public static Function getFunction(Odps odps, String project, String name)
+      throws OdpsException, MmaException {
+    if (odps.functions().exists(project, name)) {
+      return odps.functions().get(project, name);
     }
-    return null;
+    throw new MmaException("Function " + name + " not exists");
   }
 
-//  public static void createFunction(
-//      MmaConfig.OdpsConfig odpsConfig,
-//      String project,
-//      OdpsFunctionInfo functionInfo,
-//      boolean isUpdate) throws OdpsException {
-//    Odps odps = getOdps(odpsConfig);
-//    Function function = new Function();
-//    function.setName(functionInfo.getFunctionName());
-//    function.setClassPath(functionInfo.getClassName());
-//    function.setResources(functionInfo.getUseList());
-//    LOG.info("Create function {}.{} class {}, resources {}, update {}",
-//             project,
-//             functionInfo.getFunctionName(),
-//             functionInfo.getClassName(),
-//             functionInfo.getUseList(),
-//             isUpdate);
-//    if (odps.functions().exists(project, functionInfo.getFunctionName()) && isUpdate) {
-//      odps.functions().update(project, function);
-//    } else {
-//      odps.functions().create(project, function);
-//    }
-//  }
-
-  public static Resource getResource(
-      MmaConfig.OdpsConfig odpsConfig, String databaseName, String resourceName) {
-    Odps odps = getOdps(odpsConfig);
-    try {
-      if (odps.resources().exists(databaseName, resourceName)) {
-        return odps.resources().get(databaseName, resourceName);
-      }
-    } catch (OdpsException e) {
-      LOG.info("Get resource {}.{} failed", databaseName, resourceName, e);
+  public static Resource getResource(Odps odps, String project, String name)
+      throws OdpsException, MmaException {
+    if (odps.resources().exists(project, name)) {
+      return odps.resources().get(project, name);
     }
-    return null;
+    throw new MmaException("Resource " + name + " not exists");
+  }
+
+  public static void createFunction(
+      Odps odps,
+      String project,
+      McFunctionInfo functionInfo,
+      boolean isUpdate) throws OdpsException {
+    LOG.info("Create function {}.{} class {}, resources {}, update {}",
+             project,
+             functionInfo.getFunctionName(),
+             functionInfo.getClassName(),
+             functionInfo.getUseList(),
+             isUpdate);
+    Function function = functionInfo.toFunction();
+    if (odps.functions().exists(project, function.getName()) && isUpdate) {
+      odps.functions().update(project, function);
+    } else {
+      odps.functions().create(project, function);
+    }
   }
 
   public static void addFileResource(
-      MmaConfig.OdpsConfig odpsConfig,
+      Odps odps,
       String projectName,
       FileResource resource,
       String absoluteLocalFilePath,
       boolean isUpdate,
       boolean deleteLocalFile) throws OdpsException {
-    Odps odps = getOdps(odpsConfig);
     File file = new File(absoluteLocalFilePath);
     if (file.exists()) {
       try (FileInputStream inputStream = new FileInputStream(file)) {
@@ -141,11 +138,10 @@ public class OdpsUtils {
   }
 
   public static void addTableResource(
-      MmaConfig.OdpsConfig odpsConfig,
+      Odps odps,
       String projectName,
       TableResource resource,
       boolean isUpdate) throws OdpsException {
-    Odps odps = getOdps(odpsConfig);
     boolean exists = odps.resources().exists(resource.getName());
     if (exists && isUpdate) {
       odps.resources().update(projectName, resource);

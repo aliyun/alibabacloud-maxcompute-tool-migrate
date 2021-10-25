@@ -23,3 +23,5 @@ target/
 *.pyc
 dependency-reduced-pom.xml
 .GITHUB_TOKEN
+tmp/
+distribution/src/assembly/test/resources/

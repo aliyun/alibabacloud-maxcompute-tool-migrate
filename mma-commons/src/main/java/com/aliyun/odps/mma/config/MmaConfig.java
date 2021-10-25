@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -107,16 +107,21 @@ public class MmaConfig {
   }
 
   public static class OssConfig implements Config {
-    private String ossEndpoint;
-    private String ossLocalEndpoint;
+
+    private String ossEndPointForMc;
+    private String ossEndPointForMma;
     private String ossBucket;
     private String ossRoleArn;
     private String ossAccessId;
     private String ossAccessKey;
+    private String metadataPath;
+    private String dataPath;
+    public static final String PREFIX = "oss://";
 
-    public OssConfig(String ossEndpoint, String ossLocalEndpoint, String ossBucket, String roleArn, String accessId, String accessKey) {
-      this.ossEndpoint = ossEndpoint;
-      this.ossLocalEndpoint = ossLocalEndpoint;
+    public OssConfig(String internalEndpoint, String externalEndpoint, String ossBucket,
+                     String roleArn, String accessId, String accessKey) {
+      this.ossEndPointForMc = internalEndpoint;
+      this.ossEndPointForMma = externalEndpoint == null ? internalEndpoint : externalEndpoint;
       this.ossBucket = ossBucket;
       this.ossRoleArn = roleArn;
       this.ossAccessId = accessId;
@@ -126,8 +131,8 @@ public class MmaConfig {
     @Override
     public boolean validate() {
       // TODO: try to connect
-      if (StringUtils.isNullOrEmpty(ossEndpoint) ||
-          StringUtils.isNullOrEmpty(ossLocalEndpoint) ||
+      if (StringUtils.isNullOrEmpty(ossEndPointForMc) ||
+          StringUtils.isNullOrEmpty(ossEndPointForMma) ||
           StringUtils.isNullOrEmpty(ossBucket)) {
         return false;
       }
@@ -143,12 +148,12 @@ public class MmaConfig {
       return true;
     }
 
-    public String getOssEndpoint() {
-      return ossEndpoint;
+    public String getEndpointForMc() {
+      return ossEndPointForMc;
     }
 
-    public String getOssLocalEndpoint() {
-      return ossLocalEndpoint;
+    public String getEndpointForMma() {
+      return ossEndPointForMma;
     }
 
     public String getOssBucket() {
@@ -170,11 +175,11 @@ public class MmaConfig {
     @Override
     public String toString() {
       return "OssDataSource {"
-          + "ossEndpoint='" + Objects.toString(ossEndpoint, "null") + '\''
-          + ", ossLocalEndpoint='" + Objects.toString(ossLocalEndpoint, "null") + '\''
-          + ", ossBucket='" + Objects.toString(ossBucket, "null") + '\''
-          + ", ossRoleArn='" + Objects.toString(ossRoleArn, "null") + '\''
-          + '}';
+             + "ossEndpoint='" + Objects.toString(ossEndPointForMc, "null") + '\''
+             + ", ossLocalEndpoint='" + Objects.toString(ossEndPointForMma, "null") + '\''
+             + ", ossBucket='" + Objects.toString(ossBucket, "null") + '\''
+             + ", ossRoleArn='" + Objects.toString(ossRoleArn, "null") + '\''
+             + '}';
     }
   }
 

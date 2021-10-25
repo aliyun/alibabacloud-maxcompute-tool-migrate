@@ -36,6 +36,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 
 public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
@@ -432,6 +433,16 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
     } finally {
       releaseConnection();
     }
+  }
+
+  @Override
+  public List<String> listResources(String databaseName) throws Exception {
+    throw new MmaException("list hive resources not supported");
+  }
+
+  @Override
+  public List<String> listFunctions(String databaseName) throws Exception {
+    throw new MmaException("list hive functions not supported");
   }
 
   @Override

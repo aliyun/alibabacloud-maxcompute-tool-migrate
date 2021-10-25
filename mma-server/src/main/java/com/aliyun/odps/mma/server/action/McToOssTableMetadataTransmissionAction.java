@@ -27,30 +27,18 @@ import com.aliyun.odps.mma.util.GsonUtils;
 
 public class McToOssTableMetadataTransmissionAction extends DefaultAction {
 
-  private String ossAccessKeyId;
-  private String ossAccessKeySecret;
-  private String ossRoleArn;
-  private String ossBucket;
-  private String ossEndpoint;
+  private OssConfig ossConfig;
   private TableMetaModel tableMetaModel;
 
   public McToOssTableMetadataTransmissionAction(
       String id,
-      TableMetaModel tableMetaModel,
-      String ossAccessKeyId,
-      String ossAccessKeySecret,
-      String ossRoleArn,
-      String ossBucket,
-      String ossEndpoint,
+      TableMetaModel ossTableMetaModel,
+      OssConfig ossConfig,
       Task task,
       ActionExecutionContext context) {
     super(id, task, context);
-    this.ossAccessKeyId = ossAccessKeyId;
-    this.ossAccessKeySecret = ossAccessKeySecret;
-    this.ossRoleArn = ossRoleArn;
-    this.ossBucket = ossBucket;
-    this.ossEndpoint = ossEndpoint;
-    this.tableMetaModel = tableMetaModel;
+    this.ossConfig = ossConfig;
+    this.tableMetaModel = ossTableMetaModel;
   }
 
   @Override
@@ -65,21 +53,9 @@ public class McToOssTableMetadataTransmissionAction extends DefaultAction {
 
   @Override
   public Object call() {
-    OssConfig ossConfig = new OssConfig(
-        ossEndpoint,
-        ossEndpoint,
-        ossBucket,
-        ossRoleArn,
-        ossAccessKeyId,
-        ossAccessKeySecret);
-    String tableMetadataLocation = OssUtils.getMcToOssMetadataPath(
-        task.getRootJobId(),
-        ObjectType.TABLE.name(),
-        tableMetaModel.getDatabase(),
-        tableMetaModel.getTable(),
-        Constants.EXPORT_META_FILE_NAME);
-    OssUtils.createFile(ossConfig, tableMetadataLocation, GsonUtils.GSON.toJson(tableMetaModel));
-
+    OssUtils.createFile(ossConfig,
+                        tableMetaModel.getLocation(),
+                        GsonUtils.GSON.toJson(tableMetaModel));
     return null;
   }
 
