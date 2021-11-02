@@ -270,7 +270,7 @@ MMA_HOME
   - 执行以下命令生成迁移任务配置。过程中需要配置 `job_id` `source_catalog_name` `dest_catalog_name`
 
     ```shell
-    /path/to/mma/bin/gen-job-conf --objecttype CATELOG \
+    /path/to/mma/bin/gen-job-conf --objecttype CATALOG \
     				--sourcecatalog ${source} \
     				--destcatalog ${dest}
     ```
