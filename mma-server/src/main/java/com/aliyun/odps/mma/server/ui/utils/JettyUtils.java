@@ -81,6 +81,7 @@ public class JettyUtils {
           throws ServletException, IOException {
         resp.setContentType(String.format("%s;charset=utf-8", "text/html"));
         resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("X-XSS-Protection","1; mode=block");
 
         resp.setStatus(HttpServletResponse.SC_OK);
         resp.getWriter().print(page.render(req));
@@ -95,6 +96,7 @@ public class JettyUtils {
           HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType(String.format("%s;charset=utf-8", "application/json"));
         resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("X-XSS-Protection","1; mode=block");
         api.handleGet(req, resp);
       }
 
@@ -103,6 +105,7 @@ public class JettyUtils {
           HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType(String.format("%s;charset=utf-8", "application/json"));
         resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("X-XSS-Protection","1; mode=block");
         api.handlePost(req, resp);
       }
 
@@ -111,6 +114,7 @@ public class JettyUtils {
           HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType(String.format("%s;charset=utf-8", "application/json"));
         resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("X-XSS-Protection","1; mode=block");
         api.handleDelete(req, resp);
       }
 
@@ -119,6 +123,7 @@ public class JettyUtils {
           throws ServletException, IOException {
         resp.setContentType(String.format("%s;charset=utf-8", "application/json"));
         resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("X-XSS-Protection","1; mode=block");
         api.handlePut(req, resp);
       }
     };
