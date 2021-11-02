@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,6 +28,7 @@ import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.McAuthType;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -40,6 +41,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   private static final Logger LOG = LogManager.getLogger(HiveToMcTableDataTransmissionAction.class);
 
   private static final Map<String, String> DEFAULT_SETTINGS = new HashMap<>();
+
   static {
     // DO NOT CHANGE the following settings
     // Make sure the data transmission queries are not converted to FETCH tasks.
@@ -108,26 +110,40 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
 
   @Override
   String getSql() throws OdpsException {
+    AbstractConfiguration config = actionExecutionContext.getConfig();
+    McAuthType authType = McAuthType.valueOf(
+        config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE,
+                            AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE_DEFAULT));
+    String configOrBearerToken;
+    if (McAuthType.AK.equals(authType)) {
+      configOrBearerToken = config.get(AbstractConfiguration.DATA_DEST_MC_CONFIG_PATH);
+    } else {
+      configOrBearerToken = generateBearerToken();
+    }
+    String tunnelEndpoint = config.get(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT);
     return HiveSqlUtils.getUdtfSql(
+        authType,
+        configOrBearerToken,
         endpoint,
-        generateBearerToken(),
+        tunnelEndpoint,
         hiveTableMetaModel,
         mcTableMetaModel);
   }
 
   private String generateBearerToken() throws OdpsException {
     String policy = "{\n"
-        + "    \"expires_in_hours\": 24,\n"
-        + "    \"policy\": {\n"
-        + "        \"Statement\": [{\n"
-        + "            \"Action\": [\"odps:*\"],\n"
-        + "            \"Effect\": \"Allow\",\n"
-        + "            \"Resource\": \"acs:odps:*:projects/" + mcTableMetaModel.getDatabase()
-        + "/tables/" + mcTableMetaModel.getTable() + "\"\n"
-        + "        }],\n"
-        + "        \"Version\": \"1\"\n"
-        + "    }\n"
-        + "}";
+                    + "    \"expires_in_hours\": 24,\n"
+                    + "    \"policy\": {\n"
+                    + "        \"Statement\": [{\n"
+                    + "            \"Action\": [\"odps:*\"],\n"
+                    + "            \"Effect\": \"Allow\",\n"
+                    + "            \"Resource\": \"acs:odps:*:projects/"
+                    + mcTableMetaModel.getDatabase()
+                    + "/tables/" + mcTableMetaModel.getTable() + "\"\n"
+                    + "        }],\n"
+                    + "        \"Version\": \"1\"\n"
+                    + "    }\n"
+                    + "}";
     Odps odps = new Odps(new AliyunAccount(accessKeyId, accessKeySecret));
     odps.setDefaultProject(executionProject);
     odps.setEndpoint(endpoint);

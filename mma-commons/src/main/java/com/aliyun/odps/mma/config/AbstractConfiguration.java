@@ -138,8 +138,12 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_DEST_OSS_PATH = "mma.data.dest.oss.path";
   // MaxCompute
   public static final String DATA_DEST_MC_ENDPOINT = "mma.data.dest.mc.endpoint";
+  public static final String DATA_DEST_MC_TUNNEL_ENDPOINT = "mma.data.dest.mc.tunnel.endpoint";
   public static final String DATA_DEST_MC_ACCESS_KEY_ID = "mma.data.dest.mc.access.key.id";
   public static final String DATA_DEST_MC_ACCESS_KEY_SECRET = "mma.data.dest.mc.access.key.secret";
+  public static final String DATA_DEST_MC_AUTH_TYPE = "mma.data.dest.mc.auth.type";
+  public static final String DATA_DEST_MC_AUTH_TYPE_DEFAULT = "BearerToken";
+  public static final String DATA_DEST_MC_CONFIG_PATH = "mma.data.dest.mc.config.path";
 
   /**
    * Job attributes.

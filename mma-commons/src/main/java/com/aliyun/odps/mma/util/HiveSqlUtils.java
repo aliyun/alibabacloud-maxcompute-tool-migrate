@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@ package com.aliyun.odps.mma.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.aliyun.odps.mma.config.McAuthType;
 import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -26,11 +27,18 @@ import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 public class HiveSqlUtils {
 
   public static String getUdtfSql(
+      McAuthType authType,
+      String configOrBearerToken,
       String mcEndpoint,
-      String mcBearerToken,
+      String tunnelEndpoint,
       TableMetaModel hiveTableMetaModel,
       TableMetaModel mcTableMetaModel) {
     StringBuilder sb = new StringBuilder();
+
+    String endpointStr = mcEndpoint;
+    if (tunnelEndpoint!=null) {
+      endpointStr = endpointStr + "," + tunnelEndpoint;
+    }
 
     List<String> hiveColumnNames = new ArrayList<>();
     List<String> mcColumnNames = new ArrayList<>();
@@ -50,13 +58,17 @@ public class HiveSqlUtils {
       hiveColumnNames.add(hivePartitionColumnMetaModel.getColumnName());
     }
 
+    // args:          0           1         2           3         4       5         6     other
+    // ak             AK          ini path  endpoint    project   table   columns   pts   col1... pt1...
+    // bearer token   BearerToken token     endpoint    project   table
     sb.append("SELECT default.odps_data_dump_multi (\n")
-      .append("'").append(mcBearerToken).append("',\n")
-      .append("'").append(mcEndpoint).append("',\n")
-      .append("'").append(mcTableMetaModel.getDatabase()).append("',\n")
-      .append("'").append(mcTableMetaModel.getTable()).append("',\n")
-      .append("'").append(String.join(",", mcColumnNames)).append("',\n")
-      .append("'").append(String.join(",", mcPartitionColumnNames)).append("',\n");
+        .append("'").append(authType).append("',\n")
+        .append("'").append(configOrBearerToken).append("',\n")
+        .append("'").append(endpointStr).append("',\n")
+        .append("'").append(mcTableMetaModel.getDatabase()).append("',\n")
+        .append("'").append(mcTableMetaModel.getTable()).append("',\n")
+        .append("'").append(String.join(",", mcColumnNames)).append("',\n")
+        .append("'").append(String.join(",", mcPartitionColumnNames)).append("',\n");
 
     for (int i = 0; i < hiveColumnNames.size(); i++) {
       sb.append("`").append(hiveColumnNames.get(i)).append("`");
@@ -68,11 +80,11 @@ public class HiveSqlUtils {
     }
 
     sb.append("FROM ")
-      .append(hiveTableMetaModel.getDatabase())
-      .append(".`")
-      .append(hiveTableMetaModel.getTable())
-      .append("`")
-      .append("\n");
+        .append(hiveTableMetaModel.getDatabase())
+        .append(".`")
+        .append(hiveTableMetaModel.getTable())
+        .append("`")
+        .append("\n");
     String whereCondition = getWhereCondition(hiveTableMetaModel);
     sb.append(whereCondition);
     return sb.toString();
@@ -92,7 +104,7 @@ public class HiveSqlUtils {
 
     sb.append("COUNT(1) FROM\n");
     sb.append(hiveTableMetaModel.getDatabase())
-      .append(".`").append(hiveTableMetaModel.getTable()).append("`\n");
+        .append(".`").append(hiveTableMetaModel.getTable()).append("`\n");
 
     if (!hiveTableMetaModel.getPartitionColumns().isEmpty()) {
       // Add where condition
@@ -155,10 +167,10 @@ public class HiveSqlUtils {
       String partitionValue = partitionMetaModel.getPartitionValues().get(i);
 
       sb.append(partitionColumn.getColumnName())
-        .append("=")
-        .append("cast('").append(partitionValue)
-        .append("' AS ")
-        .append(partitionColumn.getType()).append(")");
+          .append("=")
+          .append("cast('").append(partitionValue)
+          .append("' AS ")
+          .append(partitionColumn.getType()).append(")");
 
       if (i != partitionColumns.size() - 1) {
         sb.append(" AND ");

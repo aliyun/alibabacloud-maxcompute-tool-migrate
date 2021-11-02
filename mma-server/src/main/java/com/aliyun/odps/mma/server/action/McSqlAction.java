@@ -19,6 +19,7 @@ package com.aliyun.odps.mma.server.action;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.mma.server.task.Task;
@@ -29,6 +30,7 @@ public abstract class McSqlAction extends AbstractAction<List<List<Object>>> {
   private String accessKeySecret;
   private String executionProject;
   private String endpoint;
+  private String tunnelEndpoint;
 
   public McSqlAction(
       String id,
@@ -44,12 +46,15 @@ public abstract class McSqlAction extends AbstractAction<List<List<Object>>> {
     this.accessKeySecret = accessKeySecret;
     this.executionProject = executionProject;
     this.endpoint = endpoint;
+    AbstractConfiguration config = context.getConfig();
+    this.tunnelEndpoint = config.get(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT);
   }
 
   @Override
   void executeInternal() {
     future = ActionExecutorFactory.getMcSqlExecutor().execute(
         endpoint,
+        tunnelEndpoint,
         executionProject,
         accessKeyId,
         accessKeySecret,
