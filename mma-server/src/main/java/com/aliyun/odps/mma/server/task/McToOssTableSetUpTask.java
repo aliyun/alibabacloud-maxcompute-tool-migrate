@@ -19,6 +19,7 @@ package com.aliyun.odps.mma.server.task;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McAddPartitionsAction;
 import com.aliyun.odps.mma.server.action.McCreateOssExternalTableAction;
@@ -46,16 +47,13 @@ public class McToOssTableSetUpTask extends DagTask {
 
   private void init() {
     ActionExecutionContext context = new ActionExecutionContext(config);
-    String executionProject = config.getOrDefault(
-        JobConfiguration.JOB_EXECUTION_MC_PROJECT,
-        config.get(JobConfiguration.SOURCE_CATALOG_NAME));
+
+    OdpsConfig odpsConfig = (OdpsConfig) config.getSourceDataConfig();
+
     McCreateOssExternalTableAction mcCreateOssExternalTableAction =
         new McCreateOssExternalTableAction(
             this.getId() + ".CreateExternalTable",
-            config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
+            odpsConfig,
             mcExternalMetaModel,
             this,
             context);
@@ -66,10 +64,7 @@ public class McToOssTableSetUpTask extends DagTask {
       for (TableMetaModel groupDestMetaModel: partitionGroupsDestMetaModels) {
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddExternalPartitions.part." + idx,
-            config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
-            config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-            config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
+            odpsConfig,
             groupDestMetaModel,
             this,
             context);

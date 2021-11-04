@@ -28,6 +28,7 @@ import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -71,10 +72,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
 
   public HiveToMcTableDataTransmissionAction(
       String id,
-      String accessKeyId,
-      String accessKeySecret,
-      String executionProject,
-      String endpoint,
+      OdpsConfig odpsConfig,
       String jdbcUrl,
       String username,
       String password,
@@ -83,10 +81,10 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
       Task task,
       ActionExecutionContext actionExecutionContext) {
     super(id, jdbcUrl, username, password, task, actionExecutionContext);
-    this.accessKeyId = accessKeyId;
-    this.accessKeySecret = accessKeySecret;
-    this.executionProject = executionProject;
-    this.endpoint = endpoint;
+    this.accessKeyId = odpsConfig.getAccessId();
+    this.accessKeySecret = odpsConfig.getAccessKey();
+    this.executionProject = odpsConfig.getProjectName();
+    this.endpoint = odpsConfig.getEndpoint();
     this.hiveTableMetaModel = hiveTableMetaModel;
     this.mcTableMetaModel = mcTableMetaModel;
 

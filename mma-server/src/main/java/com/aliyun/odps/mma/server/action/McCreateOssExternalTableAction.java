@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.aliyun.odps.mma.config.ExternalTableStorage;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -31,14 +32,11 @@ public class McCreateOssExternalTableAction extends McSqlAction {
 
   public McCreateOssExternalTableAction(
       String id,
-      String mcAccessKeyId,
-      String mcAccessKeySecret,
-      String mcExecutionProject,
-      String mcEndpoint,
+      OdpsConfig odpsConfig,
       TableMetaModel mcExternalTableMetaModel,
       Task task,
       ActionExecutionContext context) {
-    super(id, mcAccessKeyId, mcAccessKeySecret, mcExecutionProject, mcEndpoint, task, context);
+    super(id, odpsConfig, task, context);
     this.mcExternalTableMetaModel = mcExternalTableMetaModel;
     resourceMap.put(Resource.METADATA_WORKER, 1L);
   }

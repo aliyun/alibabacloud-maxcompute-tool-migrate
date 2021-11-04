@@ -26,7 +26,7 @@ import com.aliyun.odps.Odps;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.utils.StringUtils;
 
-public class OdpsConfig implements MmaConfig.Config {
+public class OdpsConfig implements Configuration{
 
   private String accessId;
   private String accessKey;
@@ -95,11 +95,12 @@ public class OdpsConfig implements MmaConfig.Config {
   }
 
   @Override
-  public boolean validate() {
-    return (!StringUtils.isNullOrEmpty(accessId) &&
-            !StringUtils.isNullOrEmpty(accessKey) &&
-            !StringUtils.isNullOrEmpty(endpoint) &&
-            !StringUtils.isNullOrEmpty(projectName));
+  public void validate() {
+    //TODO
+    // return (!StringUtils.isNullOrEmpty(accessId) &&
+    //         !StringUtils.isNullOrEmpty(accessKey) &&
+    //         !StringUtils.isNullOrEmpty(endpoint) &&
+    //         !StringUtils.isNullOrEmpty(projectName));
   }
 
   @Override

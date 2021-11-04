@@ -17,6 +17,7 @@
 package com.aliyun.odps.mma.server.task;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McDropTableAction;
 import com.aliyun.odps.mma.server.job.Job;
@@ -41,15 +42,12 @@ public class McToOssTableCleanUpTask extends DagTask {
 
   private void init() {
     ActionExecutionContext context = new ActionExecutionContext(config);
-    String executionProject = config.getOrDefault(
-        JobConfiguration.JOB_EXECUTION_MC_PROJECT,
-        config.get(JobConfiguration.SOURCE_CATALOG_NAME));
+
+    OdpsConfig odpsConfig = (OdpsConfig) config.getSourceDataConfig();
+
     McDropTableAction action = new McDropTableAction(
         id + ".DropTable",
-        config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
-        config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
-        executionProject,
-        config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
+        odpsConfig,
         ossTableMetaModel,
         this,
         context);

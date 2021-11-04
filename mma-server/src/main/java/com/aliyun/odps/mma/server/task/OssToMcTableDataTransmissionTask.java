@@ -19,6 +19,7 @@ package com.aliyun.odps.mma.server.task;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McToMcTableDataTransmissionAction;
 import com.aliyun.odps.mma.server.job.Job;
@@ -40,15 +41,10 @@ public class OssToMcTableDataTransmissionTask extends TableDataTransmissionTask 
 
   private void init() {
     ActionExecutionContext context = new ActionExecutionContext(config);
-    String executionProject = config.getOrDefault(
-        JobConfiguration.JOB_EXECUTION_MC_PROJECT,
-        config.get(JobConfiguration.DEST_CATALOG_NAME));
+    OdpsConfig odpsConfig = (OdpsConfig) config.getDestDataConfig();
     McToMcTableDataTransmissionAction action = new McToMcTableDataTransmissionAction(
         id + ".DataTransmission",
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-        executionProject,
-        config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+        odpsConfig,
         source,
         dest,
         this,

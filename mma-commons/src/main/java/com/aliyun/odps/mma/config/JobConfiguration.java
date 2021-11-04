@@ -75,6 +75,11 @@ public class JobConfiguration extends AbstractConfiguration {
   private static final Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
   private static final String SPLIT_PATTERN = "\\s*/\\s*";
 
+  private Configuration sourceMetadataConfig;
+  private Configuration sourceDataConfig;
+  private Configuration destMetadataConfig;
+  private Configuration destDataConfig;
+
   public JobConfiguration(Map<String, String> configuration) {
     super(configuration);
   }
@@ -116,6 +121,22 @@ public class JobConfiguration extends AbstractConfiguration {
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
+  }
+
+  public Configuration getSourceMetadataConfig() {
+    return sourceMetadataConfig;
+  }
+
+  public Configuration getSourceDataConfig() {
+    return sourceDataConfig;
+  }
+
+  public Configuration getDestMetadataConfig() {
+    return destMetadataConfig;
+  }
+
+  public Configuration getDestDataConfig() {
+    return destDataConfig;
   }
 
   public List<String> getPartitionBegin() {

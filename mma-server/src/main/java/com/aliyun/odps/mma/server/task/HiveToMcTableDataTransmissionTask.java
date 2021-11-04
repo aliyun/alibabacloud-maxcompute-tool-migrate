@@ -18,7 +18,9 @@ package com.aliyun.odps.mma.server.task;
 
 import java.util.List;
 
+import com.aliyun.odps.mma.config.HiveConfig;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.HiveToMcTableDataTransmissionAction;
 import com.aliyun.odps.mma.server.action.HiveVerificationAction;
@@ -42,17 +44,12 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
   }
 
   private void init() {
-    String executionProject = config.getOrDefault(
-        JobConfiguration.JOB_EXECUTION_MC_PROJECT,
-        config.get(JobConfiguration.DEST_CATALOG_NAME));
     ActionExecutionContext context = new ActionExecutionContext(config);
+    OdpsConfig odpsConfig = (OdpsConfig) config.getDestDataConfig();
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
             id + ".DataTransmission",
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+            odpsConfig,
             config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
             config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
             config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
@@ -75,10 +72,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
 
     McVerificationAction mcVerificationAction = new McVerificationAction(
         id + ".McDataVerification",
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-        executionProject,
-        config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+        odpsConfig,
         dest,
         false,
         this,

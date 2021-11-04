@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McAddPartitionsAction;
 import com.aliyun.odps.mma.server.action.McCreateOssExternalTableAction;
@@ -52,16 +53,13 @@ public class OssToMcTableSetUpTask extends DagTask {
 
   private void init() {
     ActionExecutionContext context = new ActionExecutionContext(config);
-    String executionProject = config.getOrDefault(
-        JobConfiguration.JOB_EXECUTION_MC_PROJECT,
-        config.get(JobConfiguration.DEST_CATALOG_NAME));
+
+    OdpsConfig odpsConfig = (OdpsConfig) config.getDestDataConfig();
+
     McCreateOssExternalTableAction mcCreateOssExternalTableAction =
         new McCreateOssExternalTableAction(
             this.getId() + ".CreateExternalTable",
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+            odpsConfig,
             mcExternalTableMetaModel,
             this,
             context);
@@ -76,10 +74,7 @@ public class OssToMcTableSetUpTask extends DagTask {
       for (TableMetaModel partitionGroup : sourceGroups) {
         McAddPartitionsAction mcAddExternalPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddExternalPartitions.part." + idx,
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+            odpsConfig,
             partitionGroup,
             this,
             context);
@@ -91,10 +86,7 @@ public class OssToMcTableSetUpTask extends DagTask {
 
     McCreateTableAction mcCreateTableAction = new McCreateTableAction(
         this.getId() + ".CreateTable",
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-        executionProject,
-        config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+        odpsConfig,
         mcTableMetaModel,
         this,
         context);
@@ -108,10 +100,7 @@ public class OssToMcTableSetUpTask extends DagTask {
       for (TableMetaModel managedPartitionGroup : destGroups) {
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddPartitions.part." + idx,
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+            odpsConfig,
             managedPartitionGroup,
             this,
             context);

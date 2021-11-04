@@ -18,7 +18,9 @@ package com.aliyun.odps.mma.server.task;
 
 import java.util.List;
 
+import com.aliyun.odps.mma.config.HiveConfig;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.McDropPartitionAction;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McAddPartitionsAction;
@@ -48,16 +50,11 @@ public class HiveToMcTableSetUpTask extends DagTask {
 
   private void init() {
     ActionExecutionContext context = new ActionExecutionContext(config);
-    String executionProject = config.getOrDefault(
-        JobConfiguration.JOB_EXECUTION_MC_PROJECT,
-        config.get(JobConfiguration.DEST_CATALOG_NAME));
+    OdpsConfig odpsConfig = (OdpsConfig) config.getDestDataConfig();
 
     McCreateTableAction mcCreateTableAction = new McCreateTableAction(
         this.getId() + ".CreateTable",
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-        config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-        executionProject,
-        config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+        odpsConfig,
         mcTableMetaModel,
         this,
         context);
@@ -66,10 +63,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
     if (mcTableMetaModel.getPartitionColumns().isEmpty()) {
       McDropTableAction mcDropTableAction = new McDropTableAction(
           this.getId() + ".DropTable",
-          config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-          config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-          executionProject,
-          config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+          odpsConfig,
           mcTableMetaModel,
           this,
           context);
@@ -80,10 +74,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
       for (TableMetaModel managedPartitionGroup : partitionGroups) {
         McDropPartitionAction mcDropPartitionAction = new McDropPartitionAction(
             this.getId() + ".DropPartitions.part." + idx,
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+            odpsConfig,
             managedPartitionGroup,
             this,
             context);
@@ -91,10 +82,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
         dag.addEdge(mcCreateTableAction, mcDropPartitionAction);
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddPartitions.part." + idx,
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
-            config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_SECRET),
-            executionProject,
-            config.get(JobConfiguration.DATA_DEST_MC_ENDPOINT),
+            odpsConfig,
             managedPartitionGroup,
             this,
             context);

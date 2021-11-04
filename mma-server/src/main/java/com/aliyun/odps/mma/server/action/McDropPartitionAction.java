@@ -19,6 +19,8 @@ package com.aliyun.odps.mma.server.action;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.aliyun.odps.Odps;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -32,14 +34,11 @@ public class McDropPartitionAction extends McSqlAction {
 
   public McDropPartitionAction(
       String id,
-      String mcAccessKeyId,
-      String mcAccessKeySecret,
-      String mcExecutionProject,
-      String mcEndpoint,
+      OdpsConfig odpsConfig,
       TableMetaModel mcTableMetaModel,
       Task task,
       ActionExecutionContext context) {
-    super(id, mcAccessKeyId, mcAccessKeySecret, mcExecutionProject, mcEndpoint, task, context);
+    super(id, odpsConfig, task, context);
     this.tableMetaModel = mcTableMetaModel;
     resourceMap.put(Resource.METADATA_WORKER, 1L);
   }

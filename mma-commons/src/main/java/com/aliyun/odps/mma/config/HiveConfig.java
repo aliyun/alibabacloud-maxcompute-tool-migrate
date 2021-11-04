@@ -25,7 +25,7 @@ import org.apache.commons.collections.MapUtils;
 
 import com.aliyun.odps.utils.StringUtils;
 
-public class HiveConfig implements MmaConfig.Config {
+public class HiveConfig implements Configuration{
 
   private String jdbcConnectionUrl;
   private String user;
@@ -59,10 +59,11 @@ public class HiveConfig implements MmaConfig.Config {
   }
 
   @Override
-  public boolean validate() {
-    return (!StringUtils.isNullOrEmpty(jdbcConnectionUrl)
-            && user != null
-            && password != null);
+  public void validate() {
+    //TODO
+    // return (!StringUtils.isNullOrEmpty(jdbcConnectionUrl)
+    //         && user != null
+    //         && password != null);
   }
 
   public String getJdbcConnectionUrl() {

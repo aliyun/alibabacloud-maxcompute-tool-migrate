@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -32,15 +33,12 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
 
   public McToMcTableDataTransmissionAction(
       String id,
-      String mcAccessKeyId,
-      String mcAccessKeySecret,
-      String mcProject,
-      String mcEndpoint,
+      OdpsConfig odpsConfig,
       TableMetaModel source,
       TableMetaModel dest,
       Task task,
       ActionExecutionContext context) {
-    super(id, mcAccessKeyId, mcAccessKeySecret, mcProject, mcEndpoint, task, context);
+    super(id, odpsConfig, task, context);
     this.source = source;
     this.dest = dest;
   }

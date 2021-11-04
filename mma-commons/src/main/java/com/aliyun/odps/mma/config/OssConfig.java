@@ -21,7 +21,7 @@ import java.util.Objects;
 
 import com.aliyun.odps.utils.StringUtils;
 
-public class OssConfig implements MmaConfig.Config {
+public class OssConfig implements Configuration{
 
   private String ossEndPointForMc;
   private String ossEndPointForMma;
@@ -44,23 +44,23 @@ public class OssConfig implements MmaConfig.Config {
   }
 
   @Override
-  public boolean validate() {
+  public void validate() {
     // TODO: try to connect
-    if (StringUtils.isNullOrEmpty(ossEndPointForMc) ||
-        StringUtils.isNullOrEmpty(ossEndPointForMma) ||
-        StringUtils.isNullOrEmpty(ossBucket)) {
-      return false;
-    }
-    // arn, accessId and accessKey should not be empty at the same time
-    if (StringUtils.isNullOrEmpty(ossRoleArn) &&
-        StringUtils.isNullOrEmpty(ossAccessId) &&
-        StringUtils.isNullOrEmpty(ossAccessKey)) {
-      return false;
-    }
-    if (StringUtils.isNullOrEmpty(ossAccessId) != StringUtils.isNullOrEmpty(ossAccessKey)) {
-      return false;
-    }
-    return true;
+    // if (StringUtils.isNullOrEmpty(ossEndPointForMc) ||
+    //     StringUtils.isNullOrEmpty(ossEndPointForMma) ||
+    //     StringUtils.isNullOrEmpty(ossBucket)) {
+    //   // return false;
+    // }
+    // // arn, accessId and accessKey should not be empty at the same time
+    // if (StringUtils.isNullOrEmpty(ossRoleArn) &&
+    //     StringUtils.isNullOrEmpty(ossAccessId) &&
+    //     StringUtils.isNullOrEmpty(ossAccessKey)) {
+    //   // return false;
+    // }
+    // if (StringUtils.isNullOrEmpty(ossAccessId) != StringUtils.isNullOrEmpty(ossAccessKey)) {
+    //   // return false;
+    // }
+    // // return true;
   }
 
   public String getEndpointForMc() {

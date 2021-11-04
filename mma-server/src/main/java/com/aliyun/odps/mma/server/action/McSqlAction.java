@@ -19,6 +19,7 @@ package com.aliyun.odps.mma.server.action;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.mma.server.task.Task;
@@ -32,18 +33,15 @@ public abstract class McSqlAction extends AbstractAction<List<List<Object>>> {
 
   public McSqlAction(
       String id,
-      String accessKeyId,
-      String accessKeySecret,
-      String executionProject,
-      String endpoint,
+      OdpsConfig odpsConfig,
       Task task,
       ActionExecutionContext context) {
     super(id, task, context);
     actionInfo = new McSqlActionInfo();
-    this.accessKeyId = accessKeyId;
-    this.accessKeySecret = accessKeySecret;
-    this.executionProject = executionProject;
-    this.endpoint = endpoint;
+    this.accessKeyId = odpsConfig.getAccessId();
+    this.accessKeySecret = odpsConfig.getAccessKey();
+    this.executionProject = odpsConfig.getProjectName();
+    this.endpoint = odpsConfig.getEndpoint();
   }
 
   @Override
