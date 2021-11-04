@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.config.HiveConfig;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -32,14 +33,12 @@ public class HiveVerificationAction extends HiveSqlAction {
 
   public HiveVerificationAction(
       String id,
-      String jdbcUrl,
-      String username,
-      String password,
+      HiveConfig hiveConfig,
       TableMetaModel tableMetaModel,
       boolean isSourceVerification,
       Task task,
       ActionExecutionContext actionExecutionContext) {
-    super(id, jdbcUrl, username, password, task, actionExecutionContext);
+    super(id, hiveConfig, task, actionExecutionContext);
     this.isSourceVerification = isSourceVerification;
     this.tableMetaModel = tableMetaModel;
   }

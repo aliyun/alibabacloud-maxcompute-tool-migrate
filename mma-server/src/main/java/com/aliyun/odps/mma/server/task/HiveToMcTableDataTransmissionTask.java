@@ -46,13 +46,13 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
   private void init() {
     ActionExecutionContext context = new ActionExecutionContext(config);
     OdpsConfig odpsConfig = (OdpsConfig) config.getDestDataConfig();
+    HiveConfig hiveConfig = (HiveConfig) config.getSourceDataConfig();
+
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
             id + ".DataTransmission",
             odpsConfig,
-            config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
-            config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
-            config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
+            hiveConfig,
             source,
             dest,
             this,
@@ -61,9 +61,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
 
     HiveVerificationAction hiveVerificationAction = new HiveVerificationAction(
         id + ".HiveDataVerification",
-        config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
-        config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
-        config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
+        hiveConfig,
         source,
         true,
         this,

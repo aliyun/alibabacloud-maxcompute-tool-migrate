@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.mma.config.HiveConfig;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.server.task.Task;
@@ -32,16 +33,14 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
 
   public HiveSqlAction(
       String id,
-      String jdbcUrl,
-      String username,
-      String password,
+      HiveConfig hiveConfig,
       Task task,
       ActionExecutionContext actionExecutionContext) {
     super(id, task, actionExecutionContext);
     actionInfo = new HiveSqlActionInfo();
-    this.jdbcUrl = jdbcUrl;
-    this.username = username;
-    this.password = password;
+    this.jdbcUrl = hiveConfig.getJdbcConnectionUrl();
+    this.username = hiveConfig.getUser();
+    this.password = hiveConfig.getPassword();
   }
 
   @Override
