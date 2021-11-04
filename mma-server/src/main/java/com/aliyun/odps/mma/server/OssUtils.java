@@ -31,8 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.Constants;
-import com.aliyun.odps.mma.config.MmaConfig;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.utils.StringUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
@@ -48,12 +47,12 @@ public class OssUtils
 {
   private static final Logger LOG = LogManager.getLogger(OssUtils.class);
 
-  public static void createFile(MmaConfig.OssConfig ossConfig, String fileName, String content) {
+  public static void createFile(OssConfig ossConfig, String fileName, String content) {
     createFile(ossConfig, fileName, new ByteArrayInputStream(content.getBytes()));
   }
 
   public static void createFile(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String fileName,
       InputStream inputStream) {
     LOG.info("Create oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
@@ -67,7 +66,7 @@ public class OssUtils
     ossClient.shutdown();
   }
 
-  public static String readFile(MmaConfig.OssConfig ossConfig, String fileName) throws IOException {
+  public static String readFile(OssConfig ossConfig, String fileName) throws IOException {
     LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
         .getEndpointForMma(), ossConfig.getOssBucket());
 
@@ -87,7 +86,7 @@ public class OssUtils
     return builder.toString();
   }
 
-  public static InputStream openInputStream(MmaConfig.OssConfig ossConfig, String fileName) {
+  public static InputStream openInputStream(OssConfig ossConfig, String fileName) {
     LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
         .getEndpointForMma(), ossConfig.getOssBucket());
 
@@ -96,7 +95,7 @@ public class OssUtils
     return ossObject.getObjectContent();
   }
 
-  public static boolean exists(MmaConfig.OssConfig ossConfig, String fileName) {
+  public static boolean exists(OssConfig ossConfig, String fileName) {
     LOG.info("Check oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
         .getEndpointForMma(), ossConfig.getOssBucket());
 
@@ -107,7 +106,7 @@ public class OssUtils
   }
 
   public static String downloadFile(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String jobId,
       String fileName) throws IOException {
 
@@ -130,7 +129,7 @@ public class OssUtils
     return localFile.getAbsolutePath();
   }
 
-  public static List<String> listBucket(MmaConfig.OssConfig ossConfig, String prefix) {
+  public static List<String> listBucket(OssConfig ossConfig, String prefix) {
     OSS ossClient = createOssClient(ossConfig);
     ArrayList<String> allFiles = new ArrayList<>();
     ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossConfig.getOssBucket());
@@ -152,7 +151,7 @@ public class OssUtils
   }
 
   public static List<String> listBucket(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String prefix,
       String delimiter) {
 
@@ -242,7 +241,7 @@ public class OssUtils
     return builder.toString();
   }
 
-  private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
+  private static OSS createOssClient(OssConfig ossConfig) {
     return (new OSSClientBuilder()).build(
         ossConfig.getEndpointForMma(),
         ossConfig.getOssAccessId(),

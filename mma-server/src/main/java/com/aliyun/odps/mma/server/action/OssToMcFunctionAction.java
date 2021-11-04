@@ -22,7 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;

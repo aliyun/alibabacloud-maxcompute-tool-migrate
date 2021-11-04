@@ -31,8 +31,7 @@ import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
-import com.aliyun.odps.mma.config.MmaConfig;
-import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.McFunctionInfo;
 
@@ -48,7 +47,7 @@ public class OdpsUtils {
     return odps;
   }
 
-  private static Odps getOdps(MmaConfig.OdpsConfig odpsConfig) {
+  private static Odps getOdps(OdpsConfig odpsConfig) {
     AliyunAccount aliyunAccount = new AliyunAccount(
         odpsConfig.getAccessId(), odpsConfig.getAccessKey());
     Odps odps = new Odps(aliyunAccount);
@@ -59,7 +58,7 @@ public class OdpsUtils {
   }
 
   public static Table getTable(
-      MmaConfig.OdpsConfig odpsConfig, String databaseName, String tableName) {
+      OdpsConfig odpsConfig, String databaseName, String tableName) {
     Odps odps = getOdps(odpsConfig);
     try {
       if (odps.tables().exists(databaseName, tableName)) {
