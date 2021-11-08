@@ -30,7 +30,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.DataDestType;
 import com.aliyun.odps.mma.config.DataSourceType;
@@ -42,8 +41,8 @@ import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.job.utils.JobUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 
 public class JobManager {

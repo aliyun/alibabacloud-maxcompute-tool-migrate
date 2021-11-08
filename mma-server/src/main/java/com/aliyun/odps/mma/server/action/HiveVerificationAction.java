@@ -22,7 +22,7 @@ import java.util.Map;
 
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
 
 public class HiveVerificationAction extends HiveSqlAction {

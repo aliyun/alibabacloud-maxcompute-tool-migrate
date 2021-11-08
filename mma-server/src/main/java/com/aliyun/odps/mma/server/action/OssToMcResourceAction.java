@@ -27,6 +27,7 @@ import com.aliyun.odps.Resource;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.task.Task;
@@ -36,28 +37,30 @@ public class OssToMcResourceAction extends DefaultAction {
 
   private static final Logger LOG = LogManager.getLogger(OssToMcResourceAction.class);
   private final OssConfig ossConfig;
-  private final String metafile;
+  private final ResourceMetaModel resourceMetaModel;
   private final String datafile;
   private final Odps odps;
+  private final String project;
   private final boolean update;
 
   public OssToMcResourceAction(
       String id,
       OssConfig ossConfig,
-      String metafile,
+      ResourceMetaModel resourceMetaModel,
       String datafile,
       Odps odps,
+      String project,
       boolean update,
       Task task,
       ActionExecutionContext context) {
     super(id, task, context);
     this.ossConfig = ossConfig;
-    this.metafile = metafile;
+    this.resourceMetaModel = resourceMetaModel;
     this.datafile = datafile;
     this.odps = odps;
+    this.project = project;
     this.update = update;
   }
-
 
   @Override
   void handleResult(Object result) {
@@ -75,31 +78,26 @@ public class OssToMcResourceAction extends DefaultAction {
 
   @Override
   public Object call() throws Exception {
-    checkFileExists(metafile);
-    String content = OssUtils.readFile(ossConfig, metafile);
-    McResourceInfo resourceInfo = GsonUtils.GSON.fromJson(content, McResourceInfo.class);
-    Resource resource = resourceInfo.toResource();
 
+    // restore meta model
+    Resource resource = OdpsUtils.getResource(resourceMetaModel);
+
+    // restore meta + data
     if (Resource.Type.TABLE.equals(resource.getType())) {
-      OdpsUtils.addTableResource(odps, odps.getDefaultProject(), (TableResource) resource, update);
+      OdpsUtils.addTableResource(odps, project, (TableResource) resource, update);
     } else {
-      checkFileExists(datafile);
+      if (!OssUtils.exists(ossConfig, datafile)) {
+        throw new MmaException(String.format("ActionId: %s, OSS file %s not found", id, datafile));
+      }
       // todo jobid
       String localFilePath = OssUtils.downloadFile(ossConfig, id, datafile);
-      OdpsUtils.addFileResource(
-          odps, odps.getDefaultProject(),
-          (FileResource) resource, localFilePath,
-          update, true);
+      OdpsUtils.addFileResource(odps, project,
+                                (FileResource) resource, localFilePath,
+                                update, true);
     }
-    LOG.info("Restore resource {} succeed", content);
+    LOG.info("Restore resource {} succeed", resource.getName());
 
     return null;
-  }
-
-  private void checkFileExists(String filename) throws MmaException {
-    if (!OssUtils.exists(ossConfig, metafile)) {
-      throw new MmaException(String.format("ActionId: %s, OSS file %s not found", id, filename));
-    }
   }
 
 }

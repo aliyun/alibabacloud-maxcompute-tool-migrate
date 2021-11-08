@@ -33,7 +33,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.Constants;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.aliyun.odps.utils.StringUtils;
 

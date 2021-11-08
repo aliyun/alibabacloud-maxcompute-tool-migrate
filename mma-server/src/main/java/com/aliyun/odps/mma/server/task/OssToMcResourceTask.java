@@ -22,6 +22,7 @@ import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
@@ -32,16 +33,19 @@ public class OssToMcResourceTask extends DagTask {
 
   private final Job job;
   private final OssConfig ossConfig;
+  private final ResourceMetaModel resourceMetaModel;
 
   public OssToMcResourceTask(
       String id,
       String rootJobId,
       JobConfiguration config,
+      ResourceMetaModel resourceMetaModel,
       OssConfig ossConfig,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
     this.ossConfig = ossConfig;
+    this.resourceMetaModel = resourceMetaModel;
     init();
   }
 
@@ -52,7 +56,7 @@ public class OssToMcResourceTask extends DagTask {
         config.get(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_ID),
         config.get(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_SECRET),
         config.get(AbstractConfiguration.METADATA_DEST_MC_ENDPOINT),
-        config.get(JobConfiguration.DEST_CATALOG_NAME)
+        config.get(AbstractConfiguration.JOB_EXECUTION_MC_PROJECT)
     );
 
     String[] fileNames = OssUtils.getOssPaths(
@@ -61,15 +65,15 @@ public class OssToMcResourceTask extends DagTask {
         config.get(JobConfiguration.OBJECT_TYPE),
         config.get(JobConfiguration.SOURCE_CATALOG_NAME),
         config.get(JobConfiguration.SOURCE_OBJECT_NAME));
-    String metafile = fileNames[0];
     String datafile = fileNames[1] + config.get(JobConfiguration.SOURCE_OBJECT_NAME);
 
     OssToMcResourceAction action = new OssToMcResourceAction(
         id + ".Transmission",
         ossConfig,
-        metafile,
+        resourceMetaModel,
         datafile,
         odps,
+        config.get(JobConfiguration.DEST_CATALOG_NAME),
         true,
         this,
         context);

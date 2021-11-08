@@ -25,10 +25,10 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.mma.Constants;
 import com.aliyun.odps.mma.config.ExternalTableStorage;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.utils.StringUtils;
 
 public class McSqlUtils {

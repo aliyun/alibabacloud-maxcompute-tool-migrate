@@ -28,8 +28,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.aliyun.odps.mma.TestUtils;
-import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 /**
  * Requirements:
@@ -85,7 +86,7 @@ public class HiveMetaSourceJdbcImplTest {
     };
     // column: name: t_[type], type: [type] | [type][detail]
     for (int i = 0; i < columns.length; i++) {
-      MetaSource.ColumnMetaModel cmm = tableMetaModel.getColumns().get(i);
+      ColumnMetaModel cmm = tableMetaModel.getColumns().get(i);
       Assert.assertTrue(cmm.getColumnName().endsWith(columns[i]));
       Assert.assertTrue(cmm.getType().startsWith(columns[i]));
     }
@@ -94,7 +95,7 @@ public class HiveMetaSourceJdbcImplTest {
     String []p_columns_names = {"p1", "p2"};
     String []p_columns_types = {"string", "bigint"};
     for (int i = 0; i < tableMetaModel.getPartitionColumns().size(); i++) {
-      MetaSource.ColumnMetaModel pmm = tableMetaModel.getPartitionColumns().get(i);
+      ColumnMetaModel pmm = tableMetaModel.getPartitionColumns().get(i);
       Assert.assertEquals(pmm.getColumnName(), p_columns_names[i]);
       Assert.assertEquals(pmm.getType(), p_columns_types[i]);
     }

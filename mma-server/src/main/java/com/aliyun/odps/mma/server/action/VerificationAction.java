@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
 import com.aliyun.odps.mma.server.action.info.VerificationActionInfo;
-import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
 
 public class VerificationAction extends DefaultAction {
@@ -81,7 +81,7 @@ public class VerificationAction extends DefaultAction {
       List<String> succeededPartitions = new LinkedList<>();
       List<String> failedPartitions = new LinkedList<>();
 
-      for (MetaSource.PartitionMetaModel partitionMetaModel : tableMetaModel.getPartitions()) {
+      for (PartitionMetaModel partitionMetaModel : tableMetaModel.getPartitions()) {
         List<String> partitionValues = partitionMetaModel.getPartitionValues();
         String partitionValuesStr = partitionValues.toString();
         List<Object> sourceRecordCount = sourceVerificationResult

@@ -25,7 +25,7 @@ import com.aliyun.odps.mma.server.action.McAddPartitionsAction;
 import com.aliyun.odps.mma.server.action.McCreateTableAction;
 import com.aliyun.odps.mma.server.action.McDropTableAction;
 import com.aliyun.odps.mma.server.job.Job;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public class HiveToMcTableSetUpTask extends DagTask {
   private TableMetaModel mcTableMetaModel;

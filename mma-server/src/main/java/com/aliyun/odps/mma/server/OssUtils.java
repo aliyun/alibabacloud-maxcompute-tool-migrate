@@ -32,7 +32,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.Constants;
 import com.aliyun.odps.mma.config.MmaConfig;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.utils.StringUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;

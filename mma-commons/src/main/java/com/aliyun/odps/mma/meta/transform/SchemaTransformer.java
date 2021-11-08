@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public interface SchemaTransformer {
 

@@ -22,16 +22,12 @@ import java.io.InputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.datanucleus.util.StringUtils;
 
 import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.Resource;
-import com.aliyun.odps.mma.config.AbstractConfiguration;
-import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
-import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.task.Task;
@@ -40,32 +36,39 @@ import com.aliyun.odps.mma.util.GsonUtils;
 public class McToOssResourceAction extends DefaultAction {
 
   private static final Logger LOG = LogManager.getLogger(McToOssResourceAction.class);
-  private final AbstractConfiguration config;
   private final OssConfig ossConfig;
   private final Odps odps;
+  private final String project;
+  private final String resourceName;
   private final String metafile;
   private final String datafile;
+  private final ResourceMetaModel resourceMetaModel;
 
   public McToOssResourceAction(
       String id,
+      Task task,
+      ActionExecutionContext context,
+      ResourceMetaModel resourceMetaModel,
+      String project,
+      String resourceName,
       Odps odps,
-      AbstractConfiguration config,
       OssConfig ossConfig,
       String metafile,
-      String datafile,
-      Task task,
-      ActionExecutionContext context) {
+      String datafile
+  ) {
     super(id, task, context);
-    this.config = config;
-    this.ossConfig = ossConfig;
+    this.resourceMetaModel = resourceMetaModel;
+    this.project = project;
+    this.resourceName = resourceName;
     this.odps = odps;
+    this.ossConfig = ossConfig;
     this.metafile = metafile;
     this.datafile = datafile;
   }
 
-
   @Override
-  void handleResult(Object result) {}
+  void handleResult(Object result) {
+  }
 
   @Override
   public String getName() {
@@ -79,23 +82,18 @@ public class McToOssResourceAction extends DefaultAction {
 
   @Override
   public Object call() throws Exception {
-    Resource resource = OdpsUtils.getResource(
-        odps,
-        config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
-    if (StringUtils.isEmpty(resource.getName())) {
-      LOG.error("Invalid resource name {} for task {}", resource.getName(), id);
-      throw new MmaException("ERROR: Resource name is empty");
-    }
 
-    McResourceInfo resourceInfo = new McResourceInfo(resource);
-    String content = GsonUtils.GSON.toJson(resourceInfo);
+    // translate meta info
+    String content = GsonUtils.GSON.toJson(resourceMetaModel);
     LOG.info("Action: {}, resource info: {}", id, content);
     OssUtils.createFile(ossConfig, metafile, content);
 
-    if(!Resource.Type.TABLE.equals(resourceInfo.getType())){
+    // translate data
+    Resource resource = OdpsUtils.getResource(odps, project, resourceName);
+    if (!Resource.Type.TABLE.equals(resourceMetaModel.getType())) {
       FileResource fileResource = (FileResource) resource;
-      InputStream stream = odps.resources().getResourceAsStream(fileResource.getProject(), fileResource.getName());
+      InputStream stream =
+          odps.resources().getResourceAsStream(fileResource.getProject(), fileResource.getName());
       OssUtils.createFile(ossConfig, datafile, stream);
     }
     return null;

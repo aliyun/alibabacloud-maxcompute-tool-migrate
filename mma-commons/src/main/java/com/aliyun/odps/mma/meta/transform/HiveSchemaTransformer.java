@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel.TableMetaModelBuilder;
 
 public class HiveSchemaTransformer implements SchemaTransformer {
 

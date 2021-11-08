@@ -19,9 +19,9 @@ package com.aliyun.odps.mma.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public class HiveSqlUtils {
 

@@ -39,7 +39,12 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.exception.MmaException;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.util.GsonUtils;
 
 public class HiveMetaSourceHmsImpl implements MetaSource {
@@ -403,6 +408,18 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
                 partition.getValues());
     }
     return partitionValuesList;
+  }
+
+  @Override
+  public ResourceMetaModel getResourceMeta(String databaseName, String resourceName)
+      throws Exception {
+    throw new MmaException("get hive resource not supported");
+  }
+
+  @Override
+  public FunctionMetaModel getFunctionMeta(String databaseName, String functionName)
+      throws Exception {
+    throw new MmaException("get hive function not supported");
   }
 
   @Override

@@ -34,7 +34,7 @@ import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResul
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.task.HiveToMcTableDataTransmissionTask;
 import com.aliyun.odps.mma.server.task.HiveToMcTableSetUpTask;

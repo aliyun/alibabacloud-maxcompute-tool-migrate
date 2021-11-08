@@ -36,7 +36,7 @@ import com.aliyun.odps.mma.config.MetaDestType;
 import com.aliyun.odps.mma.config.MetaSourceType;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.job.JobStatus;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.meta.MockMetaSource;

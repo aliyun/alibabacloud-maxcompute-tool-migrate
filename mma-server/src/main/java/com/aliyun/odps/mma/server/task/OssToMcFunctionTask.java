@@ -20,10 +20,8 @@ package com.aliyun.odps.mma.server.task;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
-import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.OssToMcFunctionAction;
 import com.aliyun.odps.mma.server.job.Job;
@@ -31,17 +29,17 @@ import com.aliyun.odps.mma.server.job.Job;
 public class OssToMcFunctionTask extends DagTask {
 
   private final Job job;
-  private final OssConfig ossConfig;
+  private final FunctionMetaModel functionMetaModel;
 
   public OssToMcFunctionTask(
       String id,
       String rootJobId,
       JobConfiguration config,
-      OssConfig ossConfig,
+      FunctionMetaModel functionMetaModel,
       Job job) {
     super(id, rootJobId, config);
     this.job = job;
-    this.ossConfig = ossConfig;
+    this.functionMetaModel = functionMetaModel;
     init();
   }
 
@@ -55,18 +53,9 @@ public class OssToMcFunctionTask extends DagTask {
         config.get(JobConfiguration.DEST_CATALOG_NAME)
     );
 
-    String[] fileNames = OssUtils.getOssPaths(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_PATH),
-        rootJobId,
-        config.get(JobConfiguration.OBJECT_TYPE),
-        config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
-    String metafile = fileNames[0];
-
     OssToMcFunctionAction action = new OssToMcFunctionAction(
         id + ".Transmission",
-        ossConfig,
-        metafile,
+        functionMetaModel,
         odps,
         true,
         this,

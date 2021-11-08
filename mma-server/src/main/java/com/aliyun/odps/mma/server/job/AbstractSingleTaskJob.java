@@ -51,7 +51,7 @@ public abstract class AbstractSingleTaskJob extends AbstractJob{
     }
   }
 
-  abstract Task generateTask();
+  abstract Task generateTask() throws Exception;
 
   @Override
   boolean updateObjectMetadata() throws Exception {
