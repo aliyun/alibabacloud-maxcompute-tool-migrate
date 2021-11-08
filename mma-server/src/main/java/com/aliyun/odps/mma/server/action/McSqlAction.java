@@ -46,6 +46,7 @@ public abstract class McSqlAction extends AbstractAction<List<List<Object>>> {
     this.accessKeySecret = accessKeySecret;
     this.executionProject = executionProject;
     this.endpoint = endpoint;
+    //todo replace with odpsconfig
     AbstractConfiguration config = context.getConfig();
     this.tunnelEndpoint = config.get(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT);
   }

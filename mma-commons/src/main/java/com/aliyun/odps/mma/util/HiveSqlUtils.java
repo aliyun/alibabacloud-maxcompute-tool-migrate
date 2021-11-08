@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.McAuthType;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -28,17 +29,13 @@ public class HiveSqlUtils {
 
   public static String getUdtfSql(
       McAuthType authType,
-      String configOrBearerToken,
+      String odpsConfigPath,
+      String bearerToken,
       String mcEndpoint,
       String tunnelEndpoint,
       TableMetaModel hiveTableMetaModel,
       TableMetaModel mcTableMetaModel) {
     StringBuilder sb = new StringBuilder();
-
-    String endpointStr = mcEndpoint;
-    if (tunnelEndpoint!=null) {
-      endpointStr = endpointStr + "," + tunnelEndpoint;
-    }
 
     List<String> hiveColumnNames = new ArrayList<>();
     List<String> mcColumnNames = new ArrayList<>();
@@ -58,13 +55,20 @@ public class HiveSqlUtils {
       hiveColumnNames.add(hivePartitionColumnMetaModel.getColumnName());
     }
 
+    String secondArg = "";
+    if (McAuthType.AK.equals(authType)) {
+      secondArg = odpsConfigPath;
+    } else if(McAuthType.BearerToken.equals(authType)) {
+      secondArg = bearerToken;
+    }
     // args:          0           1         2           3         4       5         6     other
     // ak             AK          ini path  endpoint    project   table   columns   pts   col1... pt1...
     // bearer token   BearerToken token     endpoint    project   table
     sb.append("SELECT default.odps_data_dump_multi (\n")
         .append("'").append(authType).append("',\n")
-        .append("'").append(configOrBearerToken).append("',\n")
-        .append("'").append(endpointStr).append("',\n")
+        .append("'").append(secondArg).append("',\n")
+        .append("'").append(mcEndpoint).append("',\n")
+        .append("'").append(tunnelEndpoint).append("',\n")
         .append("'").append(mcTableMetaModel.getDatabase()).append("',\n")
         .append("'").append(mcTableMetaModel.getTable()).append("',\n")
         .append("'").append(String.join(",", mcColumnNames)).append("',\n")

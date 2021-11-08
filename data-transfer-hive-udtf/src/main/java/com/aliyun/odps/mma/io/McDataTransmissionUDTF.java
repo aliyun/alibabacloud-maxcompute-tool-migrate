@@ -90,11 +90,12 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private static final int IDX_ODPS_CONFIG_PATH = 1;
   private static final int IDX_TOKEN = 1;
   private static final int IDX_ENDPOINT = 2;
-  private static final int IDX_PROJECT = 3;
-  private static final int IDX_TABLE = 4;
-  private static final int IDX_COLUMNS = 5;
-  private static final int IDX_PTS = 6;
-  private static final int IDX_COL_START = 7;
+  private static final int IDX_TUNNEL_ENDPOINT = 3;
+  private static final int IDX_PROJECT = 4;
+  private static final int IDX_TABLE = 5;
+  private static final int IDX_COLUMNS = 6;
+  private static final int IDX_PTS = 7;
+  private static final int IDX_COL_START = 8;
   private static int IDX_PT_BEGIN = IDX_COL_START;
 
   private MapredContext mapredContext;
@@ -118,7 +119,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private List<String> readList(Object[] args, int i) {
     String str = readString(args, i);
     List<String> list = new ArrayList<>();
-    if(!str.isEmpty()) {
+    if (!str.isEmpty()) {
       list.addAll(Arrays.asList(str.split(",")));
     }
     return list;
@@ -131,9 +132,9 @@ public class McDataTransmissionUDTF extends GenericUDTF {
 
   @Override
   public void process(Object[] args) throws HiveException {
-    // args:          0       1         2           3         4       5         6     other
-    // ak             true    ini path  endpoint    project   table   columns   pts   col1... pt1...
-    // bearer token   false   token     endpoint    project   table
+    // args:          0       1         2         3                 4         5       6         7     other
+    // ak             true    ini path  endpoint  tunnel endpoint   project   table   columns   pts   col1... pt1...
+    // bearer token   false   token     endpoint  tunnel endpoint   project   table
     try {
       if (odps == null) {
         // setup odps
@@ -142,22 +143,24 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           String odpsConfigPath = readString(args, IDX_ODPS_CONFIG_PATH);
           OdpsConfig odpsConfig = new OdpsConfig(mapredContext, odpsConfigPath);
           account = new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
-        } else if("BearerToken".equals(readString(args, IDX_AUTH_TYPE))) {
+        } else if ("BearerToken".equals(readString(args, IDX_AUTH_TYPE))) {
           String bearerToken = readString(args, IDX_TOKEN);
           print("bearer token: " + bearerToken);
           account = new BearerTokenAccount(bearerToken);
         } else {
-          throw new RuntimeException("auth type error");
+          throw new RuntimeException("Unsupported authorization type");
         }
 
-        List<String> endpoints = readList(args, IDX_ENDPOINT);
-        print("endpoint: " + endpoints.get(0));
+        String endpoint = readString(args, IDX_ENDPOINT);
+        print("endpoint: " + endpoint);
         odps = new Odps(account);
-        odps.setEndpoint(endpoints.get(0));
+        odps.setEndpoint(endpoint);
         odps.setUserAgent("MMA");
         tunnel = new TableTunnel(odps);
-        if(endpoints.size() > 1) {
-          tunnel.setEndpoint(endpoints.get(1));
+        String tunnelEndpoint = readString(args, IDX_TUNNEL_ENDPOINT);
+        print("tunnel endpoint: " + tunnelEndpoint);
+        if (!tunnelEndpoint.isEmpty()) {
+          tunnel.setEndpoint(tunnelEndpoint);
         }
       }
 
@@ -166,7 +169,6 @@ public class McDataTransmissionUDTF extends GenericUDTF {
         odpsProjectName = readString(args, IDX_PROJECT);
         odps.setDefaultProject(odpsProjectName);
         print("project: " + odpsProjectName);
-        print("tunnel endpoint: " + odps.projects().get().getTunnelEndpoint());
 
         odpsTableName = readString(args, IDX_TABLE);
         print("table: " + odpsTableName);

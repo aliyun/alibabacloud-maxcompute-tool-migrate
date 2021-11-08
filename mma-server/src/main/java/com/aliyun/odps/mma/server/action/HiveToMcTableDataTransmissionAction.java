@@ -114,16 +114,18 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
     McAuthType authType = McAuthType.valueOf(
         config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE,
                             AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE_DEFAULT));
-    String configOrBearerToken;
+    String odpsConfigPath = null;
+    String bearerToken = null;
     if (McAuthType.AK.equals(authType)) {
-      configOrBearerToken = config.get(AbstractConfiguration.DATA_DEST_MC_CONFIG_PATH);
+      odpsConfigPath = config.get(AbstractConfiguration.DATA_DEST_MC_CONFIG_PATH);
     } else {
-      configOrBearerToken = generateBearerToken();
+      bearerToken = generateBearerToken();
     }
-    String tunnelEndpoint = config.get(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT);
+    String tunnelEndpoint = config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT, "");
     return HiveSqlUtils.getUdtfSql(
         authType,
-        configOrBearerToken,
+        odpsConfigPath,
+        bearerToken,
         endpoint,
         tunnelEndpoint,
         hiveTableMetaModel,
