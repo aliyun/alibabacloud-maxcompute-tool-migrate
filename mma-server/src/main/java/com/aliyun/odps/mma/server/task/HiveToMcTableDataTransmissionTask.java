@@ -50,11 +50,11 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         config.get(JobConfiguration.DEST_CATALOG_NAME));
     ActionExecutionContext context = new ActionExecutionContext(config);
 
-    String userHiveConfig = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_RUNTIME_CONFIG);
-    Map<String, String> userHiveConfigMap = new HashMap<>();
-    for (String s : userHiveConfig.split(";")) {
+    String userHiveSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_RUNTIME_CONFIG);
+    Map<String, String> userHiveSettingsMap = new HashMap<>();
+    for (String s : userHiveSettings.split(";")) {
       String[] kv = s.split("=");
-      userHiveConfigMap.put(kv[0].trim(), kv[1].trim());
+      userHiveSettingsMap.put(kv[0].trim(), kv[1].trim());
     }
 
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
@@ -69,7 +69,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
             config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
             source,
             dest,
-            userHiveConfigMap,
+            userHiveSettingsMap,
             this,
             context);
     dag.addVertex(dataTransmissionAction);

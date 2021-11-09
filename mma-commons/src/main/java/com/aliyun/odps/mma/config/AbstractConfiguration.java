@@ -97,7 +97,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_SOURCE_HIVE_JDBC_URL = "mma.data.source.hive.jdbc.url";
   public static final String DATA_SOURCE_HIVE_JDBC_USERNAME = "mma.data.source.hive.jdbc.username";
   public static final String DATA_SOURCE_HIVE_JDBC_PASSWORD = "mma.data.source.hive.jdbc.password";
-  public static final String DATA_SOURCE_HIVE_RUNTIME_CONFIG = "mma.data.source.hive.runtime.config";
+  public static final String DATA_SOURCE_HIVE_RUNTIME_CONFIG = "mma.data.source.hive.settings.transmission";
 
   /**
    * Metadata destination type. Could be MaxCompute and OSS.

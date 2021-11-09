@@ -28,6 +28,7 @@ import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -69,7 +70,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   private String endpoint;
   private TableMetaModel hiveTableMetaModel;
   private TableMetaModel mcTableMetaModel;
-  private Map<String, String> userHiveConfig;
+  private Map<String, String> userHiveSettings;
 
   public HiveToMcTableDataTransmissionAction(
       String id,
@@ -82,7 +83,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
       String password,
       TableMetaModel hiveTableMetaModel,
       TableMetaModel mcTableMetaModel,
-      Map<String, String> userHiveConfig,
+      Map<String, String> userHiveSettings,
       Task task,
       ActionExecutionContext actionExecutionContext) {
     super(id, jdbcUrl, username, password, task, actionExecutionContext);
@@ -92,7 +93,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
     this.endpoint = endpoint;
     this.hiveTableMetaModel = hiveTableMetaModel;
     this.mcTableMetaModel = mcTableMetaModel;
-    this.userHiveConfig = userHiveConfig;
+    this.userHiveSettings = userHiveSettings;
 
     // Set the number of data worker
     // Priority: job configuration -> MMA server configuration -> default value
@@ -140,15 +141,14 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   }
 
   @Override
-  Map<String, String> getSettings() {
+  Map<String, String> getSettings() throws MmaException {
     Map<String, String> settings = new HashMap<>(FINAL_SETTINGS);
     settings.putAll(CHANGEABLE_SETTINGS);
     settings.put("mapreduce.job.running.map.limit",
                  Long.toString(resourceMap.get(Resource.DATA_WORKER)));
-    for (Map.Entry<String, String> entry: userHiveConfig.entrySet()) {
+    for (Map.Entry<String, String> entry: userHiveSettings.entrySet()) {
       if (FINAL_SETTINGS.containsKey(entry.getKey())) {
-        LOG.info("Hive setting: {} is unchangeable", entry.getKey());
-        continue;
+        throw new MmaException("Hive setting: "+ entry.getKey() +" is unchangeable");
       }
       settings.put(entry.getKey(), entry.getValue());
       LOG.info("Add User Hive setting: {}={}", entry.getKey(), entry.getValue());
