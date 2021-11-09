@@ -36,6 +36,7 @@ import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.OssMetaSource;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
+import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.model.TableMetaModel;
@@ -67,16 +68,7 @@ public class McToOssTableJob extends AbstractTableJob {
     LOG.info("Generate the DAG, job id: {}", record.getJobId());
 
     try {
-      OssConfig ossConfig = new OssConfig(
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_INTERNAL),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_EXTERNAL),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_PATH),
-          getRootJobId()
-      );
+      OssConfig ossConfig = OssUtils.getOssConfig(config, true, false, getRootJobId());
 
       String[] locations = OssMetaSource.getMetaAndDataPath(
           ossConfig.getOssPrefix(),
