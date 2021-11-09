@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,8 +16,11 @@
 
 package com.aliyun.odps.mma.server.task;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.HiveToMcTableDataTransmissionAction;
@@ -46,6 +49,14 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         JobConfiguration.JOB_EXECUTION_MC_PROJECT,
         config.get(JobConfiguration.DEST_CATALOG_NAME));
     ActionExecutionContext context = new ActionExecutionContext(config);
+
+    String userHiveSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_RUNTIME_CONFIG);
+    Map<String, String> userHiveSettingsMap = new HashMap<>();
+    for (String s : userHiveSettings.split(";")) {
+      String[] kv = s.split("=");
+      userHiveSettingsMap.put(kv[0].trim(), kv[1].trim());
+    }
+
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
             id + ".DataTransmission",
@@ -58,6 +69,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
             config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
             source,
             dest,
+            userHiveSettingsMap,
             this,
             context);
     dag.addVertex(dataTransmissionAction);
