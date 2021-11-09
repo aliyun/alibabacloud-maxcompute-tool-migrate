@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.Constants;
+import com.aliyun.odps.mma.meta.OssMetaSource;
 import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.aliyun.odps.utils.StringUtils;
@@ -114,18 +115,19 @@ public class MmaConfig {
     private String ossRoleArn;
     private String ossAccessId;
     private String ossAccessKey;
-    private String metadataPath;
-    private String dataPath;
+
+    private String ossPrefix;
     public static final String PREFIX = "oss://";
 
     public OssConfig(String internalEndpoint, String externalEndpoint, String ossBucket,
-                     String roleArn, String accessId, String accessKey) {
+                     String roleArn, String accessId, String accessKey, String prefix, String rootJobId) {
       this.ossEndPointForMc = internalEndpoint;
       this.ossEndPointForMma = externalEndpoint == null ? internalEndpoint : externalEndpoint;
       this.ossBucket = ossBucket;
       this.ossRoleArn = roleArn;
       this.ossAccessId = accessId;
       this.ossAccessKey = accessKey;
+      this.ossPrefix = OssMetaSource.getDefaultPrefix(prefix, rootJobId);
     }
 
     @Override
@@ -172,6 +174,9 @@ public class MmaConfig {
       return ossAccessKey;
     }
 
+    public String getOssPrefix() {
+      return ossPrefix;
+    }
     @Override
     public String toString() {
       return "OssDataSource {"

@@ -46,7 +46,9 @@ public class OssToMcResourceJob extends AbstractSingleTaskJob {
         config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
         config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ROLE_ARN),
         config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET),
+        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_PATH),
+        getRootJobId());
 
     MetaSource metaSource = metaSourceFactory.getMetaSource(config);
     ResourceMetaModel resourceMetaModel = metaSource.getResourceMeta(

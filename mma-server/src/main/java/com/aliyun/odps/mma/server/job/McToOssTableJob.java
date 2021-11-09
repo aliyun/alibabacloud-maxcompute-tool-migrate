@@ -31,10 +31,11 @@ import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.job.JobStatus;
+import com.aliyun.odps.mma.meta.OssMetaSource;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
-import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.model.TableMetaModel;
@@ -72,13 +73,15 @@ public class McToOssTableJob extends AbstractTableJob {
           config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
           config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
           config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
-
-      String[] locations = OssUtils.getOssPaths(
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
           config.get(AbstractConfiguration.METADATA_DEST_OSS_PATH),
-          config.get(JobConfiguration.JOB_ID),
-          config.get(JobConfiguration.OBJECT_TYPE),
+          getRootJobId()
+      );
+
+      String[] locations = OssMetaSource.getMetaAndDataPath(
+          ossConfig.getOssPrefix(),
           config.get(JobConfiguration.DEST_CATALOG_NAME),
+          ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE)),
           config.get(JobConfiguration.DEST_OBJECT_NAME));
       String metadataLocation = locations[0];
       String dataLocation = locations[1];

@@ -17,13 +17,13 @@
 package com.aliyun.odps.mma.server.task;
 
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.Resource;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.meta.OssMetaSource;
 import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
-import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McToOssResourceAction;
 import com.aliyun.odps.mma.server.job.Job;
@@ -58,11 +58,10 @@ public class McToOssResourceTask extends DagTask {
         config.get(AbstractConfiguration.JOB_EXECUTION_MC_PROJECT)
     );
 
-    String[] fileNames = OssUtils.getOssPaths(
-        config.get(AbstractConfiguration.METADATA_DEST_OSS_PATH),
-        rootJobId,
-        config.get(JobConfiguration.OBJECT_TYPE),
+    String[] fileNames = OssMetaSource.getMetaAndDataPath(
+        ossConfig.getOssPrefix(),
         config.get(JobConfiguration.DEST_CATALOG_NAME),
+        ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE)),
         config.get(JobConfiguration.DEST_OBJECT_NAME));
     String metafile = fileNames[0];
     String datafile = fileNames[1] + config.get(JobConfiguration.DEST_OBJECT_NAME);
