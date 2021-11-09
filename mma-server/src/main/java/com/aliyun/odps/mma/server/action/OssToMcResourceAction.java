@@ -25,13 +25,12 @@ import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.Resource;
 import com.aliyun.odps.TableResource;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.task.Task;
-import com.aliyun.odps.mma.util.GsonUtils;
 
 public class OssToMcResourceAction extends DefaultAction {
 

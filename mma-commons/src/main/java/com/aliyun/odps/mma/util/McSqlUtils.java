@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.Constants;
 import com.aliyun.odps.mma.config.ExternalTableStorage;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
 import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.model.TableMetaModel;

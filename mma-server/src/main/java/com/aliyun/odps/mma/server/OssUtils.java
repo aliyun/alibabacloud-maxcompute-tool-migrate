@@ -28,9 +28,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.config.MetaDestType;
-import com.aliyun.odps.mma.config.MetaSourceType;
-import com.aliyun.odps.mma.config.MmaConfig;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
@@ -42,12 +40,12 @@ public class OssUtils
 {
   private static final Logger LOG = LogManager.getLogger(OssUtils.class);
 
-  public static void createFile(MmaConfig.OssConfig ossConfig, String fileName, String content) {
+  public static void createFile(OssConfig ossConfig, String fileName, String content) {
     createFile(ossConfig, fileName, new ByteArrayInputStream(content.getBytes()));
   }
 
   public static void createFile(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String fileName,
       InputStream inputStream) {
     LOG.info("Create oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
@@ -61,7 +59,7 @@ public class OssUtils
     ossClient.shutdown();
   }
 
-  public static boolean exists(MmaConfig.OssConfig ossConfig, String fileName) {
+  public static boolean exists(OssConfig ossConfig, String fileName) {
     LOG.info("Check oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
         .getEndpointForMma(), ossConfig.getOssBucket());
 
@@ -72,7 +70,7 @@ public class OssUtils
   }
 
   public static String downloadFile(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String jobId,
       String fileName) throws IOException {
 
@@ -95,14 +93,14 @@ public class OssUtils
     return localFile.getAbsolutePath();
   }
 
-  public static MmaConfig.OssConfig getOssConfig(
+  public static OssConfig getOssConfig(
       JobConfiguration config, boolean isMeta, boolean isSource, String rootJobId)
       throws MmaException {
     if (!isMeta) {
       throw new MmaException("not supported now");
     }
     if (isSource) {
-      return new MmaConfig.OssConfig(
+      return new OssConfig(
           config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL),
           config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL),
           config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
@@ -112,7 +110,7 @@ public class OssUtils
           config.get(AbstractConfiguration.METADATA_SOURCE_OSS_PATH),
           rootJobId);
     } else {
-      return new MmaConfig.OssConfig(
+      return new OssConfig(
           config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_INTERNAL),
           config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_EXTERNAL),
           config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
@@ -124,7 +122,7 @@ public class OssUtils
     }
   }
 
-  private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
+  private static OSS createOssClient(OssConfig ossConfig) {
     return (new OSSClientBuilder()).build(
         ossConfig.getEndpointForMma(),
         ossConfig.getOssAccessId(),

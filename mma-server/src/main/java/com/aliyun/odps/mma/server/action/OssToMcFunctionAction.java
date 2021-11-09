@@ -22,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
 import com.aliyun.odps.mma.server.task.Task;
