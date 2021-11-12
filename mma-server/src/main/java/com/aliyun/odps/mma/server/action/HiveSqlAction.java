@@ -19,7 +19,6 @@ package com.aliyun.odps.mma.server.action;
 import java.util.List;
 import java.util.Map;
 
-import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.server.task.Task;
@@ -58,5 +57,5 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
 
   abstract String getSql() throws Exception;
 
-  abstract Map<String, String> getSettings();
+  abstract Map<String, String> getSettings() throws Exception;
 }

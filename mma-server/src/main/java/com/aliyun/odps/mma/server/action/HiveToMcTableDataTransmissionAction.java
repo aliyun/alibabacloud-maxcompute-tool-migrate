@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,6 +28,8 @@ import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.McAuthType;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.meta.model.TableMetaModel;
@@ -39,27 +41,29 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
 
   private static final Logger LOG = LogManager.getLogger(HiveToMcTableDataTransmissionAction.class);
 
-  private static final Map<String, String> DEFAULT_SETTINGS = new HashMap<>();
+
+  private static final Map<String, String> FINAL_SETTINGS = new HashMap<>();
+  private static final Map<String, String> CHANGEABLE_SETTINGS = new HashMap<>();
   static {
     // DO NOT CHANGE the following settings
     // Make sure the data transmission queries are not converted to FETCH tasks.
-    DEFAULT_SETTINGS.put("hive.fetch.task.conversion", "none");
+    FINAL_SETTINGS.put("hive.fetch.task.conversion", "none");
     // Make sure the data transmission queries are executed as MR tasks.
-    DEFAULT_SETTINGS.put("hive.execution.engine", "mr");
+    FINAL_SETTINGS.put("hive.execution.engine", "mr");
     // Disable retry, which may result in data corruption.
-    DEFAULT_SETTINGS.put("mapreduce.map.maxattempts", "0");
+    FINAL_SETTINGS.put("mapreduce.map.maxattempts", "0");
     // Disable speculative execution, which may result in data corruption.
-    DEFAULT_SETTINGS.put("mapreduce.map.speculative", "false");
+    FINAL_SETTINGS.put("mapreduce.map.speculative", "false");
 
     // The following settings can be changed if necessary
     // Set the timeout of mapreduce task to 1 hour.
-    DEFAULT_SETTINGS.put("mapreduce.task.timeout", "3600000");
+    CHANGEABLE_SETTINGS.put("mapreduce.task.timeout", "3600000");
     // Set the default max split size to 512 MB
-    DEFAULT_SETTINGS.put("mapreduce.max.split.size", "512000000");
+    CHANGEABLE_SETTINGS.put("mapreduce.max.split.size", "512000000");
     // Uses 1 vcore
-    DEFAULT_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
+    CHANGEABLE_SETTINGS.put("mapreduce.map.cpu.vcores", "1");
     // Uses 4 GB memory
-    DEFAULT_SETTINGS.put("mapreduce.map.memory.mb", "4096");
+    CHANGEABLE_SETTINGS.put("mapreduce.map.memory.mb", "4096");
   }
 
   private String accessKeyId;
@@ -68,6 +72,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   private String endpoint;
   private TableMetaModel hiveTableMetaModel;
   private TableMetaModel mcTableMetaModel;
+  private Map<String, String> userHiveSettings;
 
   public HiveToMcTableDataTransmissionAction(
       String id,
@@ -80,6 +85,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
       String password,
       TableMetaModel hiveTableMetaModel,
       TableMetaModel mcTableMetaModel,
+      Map<String, String> userHiveSettings,
       Task task,
       ActionExecutionContext actionExecutionContext) {
     super(id, jdbcUrl, username, password, task, actionExecutionContext);
@@ -89,6 +95,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
     this.endpoint = endpoint;
     this.hiveTableMetaModel = hiveTableMetaModel;
     this.mcTableMetaModel = mcTableMetaModel;
+    this.userHiveSettings = userHiveSettings;
 
     // Set the number of data worker
     // Priority: job configuration -> MMA server configuration -> default value
@@ -107,27 +114,45 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   }
 
   @Override
-  String getSql() throws OdpsException {
+  String getSql() throws OdpsException, MmaException {
+    AbstractConfiguration config = actionExecutionContext.getConfig();
+    McAuthType authType = McAuthType.valueOf(
+        config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE,
+                            AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE_DEFAULT));
+    String odpsConfigPath = null;
+    String bearerToken = null;
+    if (McAuthType.AK.equals(authType)) {
+      odpsConfigPath = config.get(AbstractConfiguration.DATA_DEST_MC_CONFIG_PATH);
+    } else if (McAuthType.BearerToken.equals(authType)){
+      bearerToken = generateBearerToken();
+    } else {
+      throw new MmaException("ERROR: Unsupported MC authType: " + authType);
+    }
+    String tunnelEndpoint = config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT, "");
     return HiveSqlUtils.getUdtfSql(
+        authType,
+        odpsConfigPath,
+        bearerToken,
         endpoint,
-        generateBearerToken(),
+        tunnelEndpoint,
         hiveTableMetaModel,
         mcTableMetaModel);
   }
 
   private String generateBearerToken() throws OdpsException {
     String policy = "{\n"
-        + "    \"expires_in_hours\": 24,\n"
-        + "    \"policy\": {\n"
-        + "        \"Statement\": [{\n"
-        + "            \"Action\": [\"odps:*\"],\n"
-        + "            \"Effect\": \"Allow\",\n"
-        + "            \"Resource\": \"acs:odps:*:projects/" + mcTableMetaModel.getDatabase()
-        + "/tables/" + mcTableMetaModel.getTable() + "\"\n"
-        + "        }],\n"
-        + "        \"Version\": \"1\"\n"
-        + "    }\n"
-        + "}";
+                    + "    \"expires_in_hours\": 24,\n"
+                    + "    \"policy\": {\n"
+                    + "        \"Statement\": [{\n"
+                    + "            \"Action\": [\"odps:*\"],\n"
+                    + "            \"Effect\": \"Allow\",\n"
+                    + "            \"Resource\": \"acs:odps:*:projects/"
+                    + mcTableMetaModel.getDatabase()
+                    + "/tables/" + mcTableMetaModel.getTable() + "\"\n"
+                    + "        }],\n"
+                    + "        \"Version\": \"1\"\n"
+                    + "    }\n"
+                    + "}";
     Odps odps = new Odps(new AliyunAccount(accessKeyId, accessKeySecret));
     odps.setDefaultProject(executionProject);
     odps.setEndpoint(endpoint);
@@ -135,12 +160,18 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   }
 
   @Override
-  Map<String, String> getSettings() {
-    // TODO:
-    Map<String, String> settings = new HashMap<>(DEFAULT_SETTINGS);
-    settings.put(
-        "mapreduce.job.running.map.limit",
-        Long.toString(resourceMap.get(Resource.DATA_WORKER)));
+  Map<String, String> getSettings() throws MmaException {
+    Map<String, String> settings = new HashMap<>(FINAL_SETTINGS);
+    settings.putAll(CHANGEABLE_SETTINGS);
+    settings.put("mapreduce.job.running.map.limit",
+                 Long.toString(resourceMap.get(Resource.DATA_WORKER)));
+    for (Map.Entry<String, String> entry: userHiveSettings.entrySet()) {
+      if (FINAL_SETTINGS.containsKey(entry.getKey())) {
+        throw new MmaException("Hive setting: "+ entry.getKey() +" is unchangeable");
+      }
+      settings.put(entry.getKey(), entry.getValue());
+      LOG.info("Add User Hive setting: {}={}", entry.getKey(), entry.getValue());
+    }
     return settings;
   }
 

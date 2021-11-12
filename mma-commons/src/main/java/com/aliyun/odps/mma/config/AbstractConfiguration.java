@@ -97,6 +97,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_SOURCE_HIVE_JDBC_URL = "mma.data.source.hive.jdbc.url";
   public static final String DATA_SOURCE_HIVE_JDBC_USERNAME = "mma.data.source.hive.jdbc.username";
   public static final String DATA_SOURCE_HIVE_JDBC_PASSWORD = "mma.data.source.hive.jdbc.password";
+  public static final String DATA_SOURCE_HIVE_RUNTIME_CONFIG = "mma.data.source.hive.settings.transmission";
 
   /**
    * Metadata destination type. Could be MaxCompute and OSS.
@@ -138,8 +139,12 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_DEST_OSS_PATH = "mma.data.dest.oss.path";
   // MaxCompute
   public static final String DATA_DEST_MC_ENDPOINT = "mma.data.dest.mc.endpoint";
+  public static final String DATA_DEST_MC_TUNNEL_ENDPOINT = "mma.data.dest.mc.tunnel.endpoint";
   public static final String DATA_DEST_MC_ACCESS_KEY_ID = "mma.data.dest.mc.access.key.id";
   public static final String DATA_DEST_MC_ACCESS_KEY_SECRET = "mma.data.dest.mc.access.key.secret";
+  public static final String DATA_DEST_MC_AUTH_TYPE = "mma.data.dest.mc.auth.type";
+  public static final String DATA_DEST_MC_AUTH_TYPE_DEFAULT = "BearerToken";
+  public static final String DATA_DEST_MC_CONFIG_PATH = "mma.data.dest.mc.config.path";
 
   /**
    * Job attributes.

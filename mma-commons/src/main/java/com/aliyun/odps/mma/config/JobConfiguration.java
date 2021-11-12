@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,12 +26,12 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
 
 public class JobConfiguration extends AbstractConfiguration {
+
   /**
    * Object type. Could be TABLE, VIRTUAL_VIEW, PARTITION, RESOURCE, FUNCTION.
    */
@@ -42,7 +42,7 @@ public class JobConfiguration extends AbstractConfiguration {
    */
   public static final String SOURCE_CATALOG_NAME = "mma.object.source.catalog.name";
   public static final String SOURCE_OBJECT_TYPES = "mma.object.source.types";
-//  public static final String SOURCE_SCHEMA_NAME = "mma.object.source.schema.name";
+  //  public static final String SOURCE_SCHEMA_NAME = "mma.object.source.schema.name";
   public static final String SOURCE_OBJECT_NAME = "mma.object.source.name";
   public static final String PARTITION_BEGIN = "mma.filter.partition.begin";
   public static final String PARTITION_END = "mma.filter.partition.end";
@@ -60,7 +60,7 @@ public class JobConfiguration extends AbstractConfiguration {
    * Dest object position.
    */
   public static final String DEST_CATALOG_NAME = "mma.object.dest.catalog.name";
-//  public static final String DEST_SCHEMA_NAME = "mma.object.dest.schema.name";
+  //  public static final String DEST_SCHEMA_NAME = "mma.object.dest.schema.name";
   public static final String DEST_OBJECT_NAME = "mma.object.dest.name";
 
 
@@ -81,7 +81,8 @@ public class JobConfiguration extends AbstractConfiguration {
 
   public static JobConfiguration fromJson(String json) {
     Map<String, String> map =
-        GsonUtils.GSON.fromJson(json, new TypeToken<Map<String, String>>() {}.getType());
+        GsonUtils.GSON.fromJson(json, new TypeToken<Map<String, String>>() {
+        }.getType());
     return new JobConfiguration(map);
   }
 
@@ -104,29 +105,30 @@ public class JobConfiguration extends AbstractConfiguration {
         && dataDestType.equals(DataDestType.OSS)) {
       validateMcToOssCredentials();
     } else if (metaSourceType.equals(MetaSourceType.OSS)
-        && dataSourceType.equals(DataSourceType.OSS)
-        && metaDestType.equals(MetaDestType.MaxCompute)
-        && dataDestType.equals(DataDestType.MaxCompute)) {
+               && dataSourceType.equals(DataSourceType.OSS)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
       validateOssToMcCredentials();
     } else if (metaSourceType.equals(MetaSourceType.Hive)
-        && dataSourceType.equals(DataSourceType.Hive)
-        && metaDestType.equals(MetaDestType.MaxCompute)
-        && dataDestType.equals(DataDestType.MaxCompute)) {
+               && dataSourceType.equals(DataSourceType.Hive)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
       validateHiveToMcCredentials();
+      validMcAuthType();
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
   }
 
   public List<String> getPartitionBegin() {
-    if (!containsKey(PARTITION_BEGIN)){
+    if (!containsKey(PARTITION_BEGIN)) {
       return new ArrayList<>();
     }
     return Arrays.asList(get(PARTITION_BEGIN).split(SPLIT_PATTERN));
   }
 
   public List<String> getPartitionEnd() {
-    if (!containsKey(PARTITION_END)){
+    if (!containsKey(PARTITION_END)) {
       return new ArrayList<>();
     }
     return Arrays.asList(get(PARTITION_END).split(SPLIT_PATTERN));
@@ -165,7 +167,7 @@ public class JobConfiguration extends AbstractConfiguration {
 
   private void validateJobId() throws MmaException {
     String jobId = get(JobConfiguration.JOB_ID);
-    if(!StringUtils.isBlank(jobId) && !JOB_ID_PATTERN.matcher(jobId).matches()){
+    if (!StringUtils.isBlank(jobId) && !JOB_ID_PATTERN.matcher(jobId).matches()) {
       throw new MmaException("Invalid job Id. Job id pattern: [A-Za-z0-9_-]+");
     }
   }
@@ -185,8 +187,25 @@ public class JobConfiguration extends AbstractConfiguration {
 
     Comparator<List<String>> cmp =
         new ConfigurationUtils.PartitionComparator(orderType);
-    if(cmp.compare(begin, end) > 0){
+    if (cmp.compare(begin, end) > 0) {
       throw new MmaException(String.format("ERROR: partition end %s < begin %s", begin, end));
+    }
+  }
+
+  private void validMcAuthType() throws MmaException {
+    // match any McAuthType
+    // && if McAuthType == AK => CONFIG_PATH != null
+    String authStr = getOrDefault(DATA_DEST_MC_AUTH_TYPE, DATA_DEST_MC_AUTH_TYPE_DEFAULT);
+    boolean match = Arrays.stream(McAuthType.values()).anyMatch(t->t.name().equals(authStr));
+    if (!match) {
+      throw new MmaException("ERROR: Unsupported MC authType: " + authStr);
+    }
+
+    McAuthType authType = McAuthType.valueOf(authStr);
+    if (McAuthType.AK.equals(authType)) {
+      if (StringUtils.isBlank(get(DATA_DEST_MC_CONFIG_PATH))) {
+        throw new MmaException("ERROR: odps_config.ini path not set");
+      }
     }
   }
 }
