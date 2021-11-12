@@ -193,9 +193,15 @@ public class JobConfiguration extends AbstractConfiguration {
   }
 
   private void validMcAuthType() throws MmaException {
-    McAuthType
-        authType =
-        McAuthType.valueOf(getOrDefault(DATA_DEST_MC_AUTH_TYPE, DATA_DEST_MC_AUTH_TYPE_DEFAULT));
+    // match any McAuthType
+    // && if McAuthType == AK => CONFIG_PATH != null
+    String authStr = getOrDefault(DATA_DEST_MC_AUTH_TYPE, DATA_DEST_MC_AUTH_TYPE_DEFAULT);
+    boolean match = Arrays.stream(McAuthType.values()).anyMatch(t->t.name().equals(authStr));
+    if (!match) {
+      throw new MmaException("ERROR: Unsupported MC authType: " + authStr);
+    }
+
+    McAuthType authType = McAuthType.valueOf(authStr);
     if (McAuthType.AK.equals(authType)) {
       if (StringUtils.isBlank(get(DATA_DEST_MC_CONFIG_PATH))) {
         throw new MmaException("ERROR: odps_config.ini path not set");

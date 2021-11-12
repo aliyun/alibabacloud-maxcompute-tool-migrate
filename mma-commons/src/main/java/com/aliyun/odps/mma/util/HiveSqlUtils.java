@@ -34,7 +34,7 @@ public class HiveSqlUtils {
       String mcEndpoint,
       String tunnelEndpoint,
       TableMetaModel hiveTableMetaModel,
-      TableMetaModel mcTableMetaModel) {
+      TableMetaModel mcTableMetaModel) throws MmaException {
     StringBuilder sb = new StringBuilder();
 
     List<String> hiveColumnNames = new ArrayList<>();
@@ -60,6 +60,8 @@ public class HiveSqlUtils {
       secondArg = odpsConfigPath;
     } else if(McAuthType.BearerToken.equals(authType)) {
       secondArg = bearerToken;
+    } else {
+      throw new MmaException("Unsupported MC authType: " + authType.name());
     }
     // args:          0           1         2           3         4       5         6     other
     // ak             AK          ini path  endpoint    project   table   columns   pts   col1... pt1...

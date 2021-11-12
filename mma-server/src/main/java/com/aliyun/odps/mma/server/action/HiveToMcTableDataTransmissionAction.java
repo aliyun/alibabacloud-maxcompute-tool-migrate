@@ -114,7 +114,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   }
 
   @Override
-  String getSql() throws OdpsException {
+  String getSql() throws OdpsException, MmaException {
     AbstractConfiguration config = actionExecutionContext.getConfig();
     McAuthType authType = McAuthType.valueOf(
         config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE,
@@ -123,8 +123,10 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
     String bearerToken = null;
     if (McAuthType.AK.equals(authType)) {
       odpsConfigPath = config.get(AbstractConfiguration.DATA_DEST_MC_CONFIG_PATH);
-    } else {
+    } else if (McAuthType.BearerToken.equals(authType)){
       bearerToken = generateBearerToken();
+    } else {
+      throw new MmaException("ERROR: Unsupported MC authType: " + authType);
     }
     String tunnelEndpoint = config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT, "");
     return HiveSqlUtils.getUdtfSql(
