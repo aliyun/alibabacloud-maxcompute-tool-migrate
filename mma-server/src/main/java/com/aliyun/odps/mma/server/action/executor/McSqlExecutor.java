@@ -39,6 +39,8 @@ import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.task.SQLTask;
+import com.aliyun.odps.tunnel.InstanceTunnel;
+import com.aliyun.odps.tunnel.io.TunnelRecordReader;
 
 
 public class McSqlExecutor extends AbstractActionExecutor {
@@ -48,6 +50,7 @@ public class McSqlExecutor extends AbstractActionExecutor {
   private static class McSqlCallable implements Callable<List<List<Object>>> {
 
     private Odps odps;
+    private String tunnelEndpoint;
     private String db;
     private String sql;
     private boolean hasResults;
@@ -57,6 +60,7 @@ public class McSqlExecutor extends AbstractActionExecutor {
 
     McSqlCallable(
         Odps odps,
+        String tunnelEndpoint,
         String db,
         String sql,
         boolean hasResults,
@@ -64,6 +68,7 @@ public class McSqlExecutor extends AbstractActionExecutor {
         String actionId,
         McSqlActionInfo mcSqlActionInfo) {
       this.odps = odps;
+      this.tunnelEndpoint = tunnelEndpoint;
       this.db = db;
       this.sql = Objects.requireNonNull(sql);
       this.settings = Objects.requireNonNull(settings);
@@ -101,7 +106,32 @@ public class McSqlExecutor extends AbstractActionExecutor {
     private List<List<Object>> parseResult(Instance instance) throws OdpsException, IOException {
       List<List<Object>> ret = new LinkedList<>();
 
-      List<Record> records = SQLTask.getResultByInstanceTunnel(instance);
+      List<Record> records = new ArrayList<>();
+
+      if (tunnelEndpoint != null) {
+        // copy code from SQLTask.getResultByInstanceTunnel(instance)
+        // for tunnel endpoint setting
+        InstanceTunnel tunnel = new InstanceTunnel(instance.getOdps());
+        LOG.info("tunnel endpoint: {}", tunnelEndpoint);
+        tunnel.setEndpoint(tunnelEndpoint);
+        InstanceTunnel.DownloadSession session =
+            tunnel.createDownloadSession(instance.getProject(), instance.getId(), false);
+
+        long recordCount = session.getRecordCount();
+
+        if (recordCount != 0) {
+
+          TunnelRecordReader reader = session.openRecordReader(0, recordCount);
+
+          Record record;
+          while ((record = reader.read()) != null) {
+            records.add(record);
+          }
+        }
+      } else {
+        records = SQLTask.getResultByInstanceTunnel(instance);
+      }
+
       if (records.isEmpty()) {
         return ret;
       }
@@ -127,6 +157,7 @@ public class McSqlExecutor extends AbstractActionExecutor {
 
   public Future<List<List<Object>>> execute(
       String endpoint,
+      String tunnelEndpoint,
       String executeProject,
       String accessKeyId,
       String accessKeySecret,
@@ -141,6 +172,7 @@ public class McSqlExecutor extends AbstractActionExecutor {
     odps.setDefaultProject(executeProject);
     McSqlCallable callable = new McSqlCallable(
         odps,
+        tunnelEndpoint,
         executeProject,
         sql,
         hasResults,

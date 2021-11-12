@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,8 @@ package com.aliyun.odps.mma.io;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.TableSchema;
+import com.aliyun.odps.account.Account;
+import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.account.BearerTokenAccount;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.data.RecordWriter;
@@ -37,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
@@ -82,6 +85,21 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private Long numRecordTransferred = 0L;
   private Object[] forwardObj = new Object[1];
 
+  private static final int IDX_AUTH_TYPE = 0;
+  private static final int IDX_ODPS_CONFIG_PATH = 1;
+  private static final int IDX_TOKEN = 1;
+  private static final int IDX_ENDPOINT = 2;
+  private static final int IDX_TUNNEL_ENDPOINT = 3;
+  private static final int IDX_PROJECT = 4;
+  private static final int IDX_TABLE = 5;
+  private static final int IDX_COLUMNS = 6;
+  private static final int IDX_PTS = 7;
+  private static final int IDX_COL_START = 8;
+  private static int IDX_PT_BEGIN = IDX_COL_START;
+
+  private MapredContext mapredContext;
+
+
   @Override
   public StructObjectInspector initialize(ObjectInspector[] args) throws UDFArgumentException {
     objectInspectors = args;
@@ -93,62 +111,86 @@ public class McDataTransmissionUDTF extends GenericUDTF {
                                                                    outputObjectInspectors);
   }
 
+  private String readString(Object[] args, int i) {
+    return ((StringObjectInspector) objectInspectors[i]).getPrimitiveJavaObject(args[i]).trim();
+  }
+
+  private List<String> readList(Object[] args, int i) {
+    String str = readString(args, i);
+    List<String> list = new ArrayList<>();
+    if (!str.isEmpty()) {
+      list.addAll(Arrays.asList(str.split(",")));
+    }
+    return list;
+  }
+
+  @Override
+  public void configure(MapredContext mapredContext) {
+    this.mapredContext = mapredContext;
+  }
+
   @Override
   public void process(Object[] args) throws HiveException {
+    // args:          0       1         2         3                 4         5       6         7     other
+    // ak             true    ini path  endpoint  tunnel endpoint   project   table   columns   pts   col1... pt1...
+    // bearer token   false   token     endpoint  tunnel endpoint   project   table
     try {
-      if(odps == null) {
-        StringObjectInspector soi0 = (StringObjectInspector) objectInspectors[0];
-        String bearerToken = soi0.getPrimitiveJavaObject(args[0]).trim();
-        print("bearer token: " + bearerToken);
-        StringObjectInspector soi1 = (StringObjectInspector) objectInspectors[1];
-        String endpoint = soi1.getPrimitiveJavaObject(args[1]).trim();
+      if (odps == null) {
+        // setup odps
+        Account account;
+        if ("AK".equals(readString(args, IDX_AUTH_TYPE))) {
+          String odpsConfigPath = readString(args, IDX_ODPS_CONFIG_PATH);
+          OdpsConfig odpsConfig = new OdpsConfig(mapredContext, odpsConfigPath);
+          account = new AliyunAccount(odpsConfig.getAccessId(), odpsConfig.getAccessKey());
+        } else if ("BearerToken".equals(readString(args, IDX_AUTH_TYPE))) {
+          String bearerToken = readString(args, IDX_TOKEN);
+          print("bearer token: " + bearerToken);
+          account = new BearerTokenAccount(bearerToken);
+        } else {
+          throw new RuntimeException("Unsupported authorization type");
+        }
+
+        String endpoint = readString(args, IDX_ENDPOINT);
         print("endpoint: " + endpoint);
-        BearerTokenAccount account = new BearerTokenAccount(bearerToken);
         odps = new Odps(account);
         odps.setEndpoint(endpoint);
         odps.setUserAgent("MMA");
         tunnel = new TableTunnel(odps);
+        String tunnelEndpoint = readString(args, IDX_TUNNEL_ENDPOINT);
+        print("tunnel endpoint: " + tunnelEndpoint);
+        if (!tunnelEndpoint.isEmpty()) {
+          tunnel.setEndpoint(tunnelEndpoint);
+        }
       }
 
       if (odpsTableName == null) {
-        StringObjectInspector soi2 = (StringObjectInspector) objectInspectors[2];
-        StringObjectInspector soi3 = (StringObjectInspector) objectInspectors[3];
-        StringObjectInspector soi4 = (StringObjectInspector) objectInspectors[4];
-        StringObjectInspector soi5 = (StringObjectInspector) objectInspectors[5];
-
-        odpsProjectName = soi2.getPrimitiveJavaObject(args[2]).trim();
+        // setup project, table, schema, value array
+        odpsProjectName = readString(args, IDX_PROJECT);
         odps.setDefaultProject(odpsProjectName);
         print("project: " + odpsProjectName);
-        print("tunnel endpoint: " + odps.projects().get().getTunnelEndpoint());
 
-        odpsTableName = soi3.getPrimitiveJavaObject(args[3]).trim();
+        odpsTableName = readString(args, IDX_TABLE);
         print("table: " + odpsTableName);
-
         schema = odps.tables().get(odpsTableName).getSchema();
 
-        String odpsColumnNameString = soi4.getPrimitiveJavaObject(args[4]).trim();
-        odpsColumnNames = new ArrayList<>();
-        if (!odpsColumnNameString.isEmpty()) {
-          odpsColumnNames.addAll(Arrays.asList(odpsColumnNameString.split(",")));
-        }
+        odpsColumnNames = readList(args, IDX_COLUMNS);
         hiveColumnValues = new Object[odpsColumnNames.size()];
 
-        String odpsPartitionColumnNameString = soi5.getPrimitiveJavaObject(args[5]).trim();
-        odpsPartitionColumnNames = new ArrayList<>();
-        if (!odpsPartitionColumnNameString.isEmpty()) {
-          odpsPartitionColumnNames.addAll(
-              Arrays.asList(odpsPartitionColumnNameString.split(",")));
-        }
+        odpsPartitionColumnNames = readList(args, IDX_PTS);
         hivePartitionColumnValues = new Object[odpsPartitionColumnNames.size()];
       }
 
+      // Step 1: get Hive column value and pt value
       for (int i = 0; i < odpsColumnNames.size(); i++) {
-        hiveColumnValues[i] = args[i + 6];
-      }
-      for (int i = 0; i < odpsPartitionColumnNames.size(); i++) {
-        hivePartitionColumnValues[i] = args[i + 6 + odpsColumnNames.size()];
+        hiveColumnValues[i] = args[i + IDX_COL_START];
       }
 
+      IDX_PT_BEGIN = IDX_COL_START + odpsColumnNames.size();
+      for (int i = 0; i < odpsPartitionColumnNames.size(); i++) {
+        hivePartitionColumnValues[i] = args[i + IDX_PT_BEGIN];
+      }
+
+      // Step 2: get pt spec
       // Get partition spec
       String partitionSpec = getPartitionSpec();
       if (partitionSpec.contains("__HIVE_DEFAULT_PARTITION__")) {
@@ -160,6 +202,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
         resetUploadSession(partitionSpec);
       }
 
+      // Step 3: set record and write to tunnel
       if (reusedRecord == null) {
         reusedRecord = currentUploadSession.newRecord();
       }
@@ -171,9 +214,10 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           reusedRecord.set(odpsColumnName, null);
         } else {
           // Handle data types
-          ObjectInspector objectInspector = objectInspectors[i + 6];
+          ObjectInspector objectInspector = objectInspectors[i + IDX_COL_START];
           TypeInfo typeInfo = schema.getColumn(odpsColumnName).getTypeInfo();
-          reusedRecord.set(odpsColumnName, HiveObjectConverter.convert(objectInspector, value, typeInfo));
+          reusedRecord.set(odpsColumnName,
+                           HiveObjectConverter.convert(objectInspector, value, typeInfo));
         }
       }
 
@@ -193,10 +237,10 @@ public class McDataTransmissionUDTF extends GenericUDTF {
         continue;
       }
 
-      ObjectInspector objectInspector = objectInspectors[i + 6 + odpsColumnNames.size()];
+      ObjectInspector objectInspector = objectInspectors[i + IDX_PT_BEGIN];
       TypeInfo typeInfo = schema.getPartitionColumn(odpsPartitionColumnNames.get(i)).getTypeInfo();
-
       Object odpsValue = HiveObjectConverter.convert(objectInspector, colValue, typeInfo);
+
       partitionSpecBuilder.append(odpsPartitionColumnNames.get(i));
       partitionSpecBuilder.append("='");
       partitionSpecBuilder.append(odpsValue.toString()).append("'");
@@ -241,8 +285,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
             uploadSession = tunnel.createUploadSession(odps.getDefaultProject(),
                                                        odpsTableName,
                                                        new PartitionSpec(partitionSpec));
-            System.out
-                .println("creating record worker for " + partitionSpec + " done");
+            print("creating record worker for " + partitionSpec + " done");
           }
           break;
         } catch (TunnelException e) {
@@ -317,7 +360,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     forwardObj[0] = numRecordTransferred;
     forward(forwardObj);
   }
-  
+
   private static void print(String log) {
     System.out.println(String.format("[MMA %d] %s", System.currentTimeMillis(), log));
   }
