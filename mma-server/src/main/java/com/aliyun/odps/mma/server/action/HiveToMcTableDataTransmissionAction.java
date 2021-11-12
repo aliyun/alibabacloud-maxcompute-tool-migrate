@@ -28,6 +28,7 @@ import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.McAuthType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
@@ -39,6 +40,7 @@ import com.aliyun.odps.mma.server.task.Task;
 public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
 
   private static final Logger LOG = LogManager.getLogger(HiveToMcTableDataTransmissionAction.class);
+
 
   private static final Map<String, String> FINAL_SETTINGS = new HashMap<>();
   private static final Map<String, String> CHANGEABLE_SETTINGS = new HashMap<>();
@@ -112,10 +114,27 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   }
 
   @Override
-  String getSql() throws OdpsException {
+  String getSql() throws OdpsException, MmaException {
+    AbstractConfiguration config = actionExecutionContext.getConfig();
+    McAuthType authType = McAuthType.valueOf(
+        config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE,
+                            AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE_DEFAULT));
+    String odpsConfigPath = null;
+    String bearerToken = null;
+    if (McAuthType.AK.equals(authType)) {
+      odpsConfigPath = config.get(AbstractConfiguration.DATA_DEST_MC_CONFIG_PATH);
+    } else if (McAuthType.BearerToken.equals(authType)){
+      bearerToken = generateBearerToken();
+    } else {
+      throw new MmaException("ERROR: Unsupported MC authType: " + authType);
+    }
+    String tunnelEndpoint = config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_TUNNEL_ENDPOINT, "");
     return HiveSqlUtils.getUdtfSql(
+        authType,
+        odpsConfigPath,
+        bearerToken,
         endpoint,
-        generateBearerToken(),
+        tunnelEndpoint,
         hiveTableMetaModel,
         mcTableMetaModel);
   }
