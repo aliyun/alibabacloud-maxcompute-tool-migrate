@@ -39,6 +39,14 @@ limitations under the License.
       <version>0.31.6-public</version>
       <classifier>shaded</classifier>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-mapreduce-client-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
