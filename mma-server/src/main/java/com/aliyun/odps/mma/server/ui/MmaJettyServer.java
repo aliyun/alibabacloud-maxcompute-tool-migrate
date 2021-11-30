@@ -26,6 +26,9 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
+// http://devdoc.net/javaweb/jetty-9.2.6.v20141205-javadoc/org/eclipse/jetty/http/HttpMethod.html
+// use jetty9 method
+import org.eclipse.jetty.http.HttpMethod;
 
 public class MmaJettyServer extends Server {
 
@@ -41,7 +44,7 @@ public class MmaJettyServer extends Server {
     Request request=connection.getRequest();
     Response response=connection.getResponse();
 
-    if ("TRACE".equals(request.getMethod())){
+    if (HttpMethod.TRACE.name().equals(request.getMethod())){
       request.setHandled(true);
       response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     } else {
