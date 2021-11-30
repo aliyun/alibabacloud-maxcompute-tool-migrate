@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <artifactId>mma</artifactId>
     <groupId>com.aliyun.odps</groupId>
@@ -114,4 +114,44 @@ limitations under the License.
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <!--hive 1 / 2 clean-->
+    <profile>
+      <id>commons-hive3</id>
+      <activation>
+        <property>
+          <name>hive</name>
+          <value>3</value>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hive</groupId>
+          <artifactId>hive-metastore</artifactId>
+          <exclusions>
+            <exclusion>
+              <groupId>aopalliance</groupId>
+              <artifactId>aopalliance</artifactId>
+            </exclusion>
+            <exclusion>
+              <groupId>javax.inject</groupId>
+              <artifactId>javax.inject</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-common</artifactId>
+          <version>${hadoop.version}</version>
+          <exclusions>
+            <exclusion>
+              <groupId>javax.ws.rs</groupId>
+              <artifactId>jsr311-api</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+
+  </profiles>
 </project>
