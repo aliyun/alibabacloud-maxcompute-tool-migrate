@@ -37,7 +37,7 @@ if [ -z "${PID}" ]; then
   echo "This may take a few seconds"
   mkdir -p "${MMA_HOME}/log/"
   nohup java -Dlog4j.configurationFile="$MMA_HOME/res/mma_server_log4j2.xml" \
-     -cp "$MMA_HOME/lib/*" \
+     -cp "$MMA_HOME/lib/*:$MMA_HOME/lib/server/*" \
      com.aliyun.odps.mma.server.MmaServerMain "$@" > "${MMA_HOME}/log/nohup.log" 2>&1 &
   # wait since it may take a few seconds for MMA API server to initialize
   sleep 10

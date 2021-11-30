@@ -23,7 +23,7 @@ limitations under the License.
   <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>
     <dependencySet>
-      <outputDirectory>lib</outputDirectory>
+      <outputDirectory>lib/client</outputDirectory>
     </dependencySet>
   </dependencySets>
 </assembly>

@@ -46,6 +46,11 @@ limitations under the License.
       <outputDirectory>res</outputDirectory>
       <directory>src/assembly/res</directory>
     </fileSet>
+    <fileSet>
+      <outputDirectory>test</outputDirectory>
+      <directory>src/assembly/test</directory>
+      <fileMode>0755</fileMode>
+    </fileSet>
   </fileSets>
   <files>
     <file>
