@@ -26,6 +26,7 @@ limitations under the License.
       <includes>
         <include>com.aliyun.odps:mma-client:zip:${project.version}</include>
         <include>com.aliyun.odps:mma-server:zip:${project.version}</include>
+        <include>com.aliyun.odps:sql-checker:zip:${project.version}</include>
       </includes>
       <outputDirectory>${file.separator}</outputDirectory>
       <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
@@ -45,6 +46,11 @@ limitations under the License.
     <fileSet>
       <outputDirectory>res</outputDirectory>
       <directory>src/assembly/res</directory>
+    </fileSet>
+    <fileSet>
+      <outputDirectory>bin</outputDirectory>
+      <directory>../sql-checker/src/assembly/bin</directory>
+      <fileMode>0755</fileMode>
     </fileSet>
   </fileSets>
   <files>
