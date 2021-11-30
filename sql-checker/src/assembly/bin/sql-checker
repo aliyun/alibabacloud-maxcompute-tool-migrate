@@ -20,5 +20,5 @@ export MMA_HOME=$(dirname ${DIR})
 MMA_VERSION=$(cat ${MMA_HOME}/version.txt)
 
 java -Dlog4j.configurationFile="$MMA_HOME/res/sql_checker_log4j2.xml" \
-     -cp "$MMA_HOME/lib/*" \
+     -cp "$MMA_HOME/lib/*:$MMA_HOME/lib/sql_checker/*" \
      com.aliyun.odps.mma.sql.SqlMigrationAssistantMain "$@"

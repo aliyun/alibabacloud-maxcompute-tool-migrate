@@ -45,11 +45,9 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.util.GsonUtils;
-import com.csvreader.CsvReader;
 
 public class MmaJobConfigurationGenerator {
 
-  private static final Logger LOG = LogManager.getLogger(MmaJobConfigurationGenerator.class);
 
   /**
    *  Acceptable formats:
