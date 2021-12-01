@@ -29,11 +29,19 @@ import com.aliyun.odps.mma.server.task.Task;
  */
 public interface Job {
 
+  /**
+   * return executable tasks for scheduler
+   * don't return null
+   * - exception => set fail status => return empty list
+   * @return
+   */
   List<Task> getExecutableTasks();
 
   List<Job> getSubJobs();
 
   JobStatus getStatus();
+
+  boolean isTerminated();
 
   List<Task> getTasks();
 

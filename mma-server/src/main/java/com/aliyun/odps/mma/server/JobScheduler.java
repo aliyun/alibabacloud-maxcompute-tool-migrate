@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.Action;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
+import com.aliyun.odps.mma.server.job.AbstractJob;
 import com.aliyun.odps.mma.server.job.Job;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.task.Task;
@@ -164,9 +165,7 @@ public class JobScheduler {
     for (Job job : runningJobs) {
       // TODO: remove later
       LOG.info("Job id: {}, status: {}", job.getId(), job.getStatus());
-      if (JobStatus.SUCCEEDED.equals(job.getStatus())
-          || JobStatus.FAILED.equals(job.getStatus())
-          || JobStatus.CANCELED.equals(job.getStatus())) {
+      if (job.isTerminated()) {
         LOG.info("Job terminated, id: {}, status: {}", job.getId(), job.getStatus());
 
         // TODO: a better way to print to the dw console

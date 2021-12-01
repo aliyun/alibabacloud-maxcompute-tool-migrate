@@ -182,14 +182,13 @@ public class HiveToMcTableJob extends AbstractTableJob {
       return;
     }
 
-    if (JobStatus.SUCCEEDED.equals(getStatus())
-        || JobStatus.FAILED.equals(getStatus())
-        || JobStatus.CANCELED.equals(getStatus())) {
+    if (isTerminated()) {
       LOG.info("Job has terminated, id: {}, status: {}, task id: {}, task status: {}",
                record.getJobId(),
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();

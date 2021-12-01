@@ -17,6 +17,7 @@
 package com.aliyun.odps.mma.server.job;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +48,7 @@ public class PartitionJob extends AbstractJob {
 
   @Override
   public List<Task> getExecutableTasks() {
-    throw new UnsupportedOperationException();
+    return new LinkedList<>();
   }
 
   @Override

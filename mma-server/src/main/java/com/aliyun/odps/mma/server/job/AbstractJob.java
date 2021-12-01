@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,6 +34,7 @@ import com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder;
 import com.aliyun.odps.mma.server.task.Task;
 
 public abstract class AbstractJob implements Job {
+
   private static final Logger LOG = LogManager.getLogger(AbstractJob.class);
 
   Job parentJob;
@@ -349,11 +350,14 @@ public abstract class AbstractJob implements Job {
     reload();
   }
 
-  boolean isTerminated() {
+  @Override
+  public boolean isTerminated() {
     JobStatus status = getStatus();
-    return JobStatus.SUCCEEDED.equals(status)
-        || JobStatus.FAILED.equals(status)
-        || JobStatus.CANCELED.equals(status);
+    boolean statusTerminated = JobStatus.SUCCEEDED.equals(status)
+                               || JobStatus.FAILED.equals(status)
+                               || JobStatus.CANCELED.equals(status);
+    boolean noMoreTask = getExecutableTasks().isEmpty();
+    return statusTerminated && noMoreTask;
   }
 
   String generateTaskIdPrefix() {

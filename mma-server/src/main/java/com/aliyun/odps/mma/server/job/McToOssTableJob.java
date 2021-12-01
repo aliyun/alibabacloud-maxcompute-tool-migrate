@@ -31,6 +31,7 @@ import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
@@ -51,6 +52,7 @@ import com.aliyun.odps.mma.util.McSqlUtils;
 public class McToOssTableJob extends AbstractTableJob {
 
   private static final Logger LOG = LogManager.getLogger(McToOssTableJob.class);
+  private Task finalCleanUpTask;
 
   public McToOssTableJob(
       Job parentJob,
@@ -128,6 +130,7 @@ public class McToOssTableJob extends AbstractTableJob {
           mcExternalTableMetaModel,
           pendingSubJobs);
       Task cleanUpTask = getCleanUpTask(mcExternalTableMetaModel);
+      finalCleanUpTask = getCleanUpTask(mcExternalTableMetaModel);
 
       dag.addVertex(metadataTransmissionTask);
       dag.addVertex(setUpTask);
@@ -181,6 +184,19 @@ public class McToOssTableJob extends AbstractTableJob {
         mcExternalMetaModel,
         groupDests,
         this);
+  }
+
+
+  @Override
+  synchronized void fail(String reason) {
+    super.fail(reason);
+    dag.addVertex(finalCleanUpTask);
+  }
+
+  @Override
+  public synchronized void stop() throws MmaException {
+    super.stop();
+    dag.addVertex(finalCleanUpTask);
   }
 
   private List<Task> getDataTransmissionTasks(
@@ -240,14 +256,13 @@ public class McToOssTableJob extends AbstractTableJob {
 
   @Override
   public synchronized void setStatus(Task task) {
-    if (JobStatus.SUCCEEDED.equals(getStatus())
-        || JobStatus.FAILED.equals(getStatus())
-        || JobStatus.CANCELED.equals(getStatus())) {
+    if (isTerminated()) {
       LOG.info("Job has terminated, id: {}, status: {}, task id: {}, task status: {}",
                record.getJobId(),
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();

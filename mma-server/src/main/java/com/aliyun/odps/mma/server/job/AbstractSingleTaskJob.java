@@ -86,6 +86,7 @@ public abstract class AbstractSingleTaskJob extends AbstractJob{
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();
