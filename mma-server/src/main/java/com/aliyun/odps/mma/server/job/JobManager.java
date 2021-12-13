@@ -191,7 +191,7 @@ public class JobManager {
         subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, objName);
         subConfig.put(JobConfiguration.DEST_OBJECT_NAME, objName);
         subConfig.put(JobConfiguration.OBJECT_TYPE, objectType.name());
-        if (ObjectType.TABLE.equals(objectType)){
+        if (ObjectType.TABLE.equals(objectType)) {
           addTableJob(jobId, catalogName, objName, new JobConfiguration(subConfig));
         } else {
           addSimpleTransmissionJob(jobId, new JobConfiguration(subConfig));
@@ -317,6 +317,7 @@ public class JobManager {
 
     boolean isPartitioned = !tableMetaModel.getPartitionColumns().isEmpty();
 
+    Map<String, String> extraConfig = new HashMap<>();
     if (isPartitioned) {
       // Add each partition as a sub job
       JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
@@ -348,7 +349,14 @@ public class JobManager {
             new JobConfiguration(subConfig).toString(),
             false);
       }
+    } else {
+      extraConfig.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
+                    Long.toString(tableMetaModel.getLastModificationTime()));
     }
+
+    // add extra config
+    extraConfig.putAll(config);
+    config = new JobConfiguration(extraConfig);
 
     if (isSubJob) {
       metaManager.addSubJob(
