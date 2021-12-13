@@ -191,7 +191,7 @@ public class JobManager {
         subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, objName);
         subConfig.put(JobConfiguration.DEST_OBJECT_NAME, objName);
         subConfig.put(JobConfiguration.OBJECT_TYPE, objectType.name());
-        if (ObjectType.TABLE.equals(objectType)){
+        if (ObjectType.TABLE.equals(objectType)) {
           addTableJob(jobId, catalogName, objName, new JobConfiguration(subConfig));
         } else {
           addSimpleTransmissionJob(jobId, new JobConfiguration(subConfig));
@@ -348,7 +348,13 @@ public class JobManager {
             new JobConfiguration(subConfig).toString(),
             false);
       }
+    } else {
+      Map<String, String> configMap = new HashMap<>(config);
+      configMap.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
+                    Long.toString(tableMetaModel.getLastModificationTime()));
+      config = new JobConfiguration(configMap);
     }
+
 
     if (isSubJob) {
       metaManager.addSubJob(
