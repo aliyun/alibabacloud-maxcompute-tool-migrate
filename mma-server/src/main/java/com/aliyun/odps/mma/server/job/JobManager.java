@@ -317,7 +317,6 @@ public class JobManager {
 
     boolean isPartitioned = !tableMetaModel.getPartitionColumns().isEmpty();
 
-    Map<String, String> extraConfig = new HashMap<>();
     if (isPartitioned) {
       // Add each partition as a sub job
       JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
@@ -350,13 +349,12 @@ public class JobManager {
             false);
       }
     } else {
-      extraConfig.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
+      Map<String, String> configMap = new HashMap<>(config);
+      configMap.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
                     Long.toString(tableMetaModel.getLastModificationTime()));
+      config = new JobConfiguration(configMap);
     }
 
-    // add extra config
-    extraConfig.putAll(config);
-    config = new JobConfiguration(extraConfig);
 
     if (isSubJob) {
       metaManager.addSubJob(
