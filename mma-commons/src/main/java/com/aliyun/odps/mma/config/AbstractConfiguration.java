@@ -154,6 +154,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String JOB_MAX_ATTEMPT_TIMES = "mma.job.max.attempt.times";
   public static final String JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE = "3";
   public static final String JOB_EXECUTION_MC_PROJECT = "mma.job.execution.mc.project";
+  public static final String JOB_EXECUTION_MC_SETTINGS = "mma.job.execution.mc.settings";
   public static final String JOB_NUM_DATA_WORKER = "mma.job.num.data.worker";
   public static final String JOB_NUM_DATA_WORKER_DEFAULT_VALUE = "5";
 

@@ -23,9 +23,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
 import com.aliyun.odps.Odps;
@@ -43,12 +46,25 @@ import com.google.gson.JsonPrimitive;
 
 public class ConfigurationUtils {
 
+  public static Map<String, String> getSQLSettings(String config) throws MmaException {
+    Map<String, String> sqlSettings = new HashMap<>();
+    if (!StringUtils.isBlank(config)) {
+      for (String s : config.split(";")) {
+        String[] kv = s.split("=");
+        if (kv.length != 2) {
+          throw new MmaException("Unsupported SQL setting format: " + s);
+        }
+        sqlSettings.put(kv[0].trim(), kv[1].trim());
+      }
+    }
+    return sqlSettings;
+  }
 
   public static class PartitionComparator implements Comparator<List<String>> {
 
     List<PartitionOrderType> partitionOrders;
 
-    public PartitionComparator(List<PartitionOrderType> partitionOrders){
+    public PartitionComparator(List<PartitionOrderType> partitionOrders) {
       this.partitionOrders = partitionOrders;
     }
 
@@ -96,7 +112,8 @@ public class ConfigurationUtils {
         getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_ID));
     String accessKeySecret = Validate.notBlank(
         config.get(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_SECRET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_SECRET));
+        getCannotBeNullOrEmptyErrorMessage(
+            AbstractConfiguration.METADATA_SOURCE_MC_ACCESS_KEY_SECRET));
     validateMcCredentials(endpoint, accessKeyId, accessKeySecret);
   }
 
@@ -155,7 +172,8 @@ public class ConfigurationUtils {
         getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_ID));
     String accessKeySecret = Validate.notBlank(
         config.get(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_SECRET),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_SECRET));
+        getCannotBeNullOrEmptyErrorMessage(
+            AbstractConfiguration.METADATA_DEST_MC_ACCESS_KEY_SECRET));
     validateMcCredentials(endpoint, accessKeyId, accessKeySecret);
   }
 

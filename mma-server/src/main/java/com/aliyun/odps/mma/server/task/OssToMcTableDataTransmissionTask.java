@@ -19,6 +19,7 @@ package com.aliyun.odps.mma.server.task;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McToMcTableDataTransmissionAction;
 import com.aliyun.odps.mma.server.job.Job;
@@ -33,12 +34,12 @@ public class OssToMcTableDataTransmissionTask extends TableDataTransmissionTask 
       TableMetaModel ossTableMetaModel,
       TableMetaModel mcTableMetaModel,
       Job job,
-      List<Job> subJobs) {
+      List<Job> subJobs) throws MmaException {
     super(id, rootJobId, config, ossTableMetaModel, mcTableMetaModel, job, subJobs);
     init();
   }
 
-  private void init() {
+  private void init() throws MmaException {
     ActionExecutionContext context = new ActionExecutionContext(config);
     String executionProject = config.getOrDefault(
         JobConfiguration.JOB_EXECUTION_MC_PROJECT,

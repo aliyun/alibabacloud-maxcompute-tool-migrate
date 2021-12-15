@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,10 +16,14 @@
 
 package com.aliyun.odps.mma.server.action;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.ConfigurationUtils;
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -29,6 +33,7 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
 
   private TableMetaModel source;
   private TableMetaModel dest;
+  private Map<String, String> settings;
 
   public McToMcTableDataTransmissionAction(
       String id,
@@ -39,10 +44,14 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
       TableMetaModel source,
       TableMetaModel dest,
       Task task,
-      ActionExecutionContext context) {
+      ActionExecutionContext context) throws MmaException {
     super(id, mcAccessKeyId, mcAccessKeySecret, mcProject, mcEndpoint, task, context);
     this.source = source;
     this.dest = dest;
+
+    JobConfiguration config = context.getConfig();
+    settings = ConfigurationUtils.getSQLSettings(
+        config.get(AbstractConfiguration.JOB_EXECUTION_MC_SETTINGS));
   }
 
   @Override
@@ -62,8 +71,7 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
 
   @Override
   public Map<String, String> getSettings() {
-    // TODO:
-    return new HashMap<>();
+    return settings;
   }
 
   @Override

@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
@@ -53,17 +54,8 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         config.get(JobConfiguration.DEST_CATALOG_NAME));
     ActionExecutionContext context = new ActionExecutionContext(config);
 
-    Map<String, String> userHiveSettingsMap = new HashMap<>();
-    String userHiveSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_RUNTIME_CONFIG);
-    if (!StringUtils.isBlank(userHiveSettings)) {
-      for (String s : userHiveSettings.split(";")) {
-        String[] kv = s.split("=");
-        if (kv.length != 2) {
-          throw new MmaException("Unsupported Hive setting format: " + s);
-        }
-        userHiveSettingsMap.put(kv[0].trim(), kv[1].trim());
-      }
-    }
+    Map<String, String> userHiveSettingsMap = ConfigurationUtils.getSQLSettings(
+        config.get(AbstractConfiguration.DATA_SOURCE_HIVE_RUNTIME_CONFIG));
 
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
