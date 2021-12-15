@@ -259,7 +259,7 @@ PRINTLN_STDERR_BOLD_YELLOW "MMA server configuration file path: ${MMA_SERVER_CON
 PRINTLN_STDERR ""
 PRINTLN_STDERR_BOLD_YELLOW "Validating MMA server configurations"
 java -Dlog4j.configurationFile="$MMA_HOME/res/mma_client_log4j2.xml" \
-     -cp "$MMA_HOME/lib/*" \
+     -cp "$MMA_HOME/lib/*:$MMA_HOME/lib/client/*" \
      com.aliyun.odps.mma.client.MmaConfigurationValidator \
      --config "${MMA_SERVER_CONFIG_PATH}"
 PRINTLN_STDERR_BOLD_YELLOW "Passed"
