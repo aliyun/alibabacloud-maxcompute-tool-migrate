@@ -18,5 +18,5 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export MMA_HOME=$(dirname ${DIR})
 
 java -Dlog4j.configurationFile="$MMA_HOME/res/mma_client_log4j2.xml" \
-     -cp "$MMA_HOME/lib:$MMA_HOME/lib/client/*" \
+     -cp "$MMA_HOME/lib/*:$MMA_HOME/lib/client/*" \
      com.aliyun.odps.mma.client.MmaClientMain "$@"
