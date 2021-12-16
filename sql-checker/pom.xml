@@ -102,6 +102,30 @@ limitations under the License.
       <groupId>com.aliyun.odps</groupId>
       <artifactId>odps-compiler</artifactId>
       <version>37-migration-tool-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <!--keep-->
+          <groupId>com.aliyun.odps</groupId>
+          <artifactId>odps-sdk-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jackson-core-lgpl</artifactId>
+          <groupId>org.codehaus.jackson</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jackson-mapper-lgpl</artifactId>
+          <groupId>org.codehaus.jackson</groupId>
+        </exclusion>
+        <exclusion>
+          <!--keep-->
+          <artifactId>odps-jni-pangufilesystem</artifactId>
+          <groupId>com.aliyun.odps</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>jsr305</artifactId>
+          <groupId>com.google.code.findbugs</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!--<dependency>-->
     <!--  <groupId>com.aliyun.odps</groupId>-->
