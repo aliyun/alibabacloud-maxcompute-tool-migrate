@@ -349,10 +349,12 @@ public class JobManager {
             false);
       }
     } else {
-      Map<String, String> configMap = new HashMap<>(config);
-      configMap.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
-                    Long.toString(tableMetaModel.getLastModificationTime()));
-      config = new JobConfiguration(configMap);
+      if (tableMetaModel.getLastModificationTime() != null) {
+        Map<String, String> configMap = new HashMap<>(config);
+        configMap.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
+                      Long.toString(tableMetaModel.getLastModificationTime()));
+        config = new JobConfiguration(configMap);
+      }
     }
 
 
