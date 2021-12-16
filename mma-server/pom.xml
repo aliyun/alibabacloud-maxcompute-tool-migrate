@@ -106,8 +106,9 @@ limitations under the License.
       <artifactId>jgrapht-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.dingtalk</groupId>
-      <artifactId>dingtalk-sdk</artifactId>
+      <groupId>com.aliyun</groupId>
+	  <artifactId>alibaba-dingtalk-service-sdk</artifactId>
+	  <version>1.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -220,12 +221,6 @@ limitations under the License.
           <groupId>com.aliyun.odps</groupId>
           <artifactId>mma-commons</artifactId>
           <version>${project.version}</version>
-          <exclusions>
-            <exclusion>
-              <artifactId>jetty-all</artifactId>
-              <groupId>org.eclipse.jetty.aggregate</groupId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
@@ -242,12 +237,6 @@ limitations under the License.
           <groupId>org.apache.hive</groupId>
           <artifactId>hive-jdbc</artifactId>
           <version>${hive.version}</version>
-          <exclusions>
-            <exclusion>
-              <artifactId>jetty-all</artifactId>
-              <groupId>org.eclipse.jetty.aggregate</groupId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
@@ -286,12 +275,6 @@ limitations under the License.
           <groupId>com.aliyun.odps</groupId>
           <artifactId>mma-commons</artifactId>
           <version>${project.version}</version>
-          <exclusions>
-            <exclusion>
-              <artifactId>jetty-all</artifactId>
-              <groupId>org.eclipse.jetty.aggregate</groupId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
@@ -308,12 +291,6 @@ limitations under the License.
           <groupId>org.apache.hive</groupId>
           <artifactId>hive-jdbc</artifactId>
           <version>${hive.version}</version>
-          <exclusions>
-            <exclusion>
-              <artifactId>jetty-all</artifactId>
-              <groupId>org.eclipse.jetty.aggregate</groupId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>

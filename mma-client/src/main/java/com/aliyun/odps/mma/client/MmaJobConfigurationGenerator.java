@@ -130,7 +130,7 @@ public class MmaJobConfigurationGenerator {
 
   private static int help(Options options) {
     HelpFormatter formatter = new HelpFormatter();
-    String syntax = "gen-job-conf --config /path/to/mma_server_config.json --objecttype [CATALOG | TABLE] [options]";
+    String syntax = "gen-job-conf --config /path/to/mma_server_config.json --objecttype [CATALOG | TABLE | TABLES] [options]";
     formatter.printHelp(syntax, options);
     return 0;
   }
@@ -250,7 +250,71 @@ public class MmaJobConfigurationGenerator {
     }
     return 0;
   }
+  
+  private static int generateTablesJobConfiguration(CommandLine cmd) throws IOException {
+		if (!cmd.hasOption(TABLE_MAPPING_PATH_LONG_OPT)) {
+			throw new IllegalArgumentException("Missing required option " + TABLE_MAPPING_PATH_LONG_OPT);
+		}
+		String tableMappingFilePath = cmd.getOptionValue(TABLE_MAPPING_PATH_LONG_OPT);
+		List<String> lines = FileUtils.readLines(new File(tableMappingFilePath), StandardCharsets.UTF_8);
+		StringBuilder tables = new StringBuilder();
+		StringBuilder sourceprefix = new StringBuilder();
+		StringBuilder desprefix = new StringBuilder();
+		for (String line : lines) {
+			if (StringUtils.isBlank(line) || line.trim().startsWith("#")) {
+				continue;
+			}
 
+			Matcher matcher = TABLE_MAPPING_LINE_PATTERN.matcher(line);
+			if (matcher.matches()) {
+				if (matcher.groupCount() != 5) {
+					System.err.println("[ERROR] Invalid line: " + line);
+					continue;
+				}
+
+				String sourceCatalog = Validate.notBlank(matcher.group(1),
+						"Source catalog name cannot be null or empty");
+				String sourceTbl = Validate.notBlank(matcher.group(2), "Source table name cannot be null or empty");
+				String destCatalog = Validate.notBlank(matcher.group(4),
+						"Destination catalog name cannot be null or empty");
+				String destTbl = Validate.notBlank(matcher.group(5), "Destination table cannot be null or empty");
+
+				List<String> partitionValues = null;
+				if (matcher.group(3) != null) {
+					System.err.println(
+							"[WARNING] Invalid line: " + line + "\nPartition level migration is not supported yet");
+					continue;
+				}
+
+				if (tables.length() > 0) {
+					tables.append(",");
+					tables.append(line);
+				} else {
+					tables.append(line);
+				}
+				sourceprefix.append(sourceCatalog + "." + sourceTbl);
+				desprefix.append(destCatalog + "." + destTbl);
+			} else {
+				System.err.println("[WARN] Invalid line: " + line);
+			}
+		}
+		if (tables.length() > 0) {
+			Map<String, String> builder = new HashMap<>();
+			builder.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLES.name());
+			builder.put(JobConfiguration.SOURCE_OBJECT_NAME, tables.toString());
+			String jobId = null;
+			if (cmd.hasOption(JOB_ID_LONG_OPT)) {
+				jobId = cmd.getOptionValue(JOB_ID_LONG_OPT);
+				builder.put(JobConfiguration.JOB_ID, jobId);
+			}
+			String json = GsonUtils.GSON.toJson(builder);
+			writeToFile(cmd, jobId, ObjectType.TABLES, sourceprefix.substring(0, 10), desprefix.substring(0, 10), json);
+		}else {
+			System.err.println("Invalid tablemapping");
+		}
+		return 0;
+	}
+  
   public static void main(String[] args) throws ParseException, IOException {
     mmaHome = System.getenv("MMA_HOME");
     if (mmaHome == null) {
@@ -278,6 +342,9 @@ public class MmaJobConfigurationGenerator {
       case TABLE:
         returnCode = generateTableJobConfiguration(cmd);
         break;
+      case TABLES:
+		returnCode = generateTablesJobConfiguration(cmd);
+		break;
       default:
         throw new IllegalArgumentException("Unsupported object type: " + objectType);
     }

@@ -24,4 +24,5 @@ package com.aliyun.odps.mma.config;
     FUNCTION,
     CATALOG,
     SCHEMA,
+    TABLES
   }

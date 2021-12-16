@@ -24,9 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -47,7 +50,8 @@ import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 
 public class JobManager {
-
+  private static final Pattern TABLE_MAPPING_LINE_PATTERN = Pattern
+			.compile("([^()]+)\\.([^()]+)(\\([^()]+\\))?:([^()]+)\\.([^()]+)");
   private static final Logger LOG = LogManager.getLogger(JobManager.class);
 
   private Map<String, Job> jobs = new ConcurrentHashMap<>();
@@ -120,6 +124,9 @@ public class JobManager {
       case TABLE: {
         return addTableJob(null, config);
       }
+      case TABLES: {
+			return addTablesJob(config);
+	  }
       default:
         throw new IllegalArgumentException("Unsupported object type " + objectType);
     }
@@ -217,6 +224,70 @@ public class JobManager {
     return jobId;
   }
 
+	private String addTablesJob(JobConfiguration config) throws Exception {
+		String jobId = config.get(JobConfiguration.JOB_ID);
+		if (StringUtils.isBlank(jobId)) {
+			jobId = JobUtils.generateJobId(false);
+		}
+
+		List<ObjectType> objectTypes;
+		// Supported object types
+		MetaSource metaSource = metaSourceFactory.getMetaSource(config);
+		List<ObjectType> supportedObjectTypes = metaSource.getSupportedObjectTypes();
+		// Specified object types
+		System.err.println("testdemo1:"+config.get(JobConfiguration.SOURCE_OBJECT_NAME));
+		String[] tables = config.get(JobConfiguration.SOURCE_OBJECT_NAME).split(",");
+
+		for (String table : tables) {
+			Matcher matcher = TABLE_MAPPING_LINE_PATTERN.matcher(table);
+			if (matcher.matches()) {
+				if (matcher.groupCount() != 5) {
+					System.err.println("[ERROR] Invalid line: " + table);
+					continue;
+				}
+
+				String sourceCatalog = Validate.notBlank(matcher.group(1),
+						"Source catalog name cannot be null or empty");
+				String sourceTbl = Validate.notBlank(matcher.group(2), "Source table name cannot be null or empty");
+				String destCatalog = Validate.notBlank(matcher.group(4),
+						"Destination catalog name cannot be null or empty");
+				String destTbl = Validate.notBlank(matcher.group(5), "Destination table cannot be null or empty");
+
+				List<String> partitionValues = null;
+				if (matcher.group(3) != null) {
+					System.err.println(
+							"[WARNING] Invalid table: " + table + "\nPartition level migration is not supported yet");
+					continue;
+				}
+				
+				if(metaSource.hasDatabase(sourceCatalog)&&metaSource.hasTable(sourceCatalog, sourceTbl)) {
+					Map<String, String> subConfig = new HashMap<>(config);
+					subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, sourceTbl);
+					subConfig.put(JobConfiguration.DEST_OBJECT_NAME, destTbl);
+					subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.TABLE.name());
+					subConfig.put(JobConfiguration.SOURCE_CATALOG_NAME, sourceCatalog);
+					subConfig.put(JobConfiguration.DEST_CATALOG_NAME, destCatalog);
+					System.err.println("testdemo: "+sourceCatalog+" "+sourceTbl);
+					addTableJob(jobId, sourceCatalog, sourceTbl, new JobConfiguration(subConfig));
+				}
+				
+			} else {
+				System.err.println("[WARN] Invalid table: " + table);
+			}
+			
+		}
+
+		String jobPriorityString = config.getOrDefault(JobConfiguration.JOB_PRIORITY,
+				JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE);
+		int jobPriority = Integer.valueOf(jobPriorityString);
+		String jobMaxAttemptTimesString = config.getOrDefault(JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
+				JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
+		int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
+		metaManager.addJob(jobId, jobPriority, jobMaxAttemptTimes, config.toString(), true);
+
+		return jobId;
+	}
+  
   private String addTableJob(
       String parentJobId,
       JobConfiguration config) throws Exception {
@@ -575,6 +646,9 @@ public class JobManager {
       case TABLE: {
         return getHiveToMcTableJob(parentJob, record);
       }
+      case TABLES: {
+		return getHiveToMcTablesJob(parentJob, record);
+	  }
       case PARTITION: {
         return getPartitionJob(parentJob, record);
       }
@@ -595,6 +669,10 @@ public class JobManager {
     return new HiveToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
+  private Job getHiveToMcTablesJob(Job parentJob, com.aliyun.odps.mma.server.meta.generated.Job record) {
+	return new CatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+  
   private Job getMcToOssCatalogJob(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
