@@ -307,6 +307,7 @@ public class MmaJobConfigurationGenerator {
 				jobId = cmd.getOptionValue(JOB_ID_LONG_OPT);
 				builder.put(JobConfiguration.JOB_ID, jobId);
 			}
+			
 			String json = GsonUtils.GSON.toJson(builder);
 			writeToFile(cmd, jobId, ObjectType.TABLES, sourceprefix.substring(0, 10), desprefix.substring(0, 10), json);
 		}else {
