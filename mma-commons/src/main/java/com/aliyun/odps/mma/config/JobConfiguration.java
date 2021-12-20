@@ -70,6 +70,12 @@ public class JobConfiguration extends AbstractConfiguration {
   public static final String JOB_ID = "mma.job.id";
 
   /**
+   * Job dag task type, could be TableSetup/DataTrans/DataConsistent, split with comma.
+   * @see {@link DagTaskType}
+   */
+  public static final String JOB_DAG_TASK_TYPES = "mma.job.dag.task.types";
+
+  /**
    * Regex patterns
    */
   private static final Pattern JOB_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
@@ -115,6 +121,7 @@ public class JobConfiguration extends AbstractConfiguration {
                && dataDestType.equals(DataDestType.MaxCompute)) {
       validateHiveToMcCredentials();
       validMcAuthType();
+      validateDagTaskTypes();
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
@@ -205,6 +212,20 @@ public class JobConfiguration extends AbstractConfiguration {
     if (McAuthType.AK.equals(authType)) {
       if (StringUtils.isBlank(get(DATA_DEST_MC_CONFIG_PATH))) {
         throw new MmaException("ERROR: odps_config.ini path not set");
+      }
+    }
+  }
+
+  private void validateDagTaskTypes() throws MmaException {
+    String taskTypesStr = get(JOB_DAG_TASK_TYPES);
+    if (!StringUtils.isBlank(taskTypesStr)) {
+      String[] taskTypes = taskTypesStr.split(",");
+      for (String taskType : taskTypes) {
+        try {
+          DagTaskType type = DagTaskType.valueOf(taskType.trim());
+        } catch (Throwable t) {
+          throw new MmaException("ERROR: invalid " + JOB_DAG_TASK_TYPES);
+        }
       }
     }
   }

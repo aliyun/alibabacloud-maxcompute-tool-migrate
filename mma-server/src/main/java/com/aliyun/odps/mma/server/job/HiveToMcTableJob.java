@@ -16,11 +16,11 @@
 
 package com.aliyun.odps.mma.server.job;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.aliyun.odps.mma.config.DagTaskType;
+import com.aliyun.odps.mma.exception.MmaException;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +61,11 @@ public class HiveToMcTableJob extends AbstractTableJob {
       MetaSource metaSource = metaSourceFactory.getMetaSource(config);
       String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
       String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
+      Set<DagTaskType> dagTaskTypes = Arrays.stream(config.getOrDefault(JobConfiguration.JOB_DAG_TASK_TYPES, DagTaskType.ALL.name())
+              .split(",")).map(t -> DagTaskType.valueOf(t)).collect(Collectors.toSet());
+      if(dagTaskTypes.contains(DagTaskType.ALL)){
+        dagTaskTypes = Arrays.stream(DagTaskType.values()).skip(1).collect(Collectors.toSet());
+      }
 
       TableMetaModel hiveTableMetaModel = metaSource.getTableMeta(catalogName, tableName);
       SchemaTransformResult schemaTransformResult = SchemaTransformerFactory
@@ -74,20 +79,34 @@ public class HiveToMcTableJob extends AbstractTableJob {
       }
 
       DirectedAcyclicGraph<Task, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
-      Task setUpTask = getSetUpTask(
-          metaSource,
-          hiveTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
-      List<Task> dataTransmissionTasks = getDataTransmissionTasks(
-          metaSource,
-          hiveTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
-
-      dag.addVertex(setUpTask);
-      dataTransmissionTasks.forEach(dag::addVertex);
-      dataTransmissionTasks.forEach(t -> dag.addEdge(setUpTask, t));
+      Task parentVertex = null;
+      for (DagTaskType taskType : dagTaskTypes) {
+        switch (taskType) {
+          case TableSetup: {
+            Task setUpTask = getSetUpTask(
+                    metaSource,
+                    hiveTableMetaModel,
+                    mcTableMetaModel,
+                    pendingSubJobs);
+            dag.addVertex(setUpTask);
+            parentVertex = setUpTask;
+          }
+          case DataTrans: {
+            List<Task> dataTransmissionTasks = getDataTransmissionTasks(
+                    metaSource,
+                    hiveTableMetaModel,
+                    mcTableMetaModel,
+                    pendingSubJobs);
+            dataTransmissionTasks.forEach(dag::addVertex);
+            if (parentVertex != null) {
+              Task parent = parentVertex;
+              dataTransmissionTasks.forEach(t -> dag.addEdge(parent, t));
+            }
+          }
+          case DataConsistency:
+          default: throw new MmaException("Unsupported task type: " + taskType);
+        }
+      }
       return dag;
     } catch (Exception e) {
       String stackTrace = ExceptionUtils.getFullStackTrace(e);
