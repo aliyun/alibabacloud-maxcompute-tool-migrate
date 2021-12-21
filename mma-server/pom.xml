@@ -44,6 +44,12 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.hive</groupId>
       <artifactId>hive-jdbc</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty.aggregate</groupId>
+          <artifactId>jetty-all</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -106,8 +112,8 @@ limitations under the License.
       <artifactId>jgrapht-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.dingtalk</groupId>
-      <artifactId>dingtalk-sdk</artifactId>
+      <groupId>com.aliyun</groupId>
+      <artifactId>alibaba-dingtalk-service-sdk</artifactId>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>

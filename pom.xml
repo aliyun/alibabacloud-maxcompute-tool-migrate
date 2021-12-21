@@ -40,7 +40,7 @@ limitations under the License.
     <repository>
       <id>conjars</id>
       <name>Concurrent Conjars repository</name>
-      <url>http://conjars.org/repo</url>
+      <url>https://conjars.org/repo</url>
       <layout>default</layout>
     </repository>
   </repositories>
@@ -199,9 +199,9 @@ limitations under the License.
       </dependency>
       <!-- dingtalk sdk -->
       <dependency>
-        <groupId>com.dingtalk</groupId>
-        <artifactId>dingtalk-sdk</artifactId>
-        <version>1.0</version>
+        <groupId>com.aliyun</groupId>
+        <artifactId>alibaba-dingtalk-service-sdk</artifactId>
+        <version>1.0.1</version>
       </dependency>
       <!-- jetty -->
       <dependency>
