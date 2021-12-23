@@ -134,6 +134,10 @@ public class HiveSqlUtils {
           sb.append(", ");
         }
       }
+
+      sb.append("\nLIMIT")
+        .append(" ")
+        .append(hiveTableMetaModel.getPartitions().size());
     }
     sb.append("\n");
     return sb.toString();
