@@ -89,6 +89,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
         source,
         true,
+        userHiveSettingsMap,
         this,
         context);
     dag.addVertex(hiveVerificationAction);
