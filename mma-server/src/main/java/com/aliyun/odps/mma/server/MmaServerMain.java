@@ -30,8 +30,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-// import org.apache.log4j.BasicConfigurator;
-// import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -66,8 +64,6 @@ public class MmaServerMain {
   }
 
   public static void main(String[] args) throws Exception {
-    // BasicConfigurator.configure();
-    // Configurator.initialize(null, )
 
     String mmaHome = System.getenv("MMA_HOME");
     if (mmaHome == null) {
