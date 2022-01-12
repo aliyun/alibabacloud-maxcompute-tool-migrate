@@ -84,6 +84,10 @@ limitations under the License.
           <artifactId>jsr305</artifactId>
           <groupId>com.google.code.findbugs</groupId>
         </exclusion>
+        <exclusion>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
