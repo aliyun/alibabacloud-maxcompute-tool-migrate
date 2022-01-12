@@ -263,8 +263,26 @@ MMA_HOME
     `begin` 和 `end` 指定了迁移的分区范围为 [`begin`, `end`]（包括 `begin` 和 `end` 分区），两者需要满足 `begin` <= `end`。
     
     `orders` 为斜线分割的分区值排序类型，如 `lex/num/...`，`lex` 为普通字典序（"7" > "11"），`num` 为数字序（"7" < "11"），一般使用 `lex` 即可。
-    
 
+- 批量表级别任务配置    
+  - 首先组织临时文件 table_mapping.txt，`conf/table_mapping.txt` 文件提供了编写模版（其中每一行表示一张 Hive 表到 MaxCompute 表的映射）：
+
+    ```$xslt
+    # The following example represents a migration job. The source table is 'source_table' in Hive
+    # database 'source_db' and the destination table is 'dest_table' in MaxCompute project 'dest_pjt'
+    
+    test_db.test_table:test_project.test_table
+    test_db_2.test_table:test_project_2.test_table
+    test_db.test_table_2:test_project_2.test_table_2
+    ```
+    
+  - 之后执行以下命令直接生成 table_mapping.txt 文件中包含的迁移任务配置。
+    ```shell
+    /path/to/mma/bin/gen-job-conf --objecttype TABLES \
+    				--tablemapping ${table_mapping_file}
+    ```
+    执行完成后，`conf/` 目录下将会生成 MMA 迁移任务的配置文件 `${objectType}-${sourceObjectname}-${job_id}.json`。
+	
 - 库级别任务配置
 
   - 执行以下命令生成迁移任务配置。过程中需要配置 `job_id` `source_catalog_name` `dest_catalog_name`
