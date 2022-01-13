@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.JobInfoOutputsV1;
+import com.aliyun.odps.mma.config.TaskInfoOutputs;
 import com.aliyun.odps.mma.config.OutputsWrapper;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.job.JobStatus;
@@ -45,6 +46,7 @@ import com.aliyun.odps.mma.server.JobScheduler;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.aliyun.odps.mma.server.job.Job;
 import com.aliyun.odps.mma.server.job.JobManager;
+import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.server.ui.utils.ApiUtils;
 import com.aliyun.odps.mma.util.Constants;
 import com.aliyun.odps.mma.util.GsonUtils;
@@ -113,6 +115,7 @@ public class JobApi extends AbstractRestfulApi {
       HttpServletRequest request,
       HttpServletResponse response) throws ServletException, IOException {
     String parameterJobId = request.getParameter(Constants.JOB_ID_PARAM);
+    String parameterSubJobId = request.getParameter(Constants.SUB_JOB_ID_PARAM);
     LOG.info("Method: GET, job id: {}", parameterJobId);
     if (parameterJobId == null) {
       // List jobs
@@ -123,6 +126,10 @@ public class JobApi extends AbstractRestfulApi {
       Job job;
       try {
         job = jobManager.getJobById(parameterJobId);
+        
+        if(job.hasSubJob() && parameterSubJobId !=null) {
+        	job = jobManager.getSubJobById(job, parameterSubJobId);
+        }
       } catch (Exception e) {
         if (e instanceof IllegalArgumentException) {
           ApiUtils.handleError(response, HttpServletResponse.SC_NOT_FOUND, e);
@@ -150,9 +157,15 @@ public class JobApi extends AbstractRestfulApi {
               config.get(JobConfiguration.SOURCE_OBJECT_NAME),
               config.get(JobConfiguration.DEST_CATALOG_NAME),
               config.get(JobConfiguration.DEST_OBJECT_NAME),
+              job.getPriority(),
+              job.getCreationTime(),
+              job.getStartTime(),
+              job.getEndTime(),
               job.getStatus().name(),
               // TODO: progress
-              0.0D);
+              0.0D,
+              null,
+              null);
         })
         .collect(Collectors.toList());
     wrapper.setOutputs(jobInfoOutputs);
@@ -160,6 +173,47 @@ public class JobApi extends AbstractRestfulApi {
   }
 
   private String getJobInfoOutputs(Job job) {
+	List<JobInfoOutputsV1> jobInfoOutputs = null;
+	List<TaskInfoOutputs> taskInfoOutputs = null;
+	try {
+		if(job.hasSubJob()) {
+			jobInfoOutputs = job.getSubJobs()
+		          .stream()
+		          .map(sjob -> {
+		            JobConfiguration sconfig = sjob.getJobConfiguration();
+		            return new JobInfoOutputsV1(
+		                sjob.getId(),
+		                sconfig.get(JobConfiguration.OBJECT_TYPE),
+		                sconfig.get(JobConfiguration.SOURCE_CATALOG_NAME),
+		                sconfig.get(JobConfiguration.SOURCE_OBJECT_NAME),
+		                sconfig.get(JobConfiguration.DEST_CATALOG_NAME),
+		                sconfig.get(JobConfiguration.DEST_OBJECT_NAME),
+		                job.getPriority(),
+		                job.getCreationTime(),
+		                job.getStartTime(),
+		                job.getEndTime(),
+		                sjob.getStatus().name(),
+		                // TODO: progress
+		                0.0D,null,null);
+		          })
+		          .collect(Collectors.toList());
+		}
+		else {
+			taskInfoOutputs = job.getTasks()
+			          .stream()
+			          .map(stask -> {
+			            return new TaskInfoOutputs(
+			                stask.getId(),
+			                stask.getStartTime(),
+			                stask.getEndTime(),
+			                stask.getProgress().toString());
+			          })
+			          .collect(Collectors.toList());
+			
+		}
+	} catch(Exception e) {
+			
+	}
     OutputsWrapper<JobInfoOutputsV1> wrapper = new OutputsWrapper<>();
     wrapper.setProtocolVersion(1);
     JobConfiguration config = job.getJobConfiguration();
@@ -170,9 +224,15 @@ public class JobApi extends AbstractRestfulApi {
         config.get(JobConfiguration.SOURCE_OBJECT_NAME),
         config.get(JobConfiguration.DEST_CATALOG_NAME),
         config.get(JobConfiguration.DEST_OBJECT_NAME),
+        job.getPriority(),
+        job.getCreationTime(),
+        job.getStartTime(),
+        job.getEndTime(),
         job.getStatus().name(),
         // TODO: progress
-        0.0D
+        0.0D,
+        jobInfoOutputs,
+        taskInfoOutputs
         );
     wrapper.setOutputs(outputs);
     return GsonUtils.GSON.toJson(wrapper);
@@ -226,9 +286,15 @@ public class JobApi extends AbstractRestfulApi {
         config.get(JobConfiguration.SOURCE_OBJECT_NAME),
         config.get(JobConfiguration.DEST_CATALOG_NAME),
         config.get(JobConfiguration.DEST_OBJECT_NAME),
+        job.getPriority(),
+        job.getCreationTime(),
+        job.getStartTime(),
+        job.getEndTime(),
         JobStatus.PENDING.name(),
         // TODO: progress
-        0.0D);
+        0.0D,
+        null,
+        null);
     wrapper.setOutputs(outputs);
 
     response.getWriter().write(GsonUtils.GSON.toJson(wrapper));
