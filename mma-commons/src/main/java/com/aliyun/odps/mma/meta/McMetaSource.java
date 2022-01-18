@@ -22,20 +22,32 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.aliyun.odps.ArchiveResource;
 import com.aliyun.odps.Column;
+import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Function;
+import com.aliyun.odps.JarResource;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.Partition;
 import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.Project;
+import com.aliyun.odps.PyResource;
 import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
+import com.aliyun.odps.TableResource;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.ObjectType;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.utils.StringUtils;
 
 public class McMetaSource implements MetaSource {
 
@@ -132,26 +144,6 @@ public class McMetaSource implements MetaSource {
 //    return views;
 //  }
 //
-//  public List<String> listFunctions(String databaseName) {
-//    List<String> functions = new ArrayList<>();
-//    Iterator<Function> iterator = odps.functions().iterator(databaseName);
-//    while (iterator.hasNext()) {
-//      Function func = iterator.next();
-//      functions.add(func.getName());
-//    }
-//    return functions;
-//  }
-//
-//  public List<String> listResources(String databaseName) {
-//    List<String> resources = new ArrayList<>();
-//    Iterator<Resource> iterator = odps.resources().iterator(databaseName);
-//    while (iterator.hasNext()) {
-//      Resource resource = iterator.next();
-//      resources.add(resource.getName());
-//    }
-//    return resources;
-//  }
-//
 //  public List<String> listManagedTables(String databaseName) {
 //    List<String> tables = new ArrayList<>();
 //    Iterator<Table> iterator = odps.tables().iterator(databaseName);
@@ -226,6 +218,45 @@ public class McMetaSource implements MetaSource {
     }
     Partition partition = table.getPartition(partitionSpec);
     return getPartitionMetaModelInternal(partition);
+  }
+
+  @Override
+  public ResourceMetaModel getResourceMeta(String databaseName, String resourceName)
+      throws Exception {
+    if (!odps.resources().exists(databaseName, resourceName)) {
+      throw new MmaException("resource " + databaseName + "." + resourceName + " does not exist");
+    }
+    Resource resource = odps.resources().get(databaseName, resourceName);
+    String tableName = null;
+    String partitionSpec = null;
+    if (Resource.Type.TABLE.equals(resource.getType())) {
+      TableResource tableResource = (TableResource) resource;
+      tableName = tableResource.getSourceTable().getName();
+      PartitionSpec spec = tableResource.getSourceTablePartition();
+      if (spec != null) {
+        partitionSpec = spec.toString();
+      }
+    }
+    return new ResourceMetaModel(resource.getName(),
+                                 resource.getType(),
+                                 resource.getComment(),
+                                 tableName,
+                                 partitionSpec);
+  }
+
+  @Override
+  public FunctionMetaModel getFunctionMeta(String databaseName, String functionName)
+      throws Exception {
+    if (!odps.functions().exists(databaseName, functionName)) {
+      throw new MmaException("function " + databaseName + "." + functionName + " does not exist");
+    }
+    Function function = odps.functions().get(databaseName, functionName);
+    List<String> resources = new ArrayList<>();
+    function.getResourceNames();
+    for (Resource resource : function.getResources()) {
+      resources.add(resource.getName());
+    }
+    return new FunctionMetaModel(function.getName(), function.getClassPath(), resources);
   }
 
   @Override

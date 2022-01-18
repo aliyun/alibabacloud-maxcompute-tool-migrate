@@ -27,18 +27,19 @@ import org.apache.logging.log4j.Logger;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
-import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.OssConfig;
+import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.job.JobStatus;
+import com.aliyun.odps.mma.meta.OssMetaSource;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.task.McToOssTableCleanUpTask;
 import com.aliyun.odps.mma.server.task.McToOssTableDataTransmissionTask;
@@ -66,19 +67,12 @@ public class McToOssTableJob extends AbstractTableJob {
     LOG.info("Generate the DAG, job id: {}", record.getJobId());
 
     try {
-      OssConfig ossConfig = new OssConfig(
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_INTERNAL),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_EXTERNAL),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET));
+      OssConfig ossConfig = OssUtils.getOssConfig(config, true, false, getRootJobId());
 
-      String[] locations = OssUtils.getOssPaths(
-          config.get(AbstractConfiguration.METADATA_DEST_OSS_PATH),
-          config.get(JobConfiguration.JOB_ID),
-          config.get(JobConfiguration.OBJECT_TYPE),
+      String[] locations = OssMetaSource.getMetaAndDataPath(
+          ossConfig.getOssPrefix(),
           config.get(JobConfiguration.DEST_CATALOG_NAME),
+          ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE)),
           config.get(JobConfiguration.DEST_OBJECT_NAME));
       String metadataLocation = locations[0];
       String dataLocation = locations[1];

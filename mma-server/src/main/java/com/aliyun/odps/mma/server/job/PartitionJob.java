@@ -23,7 +23,7 @@ import java.util.Map;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder;

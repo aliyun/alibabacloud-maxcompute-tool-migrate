@@ -17,11 +17,9 @@
 package com.aliyun.odps.mma.server.action;
 
 
-import com.aliyun.odps.mma.config.ObjectType;
-import com.aliyun.odps.mma.Constants;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.mma.server.OssUtils;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.util.GsonUtils;
 

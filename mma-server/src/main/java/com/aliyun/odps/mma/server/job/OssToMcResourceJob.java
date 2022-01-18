@@ -16,9 +16,12 @@
 
 package com.aliyun.odps.mma.server.job;
 
-import com.aliyun.odps.mma.config.AbstractConfiguration;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OssConfig;
+import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
+import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.task.OssToMcResourceTask;
 import com.aliyun.odps.mma.server.task.Task;
@@ -35,19 +38,20 @@ public class OssToMcResourceJob extends AbstractSingleTaskJob {
   }
 
   @Override
-  Task generateTask() {
+  Task generateTask() throws Exception {
     String taskIdPrefix = generateTaskIdPrefix();
-    OssConfig ossConfig = new OssConfig(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ROLE_ARN),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+    OssConfig ossConfig = OssUtils.getOssConfig(config, true, true, getRootJobId());
+
+    MetaSource metaSource = metaSourceFactory.getMetaSource(config);
+    ResourceMetaModel resourceMetaModel = metaSource.getResourceMeta(
+        config.get(JobConfiguration.SOURCE_CATALOG_NAME),
+        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
+
     return new OssToMcResourceTask(
         taskIdPrefix + ".resourceTransmission",
         getRootJobId(),
         config,
+        resourceMetaModel,
         ossConfig,
          this);
   }

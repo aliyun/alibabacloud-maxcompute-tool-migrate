@@ -22,7 +22,7 @@ import java.util.Map;
 
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.server.task.Task;
 
 public class McVerificationAction extends McSqlAction {

@@ -25,7 +25,12 @@ import java.util.stream.Collectors;
 
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
+import com.aliyun.odps.mma.meta.model.ColumnMetaModel;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel.TableMetaModelBuilder;
 
 /**
  * Can be used as a mock MaxCompute or Hive meta source.
@@ -191,6 +196,18 @@ public class MockMetaSource implements MetaSource {
     } else {
       throw new Exception("Database or table doesn't exist");
     }
+  }
+
+  @Override
+  public ResourceMetaModel getResourceMeta(String databaseName, String resourceName)
+      throws Exception {
+    return null;
+  }
+
+  @Override
+  public FunctionMetaModel getFunctionMeta(String databaseName, String functionName)
+      throws Exception {
+    return null;
   }
 
   @Override

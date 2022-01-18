@@ -20,13 +20,8 @@ package com.aliyun.odps.mma.server.action;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.Function;
-import com.aliyun.odps.Odps;
-import com.aliyun.odps.mma.config.AbstractConfiguration;
-import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.config.ObjectType;
-import com.aliyun.odps.mma.server.OdpsUtils;
+import com.aliyun.odps.mma.config.OssConfig;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
 import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.util.GsonUtils;
@@ -34,27 +29,21 @@ import com.aliyun.odps.mma.util.GsonUtils;
 public class McToOssFunctionAction extends DefaultAction {
 
   private static final Logger LOG = LogManager.getLogger(McToOssFunctionAction.class);
-  private final AbstractConfiguration config;
   private final OssConfig ossConfig;
-  private final Odps odps;
   private final String metafile;
-  private final String datafile;
+  private final FunctionMetaModel functionMetaModel;
 
   public McToOssFunctionAction(
       String id,
-      Odps odps,
-      AbstractConfiguration config,
-      OssConfig ossConfig,
-      String metafile,
-      String datafile,
       Task task,
-      ActionExecutionContext context) {
+      ActionExecutionContext context,
+      FunctionMetaModel functionMetaModel,
+      OssConfig ossConfig,
+      String metafile ) {
     super(id, task, context);
-    this.config = config;
+    this.functionMetaModel = functionMetaModel;
     this.ossConfig = ossConfig;
-    this.odps = odps;
     this.metafile = metafile;
-    this.datafile = datafile;
   }
 
 
@@ -73,13 +62,7 @@ public class McToOssFunctionAction extends DefaultAction {
 
   @Override
   public Object call() throws Exception {
-    Function function = OdpsUtils.getFunction(
-        odps,
-        config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
-
-    McFunctionInfo functionInfo = new McFunctionInfo(function);
-    String content = GsonUtils.GSON.toJson(functionInfo);
+    String content = GsonUtils.GSON.toJson(functionMetaModel);
     LOG.info("Action: {}, function info: {}", id, content);
     OssUtils.createFile(ossConfig, metafile, content);
     return null;

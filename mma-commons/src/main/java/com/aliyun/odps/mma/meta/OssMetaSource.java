@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,17 +27,32 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 
 import com.aliyun.odps.mma.config.ObjectType;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.util.GsonUtils;
+import com.aliyun.odps.utils.StringUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.ListObjectsRequest;
 import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.ObjectListing;
 
+import static com.aliyun.odps.mma.config.ObjectType.TABLE;
+import static com.aliyun.odps.mma.config.ObjectType.RESOURCE;
+import static com.aliyun.odps.mma.config.ObjectType.FUNCTION;
+
 public class OssMetaSource implements MetaSource {
 
   private static final String DELIMITER = "/";
+  private static final String DEFAULT_ROOT_PREFIX = "mma";
+  private static final String META_FOLDER = "metadata";
+  private static final String METAFILE = "meta.txt";
+  private static final String DATA_FOLDER = "data";
+
   private static final List<ObjectType> SUPPORTED_OBJECT_TYPES;
+
   static {
     SUPPORTED_OBJECT_TYPES = new ArrayList<>(1);
     SUPPORTED_OBJECT_TYPES.add(ObjectType.TABLE);
@@ -68,28 +83,19 @@ public class OssMetaSource implements MetaSource {
 
   @Override
   public boolean hasDatabase(String databaseName) {
-    ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossBucket);
-    listObjectsRequest.setMaxKeys(1);
-    listObjectsRequest.setPrefix(ossPath + "/metadata/" + databaseName);
-    listObjectsRequest.setDelimiter(DELIMITER);
-    return !oss.listObjects(listObjectsRequest).getCommonPrefixes().isEmpty();
+    String dirPath = getPath(databaseName, null, null, null);
+    return dirExists(dirPath);
   }
 
   @Override
   public boolean hasTable(String databaseName, String tableName) {
-    ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossBucket);
-    listObjectsRequest.setMaxKeys(1);
-    listObjectsRequest.setPrefix(ossPath + "/metadata/" + databaseName + "/TABLE/" + tableName);
-    listObjectsRequest.setDelimiter(DELIMITER);
-    return !oss.listObjects(listObjectsRequest).getCommonPrefixes().isEmpty();
+    return dirExists(getPath(databaseName, TABLE, tableName, null));
   }
 
   @Override
   public boolean hasPartition(String databaseName, String tableName, List<String> partitionValues)
       throws Exception {
-    String objectPath = ossPath + "/metadata/" + databaseName + "/TABLE/" + tableName + "/meta.txt";
-    TableMetaModel tableMetaModel =
-        GsonUtils.GSON.fromJson(readObject(objectPath), TableMetaModel.class);
+    TableMetaModel tableMetaModel = getMetaModel(databaseName, tableName, TABLE, TableMetaModel.class);
     return tableMetaModel.getPartitions()
         .stream()
         .anyMatch(p -> p.getPartitionValues().equals(partitionValues));
@@ -97,33 +103,27 @@ public class OssMetaSource implements MetaSource {
 
   @Override
   public List<String> listDatabases() {
-    String prefix = ossPath + "/metadata/";
-    return listObjects(prefix);
+    return listObjects(null, null);
   }
 
   @Override
   public List<String> listTables(String databaseName) {
-    String prefix = ossPath + "/metadata/" + databaseName + "/TABLE/";
-    return listObjects(prefix);
+    return listObjects(databaseName, TABLE);
   }
 
   @Override
   public List<String> listResources(String databaseName) throws Exception {
-    String prefix = ossPath + "/metadata/" + databaseName + "/RESOURCE/";
-    return listObjects(prefix);
+    return listObjects(databaseName, RESOURCE);
   }
 
   @Override
   public List<String> listFunctions(String databaseName) throws Exception {
-    String prefix = ossPath + "/metadata/" + databaseName + "/FUNCTION/";
-    return listObjects(prefix);
+    return listObjects(databaseName, FUNCTION);
   }
 
   @Override
   public List<List<String>> listPartitions(String databaseName, String tableName) throws Exception {
-    String objectPath = ossPath + "/metadata/" + databaseName + "/TABLE/" + tableName + "/meta.txt";
-    TableMetaModel tableMetaModel =
-        GsonUtils.GSON.fromJson(readObject(objectPath), TableMetaModel.class);
+    TableMetaModel tableMetaModel = getMetaModel(databaseName, tableName, TABLE, TableMetaModel.class);
     return tableMetaModel.getPartitions()
         .stream()
         .map(PartitionMetaModel::getPartitionValues)
@@ -132,15 +132,13 @@ public class OssMetaSource implements MetaSource {
 
   @Override
   public TableMetaModel getTableMeta(String databaseName, String tableName) throws Exception {
-    String objectPath = ossPath + "/metadata/" + databaseName + "/TABLE/" + tableName + "/meta.txt";
-    return GsonUtils.GSON.fromJson(readObject(objectPath), TableMetaModel.class);
+    return getMetaModel(databaseName, tableName, TABLE, TableMetaModel.class);
   }
 
   @Override
   public TableMetaModel getTableMetaWithoutPartitionMeta(String databaseName, String tableName)
       throws Exception {
-    String objectPath = ossPath + "/metadata/" + databaseName + "/TABLE/" + tableName + "/meta.txt";
-    return GsonUtils.GSON.fromJson(readObject(objectPath), TableMetaModel.class);
+    return getMetaModel(databaseName, tableName, TABLE, TableMetaModel.class);
   }
 
   @Override
@@ -148,14 +146,24 @@ public class OssMetaSource implements MetaSource {
       String databaseName,
       String tableName,
       List<String> partitionValues) throws Exception {
-    String objectPath = ossPath + "/metadata/" + databaseName + "/TABLE/" + tableName + "/meta.txt";
-    TableMetaModel tableMetaModel =
-        GsonUtils.GSON.fromJson(readObject(objectPath), TableMetaModel.class);
+    TableMetaModel tableMetaModel = getMetaModel(databaseName, tableName, TABLE, TableMetaModel.class);
     return tableMetaModel.getPartitions()
         .stream()
         .filter(p -> partitionValues.equals(p.getPartitionValues()))
         .findFirst()
         .orElse(null);
+  }
+
+  @Override
+  public ResourceMetaModel getResourceMeta(String databaseName, String resourceName)
+      throws Exception {
+    return getMetaModel(databaseName, resourceName, RESOURCE, ResourceMetaModel.class);
+  }
+
+  @Override
+  public FunctionMetaModel getFunctionMeta(String databaseName, String functionName)
+      throws Exception {
+    return getMetaModel(databaseName, functionName, FUNCTION, FunctionMetaModel.class);
   }
 
   @Override
@@ -168,9 +176,90 @@ public class OssMetaSource implements MetaSource {
     oss.shutdown();
   }
 
+  private String getPath(String catalog, ObjectType objectType, String objectName, String file) {
+    return getPath(ossPath, true, catalog, objectType, objectName, file);
+  }
+
+  public static String[] getMetaAndDataPath(String ossPathPrefix, String catalogName,
+                                            ObjectType objectType, String objectName) {
+    // get [metafile path, data dir]
+    return new String[]{
+        getPath(ossPathPrefix, true, catalogName, objectType, objectName, METAFILE),
+        getPath(ossPathPrefix, false, catalogName, objectType, objectName, null)
+    };
+  }
+
+  public static String getDefaultPrefix(String prefix, String rootJobId) {
+    // prefix not null => prefix
+    // prefix ==  null => mma/rootJobId
+    if (StringUtils.isNullOrEmpty(prefix)) {
+      return getFolderNameWithSeparator(DEFAULT_ROOT_PREFIX) + getFolderNameWithSeparator(
+          rootJobId);
+    }
+    return prefix;
+  }
+
+  public static String getPath(String ossPathPrefix, boolean isMetaData, String catalogName,
+                               ObjectType objectType, String objectName, String file) {
+    // prefix / data(metadata) / catalog name / object type(eg: TABLE) / object name / (file)
+
+    StringBuilder builder = new StringBuilder();
+    String dataType = isMetaData ? META_FOLDER : DATA_FOLDER;
+    builder.append(getFolderNameWithSeparator(ossPathPrefix))
+        .append(getFolderNameWithSeparator(dataType));
+
+    if (null == catalogName) {
+      return builder.toString();
+    }
+    builder.append(getFolderNameWithSeparator(catalogName));
+
+    if (null == objectType) {
+      return builder.toString();
+    }
+    builder.append(getFolderNameWithSeparator(objectType.name()));
+
+    if (null == objectName) {
+      return builder.toString();
+    }
+    builder.append(getFolderNameWithSeparator(objectName));
+
+    if (null == file) {
+      return builder.toString();
+    }
+    builder.append(file);
+
+    return builder.toString();
+  }
+
+  private static String getFolderNameWithSeparator(String folderName) {
+    if (folderName.endsWith("/")) {
+      return folderName;
+    }
+    return folderName + "/";
+  }
+
+  private List<String> listObjects(String databaseName, ObjectType objectType) {
+    String path = getPath(databaseName, objectType, null, null);
+    return listObjects(path);
+  }
+
+  private <T> T getMetaModel(String databaseName, String objectName, ObjectType type, Class<T> cls)
+      throws IOException {
+    String path = getPath(databaseName, type, objectName, METAFILE);
+    return GsonUtils.GSON.fromJson(readObject(path), cls);
+  }
+
   private String readObject(String path) throws IOException {
     OSSObject ossObject = oss.getObject(ossBucket, path);
     return IOUtils.toString(ossObject.getObjectContent(), StandardCharsets.UTF_8);
+  }
+
+  private boolean dirExists(String path) {
+    ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossBucket);
+    listObjectsRequest.setMaxKeys(1);
+    listObjectsRequest.setPrefix(path);
+    listObjectsRequest.setDelimiter(DELIMITER);
+    return !oss.listObjects(listObjectsRequest).getCommonPrefixes().isEmpty();
   }
 
   private List<String> listObjects(String prefix) {

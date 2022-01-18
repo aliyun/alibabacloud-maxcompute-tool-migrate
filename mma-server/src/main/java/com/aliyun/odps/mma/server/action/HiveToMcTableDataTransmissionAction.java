@@ -32,7 +32,7 @@ import com.aliyun.odps.mma.config.McAuthType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.HiveSqlUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.server.task.Task;

@@ -28,7 +28,7 @@ import com.aliyun.odps.mma.server.action.HiveVerificationAction;
 import com.aliyun.odps.mma.server.action.McVerificationAction;
 import com.aliyun.odps.mma.server.action.VerificationAction;
 import com.aliyun.odps.mma.server.job.Job;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask {
 

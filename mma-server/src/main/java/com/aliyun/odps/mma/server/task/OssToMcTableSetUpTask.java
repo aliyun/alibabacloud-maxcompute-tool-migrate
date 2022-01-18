@@ -26,7 +26,7 @@ import com.aliyun.odps.mma.server.action.McCreateOssExternalTableAction;
 import com.aliyun.odps.mma.server.action.McCreateTableAction;
 import com.aliyun.odps.mma.server.job.AbstractTableJob.TablePartitionGroup;
 import com.aliyun.odps.mma.server.job.Job;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public class OssToMcTableSetUpTask extends DagTask {
   private TableMetaModel mcExternalTableMetaModel;

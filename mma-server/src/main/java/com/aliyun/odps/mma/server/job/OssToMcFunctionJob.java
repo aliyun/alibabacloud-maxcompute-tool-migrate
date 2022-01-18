@@ -16,9 +16,10 @@
 
 package com.aliyun.odps.mma.server.job;
 
-import com.aliyun.odps.mma.config.AbstractConfiguration;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.server.task.OssToMcFunctionTask;
 import com.aliyun.odps.mma.server.task.Task;
@@ -35,20 +36,19 @@ public class OssToMcFunctionJob extends AbstractSingleTaskJob {
   }
 
   @Override
-  Task generateTask() {
+  Task generateTask() throws Exception {
     String taskIdPrefix = generateTaskIdPrefix();
-    OssConfig ossConfig = new OssConfig(
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ROLE_ARN),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
-        config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET));
+
+    MetaSource metaSource = metaSourceFactory.getMetaSource(config);
+    FunctionMetaModel functionMetaModel = metaSource.getFunctionMeta(
+        config.get(JobConfiguration.SOURCE_CATALOG_NAME),
+        config.get(JobConfiguration.SOURCE_OBJECT_NAME));
+
     return new OssToMcFunctionTask(
         taskIdPrefix + ".functionTransmission",
         getRootJobId(),
         config,
-        ossConfig,
+        functionMetaModel,
          this);
   }
 

@@ -17,11 +17,11 @@
 package com.aliyun.odps.mma.server.task;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.config.OssConfig;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McToOssTableMetadataTransmissionAction;
 import com.aliyun.odps.mma.server.job.Job;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public class McToOssTableMetadataTransmissionTask extends DagTask {
 

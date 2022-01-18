@@ -28,7 +28,7 @@ import org.apache.commons.io.IOUtils;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.meta.MetaSource;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
 import com.aliyun.odps.mma.util.McSqlUtils;

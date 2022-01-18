@@ -23,18 +23,23 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.ArchiveResource;
 import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Function;
+import com.aliyun.odps.JarResource;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.PartitionSpec;
+import com.aliyun.odps.PyResource;
 import com.aliyun.odps.Resource;
 import com.aliyun.odps.Table;
 import com.aliyun.odps.TableResource;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.MmaConfig;
-import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.exception.MmaException;
-import com.aliyun.odps.mma.server.action.McFunctionInfo;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
+import com.aliyun.odps.mma.meta.model.ResourceMetaModel;
+import com.aliyun.odps.utils.StringUtils;
 
 public class OdpsUtils {
   private static final Logger LOG = LogManager.getLogger(OdpsUtils.class);
@@ -71,12 +76,35 @@ public class OdpsUtils {
     return null;
   }
 
-  public static Function getFunction(Odps odps, String project, String name)
-      throws OdpsException, MmaException {
-    if (odps.functions().exists(project, name)) {
-      return odps.functions().get(project, name);
+  public static Resource getResource(ResourceMetaModel resourceMetaModel) throws MmaException {
+    Resource resource;
+    switch (resourceMetaModel.getType()) {
+      case ARCHIVE:
+        resource = new ArchiveResource();
+        break;
+      case PY:
+        resource = new PyResource();
+        break;
+      case JAR:
+        resource = new JarResource();
+        break;
+      case FILE:
+        resource = new FileResource();
+        break;
+      case TABLE:
+        PartitionSpec spec = null;
+        if (!StringUtils.isNullOrEmpty(resourceMetaModel.getPartitionSpec())) {
+          spec = new PartitionSpec(resourceMetaModel.getPartitionSpec());
+        }
+        resource = new TableResource(resourceMetaModel.getTableName(), null, spec);
+        break;
+      default:
+        throw new MmaException("Unknown resource type: " + resourceMetaModel.getType());
     }
-    throw new MmaException("Function " + name + " not exists");
+
+    resource.setName(resourceMetaModel.getAlias());
+    resource.setComment(resourceMetaModel.getComment());
+    return resource;
   }
 
   public static Resource getResource(Odps odps, String project, String name)
@@ -90,15 +118,18 @@ public class OdpsUtils {
   public static void createFunction(
       Odps odps,
       String project,
-      McFunctionInfo functionInfo,
+      FunctionMetaModel functionMetaModel,
       boolean isUpdate) throws OdpsException {
     LOG.info("Create function {}.{} class {}, resources {}, update {}",
              project,
-             functionInfo.getFunctionName(),
-             functionInfo.getClassName(),
-             functionInfo.getUseList(),
+             functionMetaModel.getFunctionName(),
+             functionMetaModel.getClassName(),
+             functionMetaModel.getUseList(),
              isUpdate);
-    Function function = functionInfo.toFunction();
+    Function function = new Function();
+    function.setName(functionMetaModel.getFunctionName());
+    function.setClassPath(functionMetaModel.getClassName());
+    function.setResources(functionMetaModel.getUseList());
     if (odps.functions().exists(project, function.getName()) && isUpdate) {
       odps.functions().update(project, function);
     } else {

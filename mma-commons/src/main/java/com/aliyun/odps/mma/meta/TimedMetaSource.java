@@ -21,6 +21,9 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
+
 public abstract class TimedMetaSource implements MetaSource {
 
   private static final Logger LOG = LogManager.getLogger(TimedMetaSource.class);

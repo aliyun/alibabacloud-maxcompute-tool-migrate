@@ -27,9 +27,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.aliyun.odps.mma.TestUtils;
-import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.mma.meta.OssMetaSource;
+import com.aliyun.odps.mma.meta.model.PartitionMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;

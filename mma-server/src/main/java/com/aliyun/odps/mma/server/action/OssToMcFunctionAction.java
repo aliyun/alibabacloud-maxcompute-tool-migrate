@@ -22,32 +22,26 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
-import com.aliyun.odps.mma.exception.MmaException;
+import com.aliyun.odps.mma.meta.model.FunctionMetaModel;
 import com.aliyun.odps.mma.server.OdpsUtils;
-import com.aliyun.odps.mma.server.OssUtils;
 import com.aliyun.odps.mma.server.task.Task;
-import com.aliyun.odps.mma.util.GsonUtils;
 
 public class OssToMcFunctionAction extends DefaultAction {
 
   private static final Logger LOG = LogManager.getLogger(OssToMcFunctionAction.class);
-  private final OssConfig ossConfig;
-  private final String metafile;
+  private final FunctionMetaModel functionMetaModel;
   private final Odps odps;
   private final boolean update;
 
   public OssToMcFunctionAction(
       String id,
-      OssConfig ossConfig,
-      String metafile,
+      FunctionMetaModel functionMetaModel,
       Odps odps,
       boolean update,
       Task task,
       ActionExecutionContext context) {
     super(id, task, context);
-    this.ossConfig = ossConfig;
-    this.metafile = metafile;
+    this.functionMetaModel = functionMetaModel;
     this.odps = odps;
     this.update = update;
   }
@@ -69,14 +63,9 @@ public class OssToMcFunctionAction extends DefaultAction {
 
   @Override
   public Object call() throws Exception {
-    if (!OssUtils.exists(ossConfig, metafile)) {
-      throw new MmaException(String.format("ActionId: %s, OSS file %s not found", id, metafile));
-    }
-    String content = OssUtils.readFile(ossConfig, metafile);
-    McFunctionInfo functionInfo = GsonUtils.GSON.fromJson(content, McFunctionInfo.class);
-    OdpsUtils.createFunction(odps, odps.getDefaultProject(), functionInfo, update);
-
-    LOG.info("Restore function {} succeed", content);
+    //todo use odpsconfig
+    OdpsUtils.createFunction(odps, odps.getDefaultProject(), functionMetaModel, update);
+    LOG.info("Restore function {} succeed", functionMetaModel.getFunctionName());
     return null;
   }
 

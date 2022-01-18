@@ -33,7 +33,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.Constants;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.aliyun.odps.utils.StringUtils;
 
@@ -103,83 +103,6 @@ public class MmaConfig {
           + ", migrationSettings=" + Objects.toString(migrationSettings, "null")
           + ", verifySettings=" + Objects.toString(verifySettings, "null")
           + '}';
-    }
-  }
-
-  public static class OssConfig implements Config {
-
-    private String ossEndPointForMc;
-    private String ossEndPointForMma;
-    private String ossBucket;
-    private String ossRoleArn;
-    private String ossAccessId;
-    private String ossAccessKey;
-    private String metadataPath;
-    private String dataPath;
-    public static final String PREFIX = "oss://";
-
-    public OssConfig(String internalEndpoint, String externalEndpoint, String ossBucket,
-                     String roleArn, String accessId, String accessKey) {
-      this.ossEndPointForMc = internalEndpoint;
-      this.ossEndPointForMma = externalEndpoint == null ? internalEndpoint : externalEndpoint;
-      this.ossBucket = ossBucket;
-      this.ossRoleArn = roleArn;
-      this.ossAccessId = accessId;
-      this.ossAccessKey = accessKey;
-    }
-
-    @Override
-    public boolean validate() {
-      // TODO: try to connect
-      if (StringUtils.isNullOrEmpty(ossEndPointForMc) ||
-          StringUtils.isNullOrEmpty(ossEndPointForMma) ||
-          StringUtils.isNullOrEmpty(ossBucket)) {
-        return false;
-      }
-      // arn, accessId and accessKey should not be empty at the same time
-      if (StringUtils.isNullOrEmpty(ossRoleArn) &&
-          StringUtils.isNullOrEmpty(ossAccessId) &&
-          StringUtils.isNullOrEmpty(ossAccessKey)) {
-        return false;
-      }
-      if (StringUtils.isNullOrEmpty(ossAccessId) != StringUtils.isNullOrEmpty(ossAccessKey)) {
-        return false;
-      }
-      return true;
-    }
-
-    public String getEndpointForMc() {
-      return ossEndPointForMc;
-    }
-
-    public String getEndpointForMma() {
-      return ossEndPointForMma;
-    }
-
-    public String getOssBucket() {
-      return ossBucket;
-    }
-
-    public String getOssRoleArn() {
-      return ossRoleArn;
-    }
-
-    public String getOssAccessId() {
-      return ossAccessId;
-    }
-
-    public String getOssAccessKey() {
-      return ossAccessKey;
-    }
-
-    @Override
-    public String toString() {
-      return "OssDataSource {"
-             + "ossEndpoint='" + Objects.toString(ossEndPointForMc, "null") + '\''
-             + ", ossLocalEndpoint='" + Objects.toString(ossEndPointForMma, "null") + '\''
-             + ", ossBucket='" + Objects.toString(ossBucket, "null") + '\''
-             + ", ossRoleArn='" + Objects.toString(ossRoleArn, "null") + '\''
-             + '}';
     }
   }
 

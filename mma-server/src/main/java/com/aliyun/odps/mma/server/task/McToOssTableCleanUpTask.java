@@ -20,7 +20,7 @@ import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McDropTableAction;
 import com.aliyun.odps.mma.server.job.Job;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public class McToOssTableCleanUpTask extends DagTask {
 

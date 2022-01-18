@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.server.job.Job;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.meta.model.TableMetaModel;
 
 public abstract class TableDataTransmissionTask extends DagTask {
 

@@ -16,31 +16,23 @@
 
 package com.aliyun.odps.mma.server;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.mma.Constants;
-import com.aliyun.odps.mma.config.MmaConfig;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.utils.StringUtils;
+import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.OssConfig;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.GetObjectRequest;
-import com.aliyun.oss.model.ListObjectsRequest;
-import com.aliyun.oss.model.OSSObject;
-import com.aliyun.oss.model.OSSObjectSummary;
-import com.aliyun.oss.model.ObjectListing;
 import com.aliyun.oss.model.PutObjectRequest;
 
 
@@ -48,12 +40,12 @@ public class OssUtils
 {
   private static final Logger LOG = LogManager.getLogger(OssUtils.class);
 
-  public static void createFile(MmaConfig.OssConfig ossConfig, String fileName, String content) {
+  public static void createFile(OssConfig ossConfig, String fileName, String content) {
     createFile(ossConfig, fileName, new ByteArrayInputStream(content.getBytes()));
   }
 
   public static void createFile(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String fileName,
       InputStream inputStream) {
     LOG.info("Create oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
@@ -67,36 +59,7 @@ public class OssUtils
     ossClient.shutdown();
   }
 
-  public static String readFile(MmaConfig.OssConfig ossConfig, String fileName) throws IOException {
-    LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMma(), ossConfig.getOssBucket());
-
-    OSS ossClient = createOssClient(ossConfig);
-    OSSObject ossObject = ossClient.getObject(ossConfig.getOssBucket(), fileName);
-    StringBuilder builder = new StringBuilder();
-    BufferedReader reader = new BufferedReader(new InputStreamReader(ossObject.getObjectContent()));
-    while (true) {
-      String line = reader.readLine();
-      if (line == null) {
-        break;
-      }
-      builder.append(line).append('\n');
-    }
-    reader.close();
-    ossClient.shutdown();
-    return builder.toString();
-  }
-
-  public static InputStream openInputStream(MmaConfig.OssConfig ossConfig, String fileName) {
-    LOG.info("Read oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
-        .getEndpointForMma(), ossConfig.getOssBucket());
-
-    OSS ossClient = createOssClient(ossConfig);
-    OSSObject ossObject = ossClient.getObject(ossConfig.getOssBucket(), fileName);
-    return ossObject.getObjectContent();
-  }
-
-  public static boolean exists(MmaConfig.OssConfig ossConfig, String fileName) {
+  public static boolean exists(OssConfig ossConfig, String fileName) {
     LOG.info("Check oss file: {}, endpoint: {}, bucket: {}", fileName, ossConfig
         .getEndpointForMma(), ossConfig.getOssBucket());
 
@@ -107,7 +70,7 @@ public class OssUtils
   }
 
   public static String downloadFile(
-      MmaConfig.OssConfig ossConfig,
+      OssConfig ossConfig,
       String jobId,
       String fileName) throws IOException {
 
@@ -130,129 +93,40 @@ public class OssUtils
     return localFile.getAbsolutePath();
   }
 
-  public static List<String> listBucket(MmaConfig.OssConfig ossConfig, String prefix) {
-    OSS ossClient = createOssClient(ossConfig);
-    ArrayList<String> allFiles = new ArrayList<>();
-    ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossConfig.getOssBucket());
-    listObjectsRequest.setMaxKeys(1000);
-    listObjectsRequest.setPrefix(prefix);
-    listObjectsRequest.setDelimiter("/");
-    while (true) {
-      ObjectListing objectListing = ossClient.listObjects(listObjectsRequest);
-      List<OSSObjectSummary> sums = objectListing.getObjectSummaries();
-      for (OSSObjectSummary s : sums) {
-        allFiles.add(s.getKey());
-      }
-      if (!objectListing.isTruncated()) {
-        break;
-      }
-      listObjectsRequest.setMarker(objectListing.getNextMarker());
+  public static OssConfig getOssConfig(
+      JobConfiguration config, boolean isMeta, boolean isSource, String rootJobId)
+      throws MmaException {
+    if (!isMeta) {
+      throw new MmaException("not supported now");
     }
-    return allFiles;
-  }
-
-  public static List<String> listBucket(
-      MmaConfig.OssConfig ossConfig,
-      String prefix,
-      String delimiter) {
-
-    OSS ossClient = createOssClient(ossConfig);
-    ArrayList<String> allFiles = new ArrayList<>();
-    ListObjectsRequest listObjectsRequest = new ListObjectsRequest(ossConfig.getOssBucket());
-    listObjectsRequest.setMaxKeys(1000);
-    listObjectsRequest.setPrefix(prefix);
-    listObjectsRequest.setDelimiter(delimiter);
-    while (true) {
-      ObjectListing objectListing = ossClient.listObjects(listObjectsRequest);
-      for (String fullName : objectListing.getCommonPrefixes()) {
-        String[] splitResult = fullName.split(delimiter);
-        allFiles.add(splitResult[splitResult.length - 1]);
-      }
-      if (!objectListing.isTruncated()) {
-        break;
-      }
-      listObjectsRequest.setMarker(objectListing.getNextMarker());
+    if (isSource) {
+      return new OssConfig(
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_INTERNAL),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ENDPOINT_EXTERNAL),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_BUCKET),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ROLE_ARN),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_ID),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_ACCESS_KEY_SECRET),
+          config.get(AbstractConfiguration.METADATA_SOURCE_OSS_PATH),
+          rootJobId);
+    } else {
+      return new OssConfig(
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_INTERNAL),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ENDPOINT_EXTERNAL),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_BUCKET),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ROLE_ARN),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_ID),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_ACCESS_KEY_SECRET),
+          config.get(AbstractConfiguration.METADATA_DEST_OSS_PATH),
+          rootJobId);
     }
-    return allFiles;
   }
 
-  public static String getOssPathToExportObject(
-      String taskName,
-      String objectType,
-      String database,
-      String objectName,
-      String ossFileName) {
-    StringBuilder builder = new StringBuilder();
-    builder.append(getFolderNameWithSeparator("mma"))
-           .append(getFolderNameWithSeparator(taskName))
-           .append(getFolderNameWithSeparator(objectType))
-           .append(getFolderNameWithSeparator(database.toLowerCase()))
-           .append(getFolderNameWithSeparator(objectName.toLowerCase()))
-           .append(ossFileName);
-    return builder.toString();
-  }
-
-
-  public static String[] getOssPaths(
-      String ossPathPrefix,
-      String rootJobId,
-      String objectType,
-      String catalogName,
-      String objectName) {
-    return new String[]{
-            getMcToOssPath(ossPathPrefix, rootJobId, objectType, catalogName, objectName, true),
-            getMcToOssPath(ossPathPrefix, rootJobId, objectType, catalogName, objectName, false)};
-  }
-
-  private static String getMcToOssPath(
-      String ossPathPrefix,
-      String rootJobId,
-      String objectType,
-      String catalogName,
-      String objectName,
-      boolean isMetadata) {
-    // prefix / data(metadata) / catalog name / object type(eg: TABLE) / object name / (file)
-    StringBuilder builder = new StringBuilder();
-    if (StringUtils.isNullOrEmpty(ossPathPrefix)) {
-      ossPathPrefix = getFolderNameWithSeparator(Constants.EXPORT_PREFIX) + getFolderNameWithSeparator(rootJobId);
-    }
-    String dataType = isMetadata ? Constants.EXPORT_METADATA_FOLDER : Constants.EXPORT_DATA_FOLDER;
-    String filename = isMetadata ? Constants.EXPORT_META_FILE_NAME : "";
-
-    builder.append(getFolderNameWithSeparator(ossPathPrefix))
-           .append(getFolderNameWithSeparator(dataType))
-           .append(getFolderNameWithSeparator(catalogName))
-           .append(getFolderNameWithSeparator(objectType))
-           .append(getFolderNameWithSeparator(objectName))
-           .append(filename);
-
-    return builder.toString();
-  }
-
-  public static String getOssFolderToExportObject(
-      String taskName,
-      String folderName,
-      String database) {
-
-    StringBuilder builder = new StringBuilder();
-    builder.append(getFolderNameWithSeparator("odps_mma/export_objects/"))
-           .append(getFolderNameWithSeparator(taskName))
-           .append(getFolderNameWithSeparator(folderName))
-           .append(getFolderNameWithSeparator(database.toLowerCase()));
-    return builder.toString();
-  }
-
-  private static OSS createOssClient(MmaConfig.OssConfig ossConfig) {
+  private static OSS createOssClient(OssConfig ossConfig) {
     return (new OSSClientBuilder()).build(
         ossConfig.getEndpointForMma(),
         ossConfig.getOssAccessId(),
         ossConfig.getOssAccessKey());
   }
 
-  private static String getFolderNameWithSeparator(String folderName) {
-    if (folderName.endsWith("/")) {
-      return folderName;
-    }
-    return folderName + "/";
-  }
 }
