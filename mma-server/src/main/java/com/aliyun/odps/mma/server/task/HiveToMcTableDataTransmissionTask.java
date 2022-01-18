@@ -16,13 +16,10 @@
 
 package com.aliyun.odps.mma.server.task;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
@@ -53,17 +50,8 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         config.get(JobConfiguration.DEST_CATALOG_NAME));
     ActionExecutionContext context = new ActionExecutionContext(config);
 
-    Map<String, String> userHiveSettingsMap = new HashMap<>();
-    String userHiveSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_RUNTIME_CONFIG);
-    if (!StringUtils.isBlank(userHiveSettings)) {
-      for (String s : userHiveSettings.split(";")) {
-        String[] kv = s.split("=");
-        if (kv.length != 2) {
-          throw new MmaException("Unsupported Hive setting format: " + s);
-        }
-        userHiveSettingsMap.put(kv[0].trim(), kv[1].trim());
-      }
-    }
+    String transmissionSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_TRANSMISSION_SETTINGS);
+    String verificationSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_VERIFICATION_SETTINGS);
 
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
@@ -77,7 +65,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
             config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
             source,
             dest,
-            userHiveSettingsMap,
+            ConfigurationUtils.getSettingsMap(transmissionSettings),
             this,
             context);
     dag.addVertex(dataTransmissionAction);
@@ -89,6 +77,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
         source,
         true,
+        ConfigurationUtils.getSettingsMap(verificationSettings),
         this,
         context);
     dag.addVertex(hiveVerificationAction);

@@ -23,9 +23,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
 import com.aliyun.odps.Odps;
@@ -43,6 +46,22 @@ import com.google.gson.JsonPrimitive;
 
 public class ConfigurationUtils {
 
+  public static Map<String, String> getSettingsMap(String settings) throws MmaException {
+    Map<String, String> settingsMap = new HashMap<>();
+    if (StringUtils.isBlank(settings)) {
+      return settingsMap;
+    }
+    if (!StringUtils.isBlank(settings)) {
+      for (String s : settings.split(";")) {
+        String[] kv = s.split("=");
+        if (kv.length != 2) {
+          throw new MmaException("Unsupported setting format: " + s);
+        }
+        settingsMap.put(kv[0].trim(), kv[1].trim());
+      }
+    }
+    return settingsMap;
+  }
 
   public static class PartitionComparator implements Comparator<List<String>> {
 

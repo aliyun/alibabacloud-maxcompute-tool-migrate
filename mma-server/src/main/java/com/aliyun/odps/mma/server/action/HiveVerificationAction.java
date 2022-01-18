@@ -16,7 +16,6 @@
 
 package com.aliyun.odps.mma.server.action;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,9 +36,10 @@ public class HiveVerificationAction extends HiveSqlAction {
       String password,
       TableMetaModel tableMetaModel,
       boolean isSourceVerification,
+      Map<String, String> userHiveSettings,
       Task task,
       ActionExecutionContext actionExecutionContext) {
-    super(id, jdbcUrl, username, password, task, actionExecutionContext);
+    super(id, jdbcUrl, username, password, userHiveSettings, task, actionExecutionContext);
     this.isSourceVerification = isSourceVerification;
     this.tableMetaModel = tableMetaModel;
   }
@@ -47,12 +47,6 @@ public class HiveVerificationAction extends HiveSqlAction {
   @Override
   String getSql() {
     return HiveSqlUtils.getVerifySql(tableMetaModel);
-  }
-
-  @Override
-  Map<String, String> getSettings() {
-    // TODO:
-    return new HashMap<>();
   }
 
   @Override

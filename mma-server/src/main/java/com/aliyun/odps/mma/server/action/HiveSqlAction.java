@@ -16,9 +16,11 @@
 
 package com.aliyun.odps.mma.server.action;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.server.task.Task;
@@ -28,12 +30,14 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
   private String jdbcUrl;
   private String username;
   private String password;
+  Map<String, String> userHiveSettings;
 
   public HiveSqlAction(
       String id,
       String jdbcUrl,
       String username,
       String password,
+      Map<String, String> userHiveSettings,
       Task task,
       ActionExecutionContext actionExecutionContext) {
     super(id, task, actionExecutionContext);
@@ -41,6 +45,11 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
     this.jdbcUrl = jdbcUrl;
     this.username = username;
     this.password = password;
+    if (null == userHiveSettings) {
+      this.userHiveSettings = new HashMap<>();
+    } else {
+      this.userHiveSettings = userHiveSettings;
+    }
   }
 
   @Override
@@ -57,5 +66,7 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
 
   abstract String getSql() throws Exception;
 
-  abstract Map<String, String> getSettings() throws Exception;
+  Map<String, String> getSettings() throws MmaException {
+    return userHiveSettings;
+  }
 }

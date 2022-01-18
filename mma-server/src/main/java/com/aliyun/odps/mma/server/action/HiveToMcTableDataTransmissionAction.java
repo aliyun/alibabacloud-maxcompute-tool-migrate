@@ -72,7 +72,6 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   private String endpoint;
   private TableMetaModel hiveTableMetaModel;
   private TableMetaModel mcTableMetaModel;
-  private Map<String, String> userHiveSettings;
 
   public HiveToMcTableDataTransmissionAction(
       String id,
@@ -88,14 +87,13 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
       Map<String, String> userHiveSettings,
       Task task,
       ActionExecutionContext actionExecutionContext) {
-    super(id, jdbcUrl, username, password, task, actionExecutionContext);
+    super(id, jdbcUrl, username, password, userHiveSettings, task, actionExecutionContext);
     this.accessKeyId = accessKeyId;
     this.accessKeySecret = accessKeySecret;
     this.executionProject = executionProject;
     this.endpoint = endpoint;
     this.hiveTableMetaModel = hiveTableMetaModel;
     this.mcTableMetaModel = mcTableMetaModel;
-    this.userHiveSettings = userHiveSettings;
 
     // Set the number of data worker
     // Priority: job configuration -> MMA server configuration -> default value
