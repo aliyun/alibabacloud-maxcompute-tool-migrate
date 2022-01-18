@@ -51,7 +51,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
     ActionExecutionContext context = new ActionExecutionContext(config);
 
     String transmissionSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_TRANSMISSION_SETTINGS);
-    String verifySettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_VERIFY_SETTINGS);
+    String verificationSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_VERIFICATION_SETTINGS);
 
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
@@ -77,7 +77,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         config.get(JobConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD),
         source,
         true,
-        ConfigurationUtils.getSettingsMap(verifySettings),
+        ConfigurationUtils.getSettingsMap(verificationSettings),
         this,
         context);
     dag.addVertex(hiveVerificationAction);
