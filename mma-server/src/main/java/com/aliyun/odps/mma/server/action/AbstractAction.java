@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Future;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -111,7 +111,7 @@ public abstract class AbstractAction<T> implements Action {
       LOG.error(
           "Action failed before execution, actionId: {}, reason: {}",
           id,
-          ExceptionUtils.getFullStackTrace(e));
+          ExceptionUtils.getStackTrace(e));
       setProgress(ActionProgress.FAILED);
     }
   }
@@ -134,7 +134,7 @@ public abstract class AbstractAction<T> implements Action {
     } catch (Exception e) {
       LOG.error("Action failed, actionId: {}, stack trace: {}",
                 id,
-                ExceptionUtils.getFullStackTrace(e));
+                ExceptionUtils.getStackTrace(e));
       setProgress(ActionProgress.FAILED);
     }
   }

@@ -24,7 +24,7 @@ import java.util.Collections;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.http.MimeTypes;
 
 import com.aliyun.odps.mma.config.ErrorOutputsV1;

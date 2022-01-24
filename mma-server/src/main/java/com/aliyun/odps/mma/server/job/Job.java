@@ -18,8 +18,6 @@ package com.aliyun.odps.mma.server.job;
 
 import java.util.List;
 
-import org.apache.hadoop.hive.metastore.api.MetaException;
-
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.task.Task;

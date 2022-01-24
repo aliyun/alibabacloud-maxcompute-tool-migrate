@@ -20,9 +20,9 @@ package com.aliyun.odps.mma.server.action;
 
 import java.io.InputStream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.datanucleus.util.StringUtils;
 
 import com.aliyun.odps.FileResource;
 import com.aliyun.odps.Odps;

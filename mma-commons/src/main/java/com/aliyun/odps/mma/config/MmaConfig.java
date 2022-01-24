@@ -20,13 +20,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.commons.collections.MapUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -256,7 +256,7 @@ public class MmaConfig {
       }
       if (!sourceTableSettings.isInitialized()) {
         sourceTableSettings.initialize(
-            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+            globalSettings == null ? Collections.emptyMap() : globalSettings);
       }
       return sourceTableSettings;
     }
@@ -310,7 +310,7 @@ public class MmaConfig {
     }
 
     public Map<String, String> getGlobalSettings() {
-      return globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings;
+      return globalSettings == null ? Collections.emptyMap() : globalSettings;
     }
 
     public SQLSettingConfig getSourceTableSettings() {
@@ -319,7 +319,7 @@ public class MmaConfig {
       }
       if (!sourceTableSettings.isInitialized()) {
         sourceTableSettings.initialize(
-            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+            globalSettings == null ? Collections.emptyMap() : globalSettings);
       }
       return sourceTableSettings;
     }
@@ -330,7 +330,7 @@ public class MmaConfig {
       }
       if (!destinationTableSettings.isInitialized()) {
         destinationTableSettings.initialize(
-            globalSettings == null ? MapUtils.EMPTY_MAP : globalSettings);
+            globalSettings == null ? Collections.emptyMap() : globalSettings);
       }
       return destinationTableSettings;
     }

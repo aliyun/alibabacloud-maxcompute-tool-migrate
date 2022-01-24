@@ -22,7 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jgrapht.graph.DefaultEdge;
@@ -138,7 +138,7 @@ public class OssToMcTableJob extends AbstractTableJob {
       dataTransmissionTasks.forEach(t -> dag.addEdge(t, cleanUpTask));
       return dag;
     } catch (Exception e) {
-      String stackTrace = ExceptionUtils.getFullStackTrace(e);
+      String stackTrace = ExceptionUtils.getStackTrace(e);
       fail(stackTrace);
       throw e;
     }

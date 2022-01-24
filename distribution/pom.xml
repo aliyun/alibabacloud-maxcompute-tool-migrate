@@ -58,7 +58,7 @@ limitations under the License.
             <configuration>
               <appendAssemblyId>false</appendAssemblyId>
               <descriptors>
-                <descriptor>src/assembly/assembly${assembly.sql}${assembly.test}.xml</descriptor>
+                <descriptor>src/assembly/assembly${assembly.test}.xml</descriptor>
               </descriptors>
               <finalName>mma-${project.version}</finalName>
             </configuration>
