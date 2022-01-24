@@ -26,6 +26,7 @@ limitations under the License.
       <includes>
         <include>com.aliyun.odps:mma-client:zip:${project.version}</include>
         <include>com.aliyun.odps:mma-server:zip:${project.version}</include>
+        <include>com.aliyun.odps:sql-checker:zip:${project.version}</include>
       </includes>
       <outputDirectory>${file.separator}</outputDirectory>
       <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
@@ -47,6 +48,11 @@ limitations under the License.
       <directory>src/assembly/res</directory>
     </fileSet>
     <fileSet>
+      <outputDirectory>bin</outputDirectory>
+      <directory>../sql-checker/src/assembly/bin</directory>
+      <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
       <outputDirectory>test</outputDirectory>
       <directory>src/assembly/test</directory>
       <fileMode>0755</fileMode>
@@ -56,6 +62,10 @@ limitations under the License.
     <file>
       <source>../data-transfer-hive-udtf/target/data-transfer-hive-udtf-${project.version}-jar-with-dependencies.jar</source>
       <destName>res/data-transfer-hive-udtf-${project.version}-jar-with-dependencies.jar</destName>
+    </file>
+    <file>
+      <source>../mma-data-connector/hive-connector/target/hive-uber-${hive.version}.jar</source>
+      <destName>lib/connector/hive-uber-${hive.version}.jar</destName>
     </file>
     <file>
       <source>target/version.txt</source>

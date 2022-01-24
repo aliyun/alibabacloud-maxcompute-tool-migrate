@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.executor.ActionExecutorFactory;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
@@ -54,14 +55,17 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
 
   @Override
   void executeInternal() throws Exception {
-    future = ActionExecutorFactory.getHiveSqlExecutor().execute(
-      jdbcUrl,
-      username,
-      password,
-      getSql(),
-      getSettings(),
-      id,
-      (HiveSqlActionInfo) actionInfo);
+    future = ActionExecutorFactory.getHiveSqlExecutor(
+        this.actionExecutionContext.getConfig()
+            .get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH)
+    ).execute(
+        jdbcUrl,
+        username,
+        password,
+        getSql(),
+        getSettings(),
+        id,
+        (HiveSqlActionInfo) actionInfo);
   }
 
   abstract String getSql() throws Exception;

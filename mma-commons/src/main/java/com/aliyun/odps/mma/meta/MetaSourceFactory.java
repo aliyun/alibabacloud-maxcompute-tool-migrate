@@ -26,9 +26,12 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
 
@@ -99,7 +102,7 @@ public class MetaSourceFactory {
       setUpType();
     }
 
-    MetaSource getMetaSource() throws MetaException, ClassNotFoundException {
+    MetaSource getMetaSource() throws MmaException {
       if (metaSource != null) {
         return metaSource;
       }
@@ -121,6 +124,7 @@ public class MetaSourceFactory {
             config.get(AbstractConfiguration.JAVAX_SECURITY_AUTH_USESUBJECTCREDSONLY));
       }
 
+      MetaConfig metaConfig = null;
       if (isHms) {
         Map<String, String> extraConfigs;
         String extraConfigsStr = config.get(
@@ -132,7 +136,8 @@ public class MetaSourceFactory {
         } else {
           extraConfigs = new HashMap<>();
         }
-        metaSource = new HiveMetaSourceHmsImpl(
+
+        metaConfig = new HiveMetaConfig(
             config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_URIS),
             Boolean.parseBoolean(config.get(
                 AbstractConfiguration.METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED)),
@@ -141,11 +146,19 @@ public class MetaSourceFactory {
             javaSecurityConfigs,
             extraConfigs);
       } else {
-        metaSource = new HiveMetaSourceJdbcImpl(
+        metaConfig = new HiveMetaConfig(
             config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_URL),
             config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_USERNAME),
             config.get(AbstractConfiguration.METADATA_SOURCE_HIVE_JDBC_PASSWORD),
             javaSecurityConfigs);
+      }
+
+      try {
+        metaSource = ConnectorUtils.loadMetaSource(
+            config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH),
+            metaConfig);
+      } catch (Exception e) {
+        throw new MmaException("Load Hive MetaSource FAIL", e);
       }
       return metaSource;
     }

@@ -45,7 +45,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract boolean timedHasDatabase(String databaseName) throws Exception;
+  public abstract boolean timedHasDatabase(String databaseName) throws Exception;
 
   @Override
   public final boolean hasTable(String databaseName, String tableName) throws Exception {
@@ -57,7 +57,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract boolean timedHasTable(String databaseName, String tableName) throws Exception;
+  public abstract boolean timedHasTable(String databaseName, String tableName) throws Exception;
 
   @Override
   public final boolean hasPartition(String databaseName, String tableName, List<String> partitionValues)
@@ -70,7 +70,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract boolean timedHasPartition(
+  public abstract boolean timedHasPartition(
       String databaseName,
       String tableName,
       List<String> partitionValues) throws Exception;
@@ -85,7 +85,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract List<String> timedListDatabases() throws Exception;
+  public abstract List<String> timedListDatabases() throws Exception;
 
   @Override
   public final List<String> listTables(String databaseName) throws Exception {
@@ -97,7 +97,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract List<String> timedListTables(String databaseName) throws Exception;
+  public abstract List<String> timedListTables(String databaseName) throws Exception;
 
   @Override
   public final List<List<String>> listPartitions(String databaseName, String tableName) throws Exception {
@@ -109,7 +109,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract List<List<String>> timedListPartitions(
+  public abstract List<List<String>> timedListPartitions(
       String databaseName,
       String tableName) throws Exception;
 
@@ -123,7 +123,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract TableMetaModel timedGetTableMeta(String databaseName, String tableName) throws Exception;
+  public abstract TableMetaModel timedGetTableMeta(String databaseName, String tableName) throws Exception;
 
   @Override
   public final TableMetaModel getTableMetaWithoutPartitionMeta(String databaseName, String tableName)
@@ -136,7 +136,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract TableMetaModel timedGetTableMetaWithoutPartitionMeta(
+  public abstract TableMetaModel timedGetTableMetaWithoutPartitionMeta(
       String databaseName,
       String tableName) throws Exception;
 
@@ -153,7 +153,7 @@ public abstract class TimedMetaSource implements MetaSource {
     }
   }
 
-  abstract PartitionMetaModel timedGetPartitionMeta(
+  public abstract PartitionMetaModel timedGetPartitionMeta(
       String databaseName,
       String tableName,
       List<String> partitionValues) throws Exception;

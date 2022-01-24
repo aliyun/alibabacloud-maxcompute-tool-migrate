@@ -24,9 +24,7 @@ import java.util.Arrays;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ErrorHandler;
@@ -34,7 +32,6 @@ import org.eclipse.jetty.server.handler.ErrorHandler;
 import com.aliyun.odps.mma.config.ErrorOutputsV1;
 import com.aliyun.odps.mma.config.OutputsWrapper;
 import com.aliyun.odps.mma.util.GsonUtils;
-import com.google.gson.JsonObject;
 
 
 public class ApiErrorHandler extends ErrorHandler {

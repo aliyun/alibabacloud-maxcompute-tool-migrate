@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,11 +16,14 @@
 
 package com.aliyun.odps.mma.server.action.executor;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,21 +33,23 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-import org.apache.hive.jdbc.HiveStatement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.meta.MetaSourceClassLoader;
+import com.aliyun.odps.mma.meta.ConnectorUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
-import com.aliyun.odps.utils.StringUtils;
 
 public class HiveSqlExecutor extends AbstractActionExecutor {
 
   private static final Logger LOG = LogManager.getLogger("ExecutorLogger");
+  private String hiveConnectorJar;
 
-  public HiveSqlExecutor() {
+  public HiveSqlExecutor(String hiveConnectorJar) {
     try {
-      Class.forName("org.apache.hive.jdbc.HiveDriver");
-    } catch (ClassNotFoundException e) {
+      this.hiveConnectorJar = hiveConnectorJar;
+      ConnectorUtils.loadHiveJdbc(hiveConnectorJar);
+    } catch (ClassNotFoundException | SQLException | IOException | InstantiationException | IllegalAccessException e) {
       throw new RuntimeException("Create HiveRunner failed", e);
     }
   }
@@ -55,6 +60,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
     private String user;
     private String password;
     private String sql;
+    private String hiveConnectorJar;
     private Map<String, String> settings;
     private String actionId;
     private HiveSqlActionInfo hiveSqlActionInfo;
@@ -64,6 +70,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
         String user,
         String password,
         String sql,
+        String hiveConnectorJar,
         Map<String, String> settings,
         String actionId,
         HiveSqlActionInfo hiveSqlActionInfo) {
@@ -71,6 +78,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
       this.user = Objects.requireNonNull(user);
       this.password = Objects.requireNonNull(password);
       this.sql = Objects.requireNonNull(sql);
+      this.hiveConnectorJar = hiveConnectorJar;
       this.settings = Objects.requireNonNull(settings);
       this.actionId = Objects.requireNonNull(actionId);
       this.hiveSqlActionInfo = Objects.requireNonNull(hiveSqlActionInfo);
@@ -81,22 +89,24 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
       LOG.info("ActionId: {}, executing sql: {}", actionId, sql);
 
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
-        try (HiveStatement stmt = (HiveStatement) conn.createStatement()) {
+        try (Statement stmt = conn.createStatement()) {
           settings.put("mapreduce.job.name", actionId);
           for (Entry<String, String> entry : settings.entrySet()) {
             stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());
           }
 
           Runnable logging = () -> {
-            while (stmt.hasMoreLogs()) {
-              try {
-                for (String line : stmt.getQueryLog()) {
-                  parseLogAndSetExecutionInfo(line, actionId, hiveSqlActionInfo);
-                }
-              } catch (SQLException e) {
-                LOG.warn("ActionId: {}, fetching hive query log failed", actionId);
-                break;
+            try {
+              ClassLoader classLoader = MetaSourceClassLoader.getInstance(hiveConnectorJar);
+              Class<?> cls =
+                  Class.forName("com.aliyun.odps.mma.meta.HiveStatementLog", true, classLoader);
+              Method method = cls.getMethod("setLog", Statement.class);
+              List<List<String>> log = (List<List<String>>) method.invoke(null, stmt);
+              for (List<String> line : log) {
+                parseLogAndSetExecutionInfo(line, actionId, hiveSqlActionInfo);
               }
+            } catch (Exception e) {
+              LOG.warn("ActionId: {}, fetching hive query log failed", actionId);
             }
             LOG.info("ActionId: {}, no more logs", actionId);
           };
@@ -193,6 +203,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
         username,
         password,
         sql,
+        hiveConnectorJar,
         settings,
         actionId,
         hiveSqlActionInfo);
@@ -201,20 +212,19 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
   }
 
   private static void parseLogAndSetExecutionInfo(
-      String log,
+      List<String> line,
       String actionId,
       HiveSqlActionInfo hiveSqlActionInfo) {
 
+    String log = line.get(0);
     LOG.debug("ActionId: {}, {}", actionId, log);
 
-    if (StringUtils.isNullOrEmpty(log)) {
+    if (line.size() < 2) {
       return;
     }
-    if (!log.contains("Starting Job =")) {
-      return;
-    }
-    String jobId = log.split("=")[1].split(",")[0];
-    String trackingUrl = log.split("=")[2];
+    String jobId = line.get(1);
+    String trackingUrl = line.get(2);
+
     hiveSqlActionInfo.setJobId(jobId);
     hiveSqlActionInfo.setTrackingUrl(trackingUrl);
     LOG.info("ActionId: {}, jobId: {}", actionId, jobId);

@@ -31,6 +31,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
 
   public static final String DEBUG_MODE = "mma.debug.enabled";
   public static final String DEBUG_MODE_DEFAULT_VALUE = "false";
+  public static final String METADATA_SOURCE_CONNECTOR_PATH = "mma.metadata.source.connector.path";
 
   /**
    * Java security configurations

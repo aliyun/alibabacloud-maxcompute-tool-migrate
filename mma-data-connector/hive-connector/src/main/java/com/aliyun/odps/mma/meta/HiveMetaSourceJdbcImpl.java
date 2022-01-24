@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,6 +53,13 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
   private String username;
   private String password;
 
+  public HiveMetaSourceJdbcImpl(HiveMetaConfig hiveMetaConfig) throws ClassNotFoundException {
+    this(hiveMetaConfig.getJdbcUrl(),
+         hiveMetaConfig.getJdbcUser(),
+         hiveMetaConfig.getJdbcPwd(),
+         hiveMetaConfig.getJavaSecurityConfigs());
+  }
+
   public HiveMetaSourceJdbcImpl(
       String hiveJdbcUrl,
       String username,
@@ -62,10 +69,11 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
     this.username = Validate.notBlank(username, "Hive JDBC username cannot be null");
     this.password = password;
 
-    LOG.info("Initializing HiveMetaSourceJdbcImpl, JDBC URL: {}, username: {}, system properties: {}",
-             hiveJdbcUrl,
-             username,
-             javaSecurityConfigs);
+    LOG.info(
+        "Initializing HiveMetaSourceJdbcImpl, JDBC URL: {}, username: {}, system properties: {}",
+        hiveJdbcUrl,
+        username,
+        javaSecurityConfigs);
 
     if (javaSecurityConfigs != null && javaSecurityConfigs.size() > 0) {
       for (Entry<String, String> entry : javaSecurityConfigs.entrySet()) {
@@ -350,7 +358,7 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
       //  |                                   | serialization.format                               | 1                           |
       //  +-----------------------------------+----------------------------------------------------+-----------------------------+
       String query = "DESC FORMATTED "
-          + databaseName + ".`" + tableName + "` PARTITION(" + partitionSpec + ")";
+                     + databaseName + ".`" + tableName + "` PARTITION(" + partitionSpec + ")";
       LOG.debug("Execute query: {}", query);
       try (ResultSet rs = stmt.executeQuery(query)) {
         boolean isPartitionColumn = false;
@@ -486,7 +494,8 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
   }
 
   @Override
-  public boolean timedHasPartition(String databaseName, String tableName, List<String> partitionValues)
+  public boolean timedHasPartition(String databaseName, String tableName,
+                                   List<String> partitionValues)
       throws Exception {
     try (Connection connection = getConnection()) {
       List<String> partitionColumnNames =
@@ -548,7 +557,7 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
       //  | p2                       | bigint                       |          |
       //  +--------------------------+------------------------------+----------+
       boolean isPartitionColumn = false;
-      String query = "DESC " + databaseName + ".`" + tableName +"`";
+      String query = "DESC " + databaseName + ".`" + tableName + "`";
       LOG.debug("Execute query: {}", query);
       try (ResultSet rs = stmt.executeQuery(query)) {
         while (rs.next()) {
@@ -581,8 +590,8 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
     if (partitionColumnNames.size() != partitionValues.size()) {
       throw new IllegalStateException(
           "The number of partition values and columns does not match. "
-              + partitionValues.size() + " partition values. "
-              + partitionColumnNames.size() + " partition columns.");
+          + partitionValues.size() + " partition values. "
+          + partitionColumnNames.size() + " partition columns.");
     }
 
     StringBuilder partitionSpecBuilder = new StringBuilder();
@@ -632,7 +641,8 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
   }
 
   @Override
-  public List<List<String>> timedListPartitions(String databaseName, String tableName) throws Exception {
+  public List<List<String>> timedListPartitions(String databaseName, String tableName)
+      throws Exception {
     List<List<String>> partitionValuesList;
     try (Connection connection = getConnection()) {
       partitionValuesList = listPartitionsInternal(connection, databaseName, tableName);
@@ -648,7 +658,7 @@ public class HiveMetaSourceJdbcImpl extends TimedMetaSource {
       String tableName) throws SQLException {
     List<List<String>> partitionValuesList = new LinkedList<>();
     try (Statement stmt = connection.createStatement()) {
-      String query = "SHOW PARTITIONS " + databaseName + ".`" + tableName +"`";
+      String query = "SHOW PARTITIONS " + databaseName + ".`" + tableName + "`";
       LOG.debug("Execute query: {}", query);
       try (ResultSet rs = stmt.executeQuery(query)) {
         while (rs.next()) {

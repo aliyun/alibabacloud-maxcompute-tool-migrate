@@ -32,7 +32,6 @@ limitations under the License.
     <jetty.version>9.4.41.v20210516</jetty.version>
     <commons.beanutils.version>1.9.4</commons.beanutils.version>
     <log4j.version>2.17.0</log4j.version>
-    <assembly.sql></assembly.sql>
     <assembly.test></assembly.test>
   </properties>
 
@@ -118,6 +117,11 @@ limitations under the License.
         <groupId>com.aliyun.oss</groupId>
         <artifactId>aliyun-sdk-oss</artifactId>
         <version>${oss.sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-net</groupId>
+        <artifactId>commons-net</artifactId>
+        <version>3.6</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -384,12 +388,10 @@ limitations under the License.
         <module>mma-server</module>
         <module>mma-client</module>
         <module>mma-commons</module>
+        <module>mma-data-connector</module>
         <module>sql-checker</module>
         <module>distribution</module>
       </modules>
-      <properties>
-        <assembly.sql>-with-sql-checker</assembly.sql>
-      </properties>
     </profile>
     <profile>
       <id>core</id>
@@ -404,31 +406,6 @@ limitations under the License.
         <module>mma-commons</module>
         <module>distribution</module>
       </modules>
-    </profile>
-    <profile>
-      <id>udtf</id>
-      <activation>
-        <property>
-          <name>udtf</name>
-        </property>
-      </activation>
-      <modules>
-        <module>data-transfer-hive-udtf</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>sql-checker</id>
-      <activation>
-        <property>
-          <name>sql-checker</name>
-        </property>
-      </activation>
-      <modules>
-        <module>sql-checker</module>
-      </modules>
-      <properties>
-        <assembly.sql>-with-sql-checker</assembly.sql>
-      </properties>
     </profile>
     <profile>
       <id>dev</id>
@@ -454,21 +431,6 @@ limitations under the License.
           <value>1</value>
         </property>
       </activation>
-      <dependencyManagement>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-jdbc</artifactId>
-            <version>${hive.version}</version>
-            <exclusions>
-              <exclusion>
-                <artifactId>geronimo-jta_1.1_spec</artifactId>
-                <groupId>org.apache.geronimo.specs</groupId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
     </profile>
     <profile>
       <id>hive2</id>
@@ -482,52 +444,6 @@ limitations under the License.
           <value>2</value>
         </property>
       </activation>
-      <dependencyManagement>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-jdbc</artifactId>
-            <version>${hive.version}</version>
-            <exclusions>
-              <exclusion>
-                <artifactId>geronimo-jta_1.1_spec</artifactId>
-                <groupId>org.apache.geronimo.specs</groupId>
-              </exclusion>
-              <exclusion>
-                <groupId>org.mortbay.jetty</groupId>
-                <artifactId>jsp-2.1</artifactId>
-              </exclusion>
-              <exclusion>
-                <groupId>org.mortbay.jetty</groupId>
-                <artifactId>servlet-api-2.5</artifactId>
-              </exclusion>
-              <exclusion>
-                <groupId>org.eclipse.jetty.orbit</groupId>
-                <artifactId>javax.servlet</artifactId>
-              </exclusion>
-              <exclusion>
-                <groupId>javax.servlet</groupId>
-                <artifactId>jsp-api</artifactId>
-              </exclusion>
-              <exclusion>
-                <groupId>org.mortbay.jetty</groupId>
-                <artifactId>jsp-api-2.1</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-          <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-metastore</artifactId>
-            <version>${hive.version}</version>
-            <exclusions>
-              <exclusion>
-                <groupId>javax.jdo</groupId>
-                <artifactId>jdo-api</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
     </profile>
     <profile>
       <id>hive3</id>
@@ -541,36 +457,6 @@ limitations under the License.
           <value>3</value>
         </property>
       </activation>
-      <dependencyManagement>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-jdbc</artifactId>
-            <version>${hive.version}</version>
-            <exclusions>
-              <exclusion>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-runner</artifactId>
-              </exclusion>
-              <exclusion>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-server</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-          <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-metastore</artifactId>
-            <version>${hive.version}</version>
-            <exclusions>
-              <exclusion>
-                <groupId>javax.jdo</groupId>
-                <artifactId>jdo-api</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
     </profile>
   </profiles>
 </project>

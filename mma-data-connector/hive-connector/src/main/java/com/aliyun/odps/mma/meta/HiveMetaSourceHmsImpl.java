@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,6 +52,15 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
 
   private IMetaStoreClient hmsClient;
 
+  public HiveMetaSourceHmsImpl(HiveMetaConfig hiveMetaConfig) throws MetaException {
+    this(hiveMetaConfig.getMetaStoreUri(),
+         hiveMetaConfig.isSaslEnabled(),
+         hiveMetaConfig.getPrincipal(),
+         hiveMetaConfig.getKeytab(),
+         hiveMetaConfig.getJavaSecurityConfigs(),
+         hiveMetaConfig.getExtraConfigs());
+  }
+
   public HiveMetaSourceHmsImpl(
       String hmsUris,
       boolean hmsSaslEnabled,
@@ -91,7 +100,6 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
 
     HiveConf hiveConf = new HiveConf(conf, Configuration.class);
     hiveConf.setVar(HiveConf.ConfVars.METASTOREURIS, hmsAddr);
-
     if (hmsSaslEnabled) {
       LOG.info("Set {} to true", HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL);
       hiveConf.setVar(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL, "true");
@@ -394,7 +402,7 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
     List<List<String>> partitionValuesList = new LinkedList<>();
     List<Partition> partitions = hmsClient.listPartitions(databaseName, tableName, (short) -1);
     LOG.info("Database: {}, Table: {}, number of partitions: {}",
-              databaseName, tableName, partitions.size());
+             databaseName, tableName, partitions.size());
     for (Partition partition : partitions) {
       partitionValuesList.add(partition.getValues());
       LOG.debug("Database: {}, Table: {}, partition: {} ",
@@ -409,4 +417,5 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
   public void shutdown() {
     hmsClient.close();
   }
+
 }

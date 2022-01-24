@@ -22,9 +22,9 @@ public class ActionExecutorFactory {
   private static McSqlExecutor mcSqlExecutor = null;
   private static DefaultExecutor defaultExecutor = null;
 
-  public static HiveSqlExecutor getHiveSqlExecutor() {
+  public static HiveSqlExecutor getHiveSqlExecutor(String hiveConnectorJar) {
     if (hiveSqlExecutor == null) {
-      hiveSqlExecutor = new HiveSqlExecutor();
+      hiveSqlExecutor = new HiveSqlExecutor(hiveConnectorJar);
     }
 
     return hiveSqlExecutor;

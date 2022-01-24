@@ -16,6 +16,7 @@
 
 package com.aliyun.odps.mma.config;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -35,6 +36,7 @@ import com.aliyun.odps.Odps;
 import com.aliyun.odps.ProjectFilter;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import com.aliyun.odps.mma.meta.ConnectorUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.odps.mma.exception.MmaException;
@@ -160,6 +162,7 @@ public class ConfigurationUtils {
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
         getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL));
     validateHiveJdbcCredentials(
+        config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH),
         hiveJdbcUrl,
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD));
@@ -275,11 +278,12 @@ public class ConfigurationUtils {
   }
 
   static void validateHiveJdbcCredentials(
+      String hiveConnectorJar,
       String hiveJdbcUrl,
       String username,
       String password) throws MmaException {
     try {
-      Class.forName("org.apache.hive.jdbc.HiveDriver");
+      ConnectorUtils.loadHiveJdbc(hiveConnectorJar);
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, username, password)) {
         try (Statement stmt = conn.createStatement()) {
           try (ResultSet rs = stmt.executeQuery("SELECT current_database()")) {
@@ -290,7 +294,7 @@ public class ConfigurationUtils {
           }
         }
       }
-    } catch (SQLException | ClassNotFoundException e) {
+    } catch (SQLException | ClassNotFoundException | IOException | InstantiationException | IllegalAccessException e) {
       throw new MmaException("Invalid Hive configuration", e);
     }
   }
