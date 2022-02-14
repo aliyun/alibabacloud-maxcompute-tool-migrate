@@ -32,10 +32,12 @@ import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
+import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformer.SchemaTransformResult;
 import com.aliyun.odps.mma.meta.transform.SchemaTransformerFactory;
 import com.aliyun.odps.mma.server.OssUtils;
+import com.aliyun.odps.mma.server.action.ActionUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -51,6 +53,7 @@ import com.aliyun.odps.mma.util.McSqlUtils;
 public class OssToMcTableJob extends AbstractTableJob {
 
   private static final Logger LOG = LogManager.getLogger(OssToMcTableJob.class);
+  private Task finalCleanUpTask;
 
   OssToMcTableJob(
       Job parentJob,
@@ -128,6 +131,8 @@ public class OssToMcTableJob extends AbstractTableJob {
           externalTableMetaModel,
           pendingSubJobs);
       Task cleanUpTask = getCleanUpTask(externalTableMetaModel);
+      finalCleanUpTask = getCleanUpTask(externalTableMetaModel);
+
       dag.addVertex(setUpTask);
       dataTransmissionTasks.forEach(dag::addVertex);
       dag.addVertex(cleanUpTask);
@@ -140,6 +145,18 @@ public class OssToMcTableJob extends AbstractTableJob {
       fail(stackTrace);
       throw e;
     }
+  }
+
+  @Override
+  synchronized void fail(String reason) {
+    super.fail(reason);
+    dag.addVertex(finalCleanUpTask);
+  }
+
+  @Override
+  public synchronized void stop() throws MmaException {
+    super.stop();
+    dag.addVertex(finalCleanUpTask);
   }
 
   private Task getSetUpTask(
@@ -256,14 +273,13 @@ public class OssToMcTableJob extends AbstractTableJob {
 
   @Override
   public synchronized void setStatus(Task task) {
-    if (JobStatus.SUCCEEDED.equals(getStatus())
-        || JobStatus.FAILED.equals(getStatus())
-        || JobStatus.CANCELED.equals(getStatus())) {
+    if (isTerminated()) {
       LOG.info("Job has terminated, id: {}, status: {}, task id: {}, task status: {}",
                record.getJobId(),
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();
