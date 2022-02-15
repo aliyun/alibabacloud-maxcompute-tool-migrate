@@ -37,7 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.meta.MetaSourceClassLoader;
-import com.aliyun.odps.mma.meta.ConnectorUtils;
+import com.aliyun.odps.mma.meta.MetaSourceUtils;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 
 public class HiveSqlExecutor extends AbstractActionExecutor {
@@ -48,7 +48,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
   public HiveSqlExecutor(String hiveConnectorJar) {
     try {
       this.hiveConnectorJar = hiveConnectorJar;
-      ConnectorUtils.loadHiveJdbc(hiveConnectorJar);
+      MetaSourceUtils.loadHiveJdbc(hiveConnectorJar);
     } catch (ClassNotFoundException | SQLException | IOException | InstantiationException | IllegalAccessException e) {
       throw new RuntimeException("Create HiveRunner failed", e);
     }

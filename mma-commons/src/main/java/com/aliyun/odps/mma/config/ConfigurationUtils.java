@@ -36,7 +36,7 @@ import com.aliyun.odps.Odps;
 import com.aliyun.odps.ProjectFilter;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
-import com.aliyun.odps.mma.meta.ConnectorUtils;
+import com.aliyun.odps.mma.meta.MetaSourceUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.odps.mma.exception.MmaException;
@@ -283,7 +283,7 @@ public class ConfigurationUtils {
       String username,
       String password) throws MmaException {
     try {
-      ConnectorUtils.loadHiveJdbc(hiveConnectorJar);
+      MetaSourceUtils.loadHiveJdbc(hiveConnectorJar);
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, username, password)) {
         try (Statement stmt = conn.createStatement()) {
           try (ResultSet rs = stmt.executeQuery("SELECT current_database()")) {

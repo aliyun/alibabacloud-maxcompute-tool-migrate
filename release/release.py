@@ -15,6 +15,8 @@
 #
 import subprocess
 import sys
+from datetime import datetime
+from os import mkdir
 from github import Github
 
 
@@ -26,45 +28,11 @@ def run(cmd):
     print(f'Error: {p.stderr}')
 
 
-def uncomment_file(files_list, tag_name):
-    begin = f'<!-- {tag_name} begin -->'
-    end = f'<!-- {tag_name} end -->'
-    for file in files_list:
-        with open(file, 'r') as f:
-            lines = f.readlines()
-        uncomment = False
-        for i, line in enumerate(lines):
-            if begin in line:
-                uncomment = True
-                continue
-            elif end in line:
-                uncomment = False
-                continue
-
-            if uncomment:
-                if '&lt;!&ndash;' in line or '<!--' not in line:
-                    continue
-                lines[i] = lines[i].replace('<!--', '')
-                lines[i] = lines[i].replace('-->', '')
-
-        with open(file, 'w') as f:
-            f.writelines(lines)
-
-
-def package_branch(branch, version):
-    """
-        checkout -> uncomment sql checker -> mvn package -> rename zip -> reset sql checker file
-    """
-    hive_version = branch.split('/')[1]
-    print(f'Build release branch origin/release/{branch}')
-    run(f'git checkout --quiet {branch}')
-    run(f'git pull')
-    uncomment_file(sql_checker_files, 'sql checker')
-    run(f'mvn -U -q clean package -DskipTests')
-    output_file = f'mma-{version}-{hive_version}.zip'
-    run(f'mv distribution/target/mma-{version}.zip {output_file}')
-    for file in sql_checker_files:
-        run(f'git restore {file}')
+def package_hive(hive_version: int):
+    print(f'Build release for hive{hive_version}')
+    run(f'mvn -U -q clean package -DskipTests -Dhive={hive_version}')
+    output_file = f'{TARGET_DIR}/mma-{MMA_VERSION}-{hive_version}.x.zip'
+    run(f'mv distribution/target/mma-{MMA_VERSION}.zip {output_file}')
     print('Done')
     return output_file
 
@@ -104,19 +72,17 @@ def release_to_github(files, tag):
             release.upload_asset(file)
 
 
-def release_mma(branches, version):
-    release_packages = []
+def release_mma():
     run('git checkout master')
     run('git pull')
-    for i, branch in enumerate(branches):
-        release_packages.append(package_branch(branch, version))
-    run('git checkout master')
-    release_to_github(release_packages, f'v{version}')
+    release_packages = [package_hive(1), package_hive(2), package_hive(3)]
+    release_to_github(release_packages, f'v{MMA_VERSION}')
 
 
 if __name__ == '__main__':
     sql_checker_files = ['pom.xml', 'distribution/pom.xml',
                          'distribution/src/assembly/assembly.xml']
-    BRANCHES = ['release/hive-1.x', 'release/hive-2.x', 'release/hive-3.x']
-    version = sys.argv[1]
-    release_mma(BRANCHES, version)
+    MMA_VERSION = sys.argv[1]
+    TARGET_DIR = f'tmp/{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
+    mkdir(TARGET_DIR)
+    release_mma()
