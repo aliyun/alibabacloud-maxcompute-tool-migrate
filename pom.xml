@@ -35,6 +35,15 @@ limitations under the License.
     <assembly.test></assembly.test>
   </properties>
 
+  <modules>
+    <module>data-transfer-hive-udtf</module>
+    <module>mma-server</module>
+    <module>mma-client</module>
+    <module>mma-commons</module>
+    <module>mma-data-connector</module>
+    <module>distribution</module>
+  </modules>
+
   <repositories>
     <repository>
       <id>conjars</id>

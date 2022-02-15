@@ -26,9 +26,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.exception.MmaException;
@@ -154,7 +151,7 @@ public class MetaSourceFactory {
       }
 
       try {
-        metaSource = ConnectorUtils.loadMetaSource(
+        metaSource = MetaSourceUtils.loadMetaSource(
             config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH),
             metaConfig);
       } catch (Exception e) {

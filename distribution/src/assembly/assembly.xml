@@ -52,11 +52,6 @@ limitations under the License.
       <directory>../sql-checker/src/assembly/bin</directory>
       <fileMode>0755</fileMode>
     </fileSet>
-    <fileSet>
-      <outputDirectory>test</outputDirectory>
-      <directory>src/assembly/test</directory>
-      <fileMode>0755</fileMode>
-    </fileSet>
   </fileSets>
   <files>
     <file>

@@ -16,6 +16,7 @@
 
 package com.aliyun.odps.mma.meta;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -36,11 +37,12 @@ import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
-import com.aliyun.odps.mma.util.GsonUtils;
 
 public class HiveMetaSourceHmsImpl implements MetaSource {
 
@@ -276,10 +278,15 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
       for (Partition partition : partitions) {
         partitionMetaModels.add(
             getPartitionMeta(databaseName, tableName, partition.getValues()));
+        Gson GSON = new GsonBuilder()
+            .excludeFieldsWithModifiers(Modifier.STATIC, Modifier.VOLATILE)
+            .disableHtmlEscaping()
+            .setPrettyPrinting()
+            .create();
         LOG.debug("Database: {}, Table: {}, partition: {} ",
                   databaseName,
                   tableName,
-                  GsonUtils.GSON.toJson(partition));
+                  GSON.toJson(partition));
       }
       builder.partitions(partitionMetaModels);
     }

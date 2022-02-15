@@ -22,10 +22,18 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class ConnectorUtils {
+public class MetaSourceUtils {
 
   private static final String HIVE_DRIVER = "org.apache.hive.jdbc.HiveDriver";
   private static final String META_SOURCE_LOADER = "com.aliyun.odps.mma.meta.MetaSourceLoader";
+
+  public static <T> T notNull(T object) {
+    if (object == null) {
+      throw new NullPointerException("The validated object is null");
+    } else {
+      return object;
+    }
+  }
 
   public static void loadHiveJdbc(String hiveConnectorJar)
       throws IOException, ClassNotFoundException, SQLException, InstantiationException,
