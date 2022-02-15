@@ -51,6 +51,8 @@ import com.aliyun.odps.mma.util.McSqlUtils;
 public class OssToMcTableJob extends AbstractTableJob {
 
   private static final Logger LOG = LogManager.getLogger(OssToMcTableJob.class);
+  private TableMetaModel externalTableMetaModel;
+  private boolean cleaned = false;
 
   OssToMcTableJob(
       Job parentJob,
@@ -103,7 +105,7 @@ public class OssToMcTableJob extends AbstractTableJob {
               .table(config.get(JobConfiguration.DEST_OBJECT_NAME))
               .build();
 
-      TableMetaModel externalTableMetaModel =
+      externalTableMetaModel =
           McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
 
       // for local debug
@@ -264,6 +266,7 @@ public class OssToMcTableJob extends AbstractTableJob {
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();
@@ -291,5 +294,16 @@ public class OssToMcTableJob extends AbstractTableJob {
         break;
       default:
     }
+  }
+
+  @Override
+  public boolean clean() {
+    if (cleaned) {
+      return true;
+    }
+    this.dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
+    this.dag.addVertex(getCleanUpTask(externalTableMetaModel));
+    cleaned = true;
+    return false;
   }
 }
