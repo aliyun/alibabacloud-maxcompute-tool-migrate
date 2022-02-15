@@ -68,4 +68,6 @@ public interface Job {
   void stop() throws Exception;
 
   void update(JobConfiguration jobConfiguration);
+
+  boolean clean();
 }

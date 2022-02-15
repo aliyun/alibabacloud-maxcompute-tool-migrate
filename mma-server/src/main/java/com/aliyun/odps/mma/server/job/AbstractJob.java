@@ -289,6 +289,11 @@ public abstract class AbstractJob implements Job {
   public void update(JobConfiguration jobConfiguration) {
   }
 
+  @Override
+  public boolean clean() {
+    return true;
+  }
+
   /**
    * Helper methods for sub classes
    */

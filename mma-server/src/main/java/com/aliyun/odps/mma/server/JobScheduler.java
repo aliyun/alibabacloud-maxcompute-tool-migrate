@@ -182,6 +182,11 @@ public class JobScheduler {
           // Retry the job
           continue;
         }
+
+        if (!job.clean()) {
+          LOG.info("Job cleanup, id: %s", job.getId());
+          continue;
+        }
         terminatedJobs.add(job);
       }
     }
