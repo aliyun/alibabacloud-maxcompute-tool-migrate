@@ -296,4 +296,5 @@ public class McToOssTableJob extends AbstractTableJob {
     cleaned = false;
     return super.reset(force);
   }
+
 }
