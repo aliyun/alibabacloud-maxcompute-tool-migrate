@@ -92,6 +92,9 @@ public class MetaManager {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       dao.insertJob(record);
+      if (hasSubJob) {
+        dao.createSubJobTableIfNotExists(jobId);
+      }
     }
   }
 
