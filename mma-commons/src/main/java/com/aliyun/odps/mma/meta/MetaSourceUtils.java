@@ -17,15 +17,7 @@
 
 package com.aliyun.odps.mma.meta;
 
-import java.io.IOException;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
 public class MetaSourceUtils {
-
-  private static final String HIVE_DRIVER = "org.apache.hive.jdbc.HiveDriver";
-  private static final String META_SOURCE_LOADER = "com.aliyun.odps.mma.meta.MetaSourceLoader";
 
   public static <T> T notNull(T object) {
     if (object == null) {
@@ -33,23 +25,6 @@ public class MetaSourceUtils {
     } else {
       return object;
     }
-  }
-
-  public static void loadHiveJdbc(String hiveConnectorJar)
-      throws IOException, ClassNotFoundException, SQLException, InstantiationException,
-             IllegalAccessException {
-    ClassLoader targetClassLoader = MetaSourceClassLoader.getInstance(hiveConnectorJar);
-    Driver d = (Driver) Class.forName(HIVE_DRIVER, true, targetClassLoader).newInstance();
-    DriverManager.registerDriver(new MetaDriver(d));
-  }
-
-  public static MetaSource loadMetaSource(String hiveConnectorJar, MetaConfig config)
-      throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException,
-             MetaSourceLoadException {
-    ClassLoader targetClassLoader = MetaSourceClassLoader.getInstance(hiveConnectorJar);
-    Class<?> targetCls = Class.forName(META_SOURCE_LOADER, true, targetClassLoader);
-    MetaLoader loader = (MetaLoader) targetCls.newInstance();
-    return loader.load(config);
   }
 
 }

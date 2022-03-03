@@ -28,6 +28,8 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.MetaLoaderConfig;
+import com.aliyun.odps.mma.config.MetaSourceType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
@@ -151,9 +153,7 @@ public class MetaSourceFactory {
       }
 
       try {
-        metaSource = MetaSourceUtils.loadMetaSource(
-            config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH),
-            metaConfig);
+        metaSource = MetaLoaderConfig.getMetaLoader(MetaSourceType.Hive).load(metaConfig);
       } catch (Exception e) {
         throw new MmaException("Load Hive MetaSource FAIL", e);
       }

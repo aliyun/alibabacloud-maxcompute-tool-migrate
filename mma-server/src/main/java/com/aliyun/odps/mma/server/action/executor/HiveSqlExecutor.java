@@ -36,22 +36,15 @@ import java.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.mma.meta.MetaSourceClassLoader;
-import com.aliyun.odps.mma.meta.MetaSourceUtils;
+import com.aliyun.odps.mma.config.MetaLoaderConfig;
+import com.aliyun.odps.mma.config.MetaSourceType;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 
 public class HiveSqlExecutor extends AbstractActionExecutor {
 
   private static final Logger LOG = LogManager.getLogger("ExecutorLogger");
-  private String hiveConnectorJar;
 
-  public HiveSqlExecutor(String hiveConnectorJar) {
-    try {
-      this.hiveConnectorJar = hiveConnectorJar;
-      MetaSourceUtils.loadHiveJdbc(hiveConnectorJar);
-    } catch (ClassNotFoundException | SQLException | IOException | InstantiationException | IllegalAccessException e) {
-      throw new RuntimeException("Create HiveRunner failed", e);
-    }
+  public HiveSqlExecutor() {
   }
 
   private static class HiveSqlCallable implements Callable<List<List<Object>>> {
@@ -60,7 +53,6 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
     private String user;
     private String password;
     private String sql;
-    private String hiveConnectorJar;
     private Map<String, String> settings;
     private String actionId;
     private HiveSqlActionInfo hiveSqlActionInfo;
@@ -70,7 +62,6 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
         String user,
         String password,
         String sql,
-        String hiveConnectorJar,
         Map<String, String> settings,
         String actionId,
         HiveSqlActionInfo hiveSqlActionInfo) {
@@ -78,7 +69,6 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
       this.user = Objects.requireNonNull(user);
       this.password = Objects.requireNonNull(password);
       this.sql = Objects.requireNonNull(sql);
-      this.hiveConnectorJar = hiveConnectorJar;
       this.settings = Objects.requireNonNull(settings);
       this.actionId = Objects.requireNonNull(actionId);
       this.hiveSqlActionInfo = Objects.requireNonNull(hiveSqlActionInfo);
@@ -97,7 +87,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
           Runnable logging = () -> {
             try {
-              ClassLoader classLoader = MetaSourceClassLoader.getInstance(hiveConnectorJar);
+              ClassLoader classLoader = MetaLoaderConfig.getClassLoader(MetaSourceType.Hive);
               Class<?> cls =
                   Class.forName("com.aliyun.odps.mma.meta.HiveStatementLog", true, classLoader);
               Method method = cls.getMethod("setLog", Statement.class);
@@ -203,7 +193,6 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
         username,
         password,
         sql,
-        hiveConnectorJar,
         settings,
         actionId,
         hiveSqlActionInfo);
