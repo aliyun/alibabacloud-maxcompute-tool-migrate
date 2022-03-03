@@ -55,10 +55,7 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
 
   @Override
   void executeInternal() throws Exception {
-    future = ActionExecutorFactory.getHiveSqlExecutor(
-        this.actionExecutionContext.getConfig()
-            .get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH)
-    ).execute(
+    future = ActionExecutorFactory.getHiveSqlExecutor().execute(
         jdbcUrl,
         username,
         password,

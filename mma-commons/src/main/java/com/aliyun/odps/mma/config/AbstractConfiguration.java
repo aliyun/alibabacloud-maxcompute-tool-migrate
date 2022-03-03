@@ -31,6 +31,11 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
 
   public static final String DEBUG_MODE = "mma.debug.enabled";
   public static final String DEBUG_MODE_DEFAULT_VALUE = "false";
+
+  /**
+   * Format: MetaSourceType1:JarPath1;MetaSourceType2:JarPath2;...
+   * eg: Hive:lib/connector/hive-connector.jar;OSS:lib/connector/oss-connector.jar
+   */
   public static final String METADATA_SOURCE_CONNECTOR_PATH = "mma.metadata.source.connector.path";
 
   /**

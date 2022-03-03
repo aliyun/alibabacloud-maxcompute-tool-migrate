@@ -158,12 +158,8 @@ public class ConfigurationUtils {
 
   public static void validateHiveDataSource(AbstractConfiguration config)
       throws MmaException {
-    String hiveJdbcUrl = Validate.notBlank(
-        config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
-        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL));
     validateHiveJdbcCredentials(
         config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH),
-        hiveJdbcUrl,
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD));
   }
@@ -278,12 +274,10 @@ public class ConfigurationUtils {
   }
 
   static void validateHiveJdbcCredentials(
-      String hiveConnectorJar,
       String hiveJdbcUrl,
       String username,
       String password) throws MmaException {
     try {
-      MetaSourceUtils.loadHiveJdbc(hiveConnectorJar);
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, username, password)) {
         try (Statement stmt = conn.createStatement()) {
           try (ResultSet rs = stmt.executeQuery("SELECT current_database()")) {
@@ -294,7 +288,7 @@ public class ConfigurationUtils {
           }
         }
       }
-    } catch (SQLException | ClassNotFoundException | IOException | InstantiationException | IllegalAccessException e) {
+    } catch (SQLException e) {
       throw new MmaException("Invalid Hive configuration", e);
     }
   }

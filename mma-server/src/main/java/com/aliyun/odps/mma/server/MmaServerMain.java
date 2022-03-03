@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.MetaLoaderConfig;
 import com.aliyun.odps.mma.server.config.MmaEventSenderConfiguration;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.aliyun.odps.mma.server.event.MmaEventManager;
@@ -113,11 +115,14 @@ public class MmaServerMain {
     }
   }
 
-  private static void initMmaServerConfigurationSingleton(Path path) throws IOException {
+  private static void initMmaServerConfigurationSingleton(Path path)
+      throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException,
+             SQLException {
     String json = IOUtils.toString(path.toUri(), StandardCharsets.UTF_8);
     Map<String, String> map = GsonUtils.GSON.fromJson(
         json, new TypeToken<Map<String, String>>() {}.getType());
     MmaServerConfiguration.setInstance(map);
+    MetaLoaderConfig.setGlobalMetaLoader(MmaServerConfiguration.getInstance());
   }
 
   private static void initMmaEventManagerSingleton() {
