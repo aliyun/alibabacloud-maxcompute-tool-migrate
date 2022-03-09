@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.MetaSourceType;
 
 public class MmaServerConfiguration extends AbstractConfiguration {
 
@@ -93,6 +94,17 @@ public class MmaServerConfiguration extends AbstractConfiguration {
     validate();
   }
 
+  private static void setUpDefaultConfiguration(Map<String, String> builder) {
+    boolean sourceIsHiveAndConnectorPathNotSet =
+        MetaSourceType.Hive.name().equals(builder.get(METADATA_SOURCE_TYPE)) &&
+        !builder.containsKey(METADATA_SOURCE_CONNECTOR_PATH);
+    if (sourceIsHiveAndConnectorPathNotSet) {
+      String defaultHiveJar = "/lib/connector/hive-uber.jar";
+      builder.put(METADATA_SOURCE_CONNECTOR_PATH,
+          MetaSourceType.Hive.name() + ":" + System.getenv("MMA_HOME") + defaultHiveJar);
+    }
+  }
+
   @Override
   public void validate() {
     // TODO:
@@ -107,6 +119,7 @@ public class MmaServerConfiguration extends AbstractConfiguration {
   }
 
   public synchronized static void setInstance(Map<String, String> builder) {
+    setUpDefaultConfiguration(builder);
     instance = new MmaServerConfiguration(builder);
   }
 }
