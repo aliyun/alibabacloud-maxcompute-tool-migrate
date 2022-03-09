@@ -61,11 +61,12 @@ public class MetaLoaderConfig {
 
       CLASS_LOADER_MAP.put(metaSourceType, targetClassLoader);
       META_LOADER_MAP.put(metaSourceType, loader);
-    }
 
-    ClassLoader targetClassLoader = CLASS_LOADER_MAP.get(MetaSourceType.Hive);
-    Driver d = (Driver) Class.forName(HIVE_DRIVER, true, targetClassLoader).newInstance();
-    DriverManager.registerDriver(new MetaDriver(d));
+      if (MetaSourceType.Hive.equals(metaSourceType)) {
+        Driver d = (Driver) Class.forName(HIVE_DRIVER, true, targetClassLoader).newInstance();
+        DriverManager.registerDriver(new MetaDriver(d));
+      }
+    }
   }
 
 }
