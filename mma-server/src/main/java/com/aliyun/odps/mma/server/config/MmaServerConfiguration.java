@@ -16,6 +16,7 @@
 
 package com.aliyun.odps.mma.server.config;
 
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
@@ -99,9 +100,9 @@ public class MmaServerConfiguration extends AbstractConfiguration {
         MetaSourceType.Hive.name().equals(builder.get(METADATA_SOURCE_TYPE)) &&
         !builder.containsKey(METADATA_SOURCE_CONNECTOR_PATH);
     if (sourceIsHiveAndConnectorPathNotSet) {
-      String defaultHiveJar = "/lib/connector/hive-uber.jar";
+      String defaultHiveJar = "lib/connector/hive-uber.jar";
       builder.put(METADATA_SOURCE_CONNECTOR_PATH,
-          MetaSourceType.Hive.name() + ":" + System.getenv("MMA_HOME") + defaultHiveJar);
+                  MetaSourceType.Hive.name() + ":" + Paths.get(System.getenv("MMA_HOME"), defaultHiveJar));
     }
   }
 
