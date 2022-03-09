@@ -132,6 +132,7 @@ function ADD_OR_REPLACE()
 
 function CONFIGURE_HIVE_BASIC()
 {
+    ADD_OR_REPLACE "mma.metadata.source.connector.path" "lib/connector/hive-uber.jar" ","
     HIVE_METASTORE_URIS=$(GET_INPUT \
     "$HIVE_METASTORE_URIS_PROMPT" "$HIVE_METASTORE_URIS_HELP" "$HIVE_METASTORE_URIS_EXAMPLE")
     ADD_OR_REPLACE "mma.metadata.source.hive.metastore.uris" "${HIVE_METASTORE_URIS}" ","

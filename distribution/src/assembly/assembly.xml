@@ -60,7 +60,7 @@ limitations under the License.
     </file>
     <file>
       <source>../mma-data-connector/hive-connector/target/hive-uber-${hive.version}.jar</source>
-      <destName>lib/connector/hive-uber-${hive.version}.jar</destName>
+      <destName>lib/connector/hive-uber.jar</destName>
     </file>
     <file>
       <source>target/version.txt</source>
