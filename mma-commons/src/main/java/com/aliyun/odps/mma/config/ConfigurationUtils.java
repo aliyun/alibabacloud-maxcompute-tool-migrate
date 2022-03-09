@@ -158,8 +158,11 @@ public class ConfigurationUtils {
 
   public static void validateHiveDataSource(AbstractConfiguration config)
       throws MmaException {
+    String hiveJdbcUrl = Validate.notBlank(
+        config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL),
+        getCannotBeNullOrEmptyErrorMessage(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_URL));
     validateHiveJdbcCredentials(
-        config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH),
+        hiveJdbcUrl,
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_USERNAME),
         config.get(AbstractConfiguration.DATA_SOURCE_HIVE_JDBC_PASSWORD));
   }

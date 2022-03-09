@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.aliyun.odps.mma.config.ObjectType;
 
@@ -33,10 +34,11 @@ public interface MetaSource {
 
       public TableMetaModelBuilder(TableMetaModel tableMetaModel) {
         this.tableMetaModel = new TableMetaModel();
-        this.tableMetaModel.database = MetaSourceUtils.notNull(tableMetaModel.database);
-        this.tableMetaModel.table = MetaSourceUtils.notNull(tableMetaModel.table);
-        this.tableMetaModel.columns = new ArrayList<>(MetaSourceUtils.notNull(tableMetaModel.columns));
-        this.tableMetaModel.columns.forEach(MetaSourceUtils::notNull);
+
+        this.tableMetaModel.database = Objects.requireNonNull(tableMetaModel.database);
+        this.tableMetaModel.table = Objects.requireNonNull(tableMetaModel.table);
+        this.tableMetaModel.columns = new ArrayList<>(Objects.requireNonNull(tableMetaModel.columns));
+        this.tableMetaModel.columns.forEach(Objects::requireNonNull);
         this.tableMetaModel.tableStorage = tableMetaModel.tableStorage;
         this.tableMetaModel.comment = tableMetaModel.comment;
         this.tableMetaModel.lifeCycle = tableMetaModel.lifeCycle;
@@ -57,19 +59,19 @@ public interface MetaSource {
           String table,
           List<ColumnMetaModel> columnMetaModels) {
         this.tableMetaModel = new TableMetaModel();
-        this.tableMetaModel.database = MetaSourceUtils.notNull(database);
-        this.tableMetaModel.table = MetaSourceUtils.notNull(table);
-        this.tableMetaModel.columns = new ArrayList<>(MetaSourceUtils.notNull(columnMetaModels));
-        this.tableMetaModel.columns.forEach(MetaSourceUtils::notNull);
+        this.tableMetaModel.database = Objects.requireNonNull(database);
+        this.tableMetaModel.table = Objects.requireNonNull(table);
+        this.tableMetaModel.columns = new ArrayList<>(Objects.requireNonNull(columnMetaModels));
+        this.tableMetaModel.columns.forEach(Objects::requireNonNull);
       }
 
       public TableMetaModelBuilder database(String database) {
-        this.tableMetaModel.database = MetaSourceUtils.notNull(database);
+        this.tableMetaModel.database = Objects.requireNonNull(database);
         return this;
       }
 
       public TableMetaModelBuilder table(String table) {
-        this.tableMetaModel.table = MetaSourceUtils.notNull(table);
+        this.tableMetaModel.table = Objects.requireNonNull(table);
         return this;
       }
 
@@ -134,11 +136,11 @@ public interface MetaSource {
 
       public TableMetaModelBuilder partitionColumns(List<ColumnMetaModel> partitionColumns) {
         if (partitionColumns != null) {
-          this.tableMetaModel.partitionColumns = new ArrayList<>(MetaSourceUtils.notNull(partitionColumns));
+          this.tableMetaModel.partitionColumns = new ArrayList<>(Objects.requireNonNull(partitionColumns));
         } else {
           this.tableMetaModel.partitionColumns = new ArrayList<>(0);
         }
-        this.tableMetaModel.partitionColumns.forEach(MetaSourceUtils::notNull);
+        this.tableMetaModel.partitionColumns.forEach(Objects::requireNonNull);
         return this;
       }
 
@@ -148,7 +150,7 @@ public interface MetaSource {
         } else {
           this.tableMetaModel.partitions = new ArrayList<>(0);
         }
-        this.tableMetaModel.partitions.forEach(MetaSourceUtils::notNull);
+        this.tableMetaModel.partitions.forEach(Objects::requireNonNull);
         return this;
       }
 
@@ -270,8 +272,8 @@ public interface MetaSource {
     private String comment;
 
     public ColumnMetaModel(String columnName, String type, String comment) {
-      this.columnName = MetaSourceUtils.notNull(columnName);
-      this.type = MetaSourceUtils.notNull(type);
+      this.columnName = Objects.requireNonNull(columnName);
+      this.type = Objects.requireNonNull(type);
       this.comment = comment;
     }
 
@@ -295,8 +297,8 @@ public interface MetaSource {
         Long createTime,
         Long lastModificationTime,
         Long size) {
-      this.partitionValues = new ArrayList<>(MetaSourceUtils.notNull(partitionValues));
-      this.partitionValues.forEach(MetaSourceUtils::notNull);
+      this.partitionValues = new ArrayList<>(Objects.requireNonNull(partitionValues));
+      this.partitionValues.forEach(Objects::requireNonNull);
       this.location = location;
       this.createTime = createTime;
       this.lastModificationTime = lastModificationTime;
