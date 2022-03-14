@@ -64,6 +64,10 @@ limitations under the License.
       <destName>res/data-transfer-hive-udtf-${project.version}-jar-with-dependencies.jar</destName>
     </file>
     <file>
+      <source>../data-validation/odps-table-hasher/target/odps-table-hasher.jar</source>
+      <destName>res/odps-table-hasher-${project.version}.jar</destName>
+    </file>
+    <file>
       <source>../mma-data-connector/hive-connector/target/hive-uber-${hive.version}.jar</source>
       <destName>lib/connector/hive-uber.jar</destName>
     </file>
