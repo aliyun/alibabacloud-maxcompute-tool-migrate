@@ -277,7 +277,7 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
       List<PartitionMetaModel> partitionMetaModels = new ArrayList<>(partitions.size());
       for (Partition partition : partitions) {
         partitionMetaModels.add(
-            getPartitionMeta(databaseName, tableName, partition.getValues()));
+            getPartitionMeta(databaseName, tableName, partition));
         Gson GSON = new GsonBuilder()
             .excludeFieldsWithModifiers(Modifier.STATIC, Modifier.VOLATILE)
             .disableHtmlEscaping()
@@ -298,8 +298,16 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
   public PartitionMetaModel getPartitionMeta(
       String databaseName,
       String tableName,
-      List<String> partitionValues) throws Exception {
+    List<String> partitionValues) throws Exception {
     Partition partition = hmsClient.getPartition(databaseName, tableName, partitionValues);
+    return getPartitionMeta(databaseName, tableName, partition);
+  }
+
+  public PartitionMetaModel getPartitionMeta(
+      String databaseName,
+      String tableName,
+      Partition partition) throws Exception {
+    List<String> partitionValues = partition.getValues();
 
     Long mtime = null;
     Long size = null;
@@ -308,13 +316,13 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
       if (parameters.containsKey(TABLE_PARAMETER_LAST_DDL_TIME)) {
         try {
           mtime = Long.parseLong(parameters.get(TABLE_PARAMETER_LAST_DDL_TIME));
-          LOG.debug("Database: {}, Table: {}, Partition: {}, mtime: {}",
+          LOG.info("Database: {}, Table: {}, Partition: {}, mtime: {}",
                     databaseName,
                     tableName,
                     partitionValues,
                     mtime);
         } catch (NumberFormatException ignore) {
-          LOG.warn(
+          LOG.info(
               "Database: {}, Table: {}, Partition: {}, illegal mtime: {}",
               databaseName,
               tableName,
@@ -325,13 +333,13 @@ public class HiveMetaSourceHmsImpl implements MetaSource {
       if (parameters.containsKey(TABLE_PARAMETER_TOTAL_SIZE)) {
         try {
           size = Long.parseLong(parameters.get(TABLE_PARAMETER_TOTAL_SIZE));
-          LOG.debug("Database: {}, Table: {}, Partition: {}, size: {}",
+          LOG.info("Database: {}, Table: {}, Partition: {}, size: {}",
                     databaseName,
                     tableName,
                     partitionValues,
                     size);
         } catch (NumberFormatException ignore) {
-          LOG.warn(
+          LOG.info(
               "Database: {}, Table: {}, Partition: {}, illegal size: {}",
               databaseName,
               tableName,
