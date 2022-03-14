@@ -186,5 +186,6 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   @Override
   void handleResult(List<List<Object>> result) {
     ((HiveSqlActionInfo) actionInfo).setResult(result);
+    actionExecutionContext.addData("hive_table_hash", result);
   }
 }

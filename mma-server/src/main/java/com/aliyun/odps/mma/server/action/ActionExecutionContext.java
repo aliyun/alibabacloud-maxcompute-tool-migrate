@@ -16,14 +16,17 @@
 
 package com.aliyun.odps.mma.server.action;
 
-import java.util.List;
-
 import com.aliyun.odps.mma.config.JobConfiguration;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ActionExecutionContext {
 
   private JobConfiguration config;
 
+  private Map<String, Object> data;
   private List<List<Object>> sourceVerificationResult;
   private List<List<Object>> destVerificationResult;
 
@@ -51,5 +54,17 @@ public class ActionExecutionContext {
 
   public void setDestVerificationResult(List<List<Object>> rows) {
     destVerificationResult = rows;
+  }
+
+  public void addData(String key, Object value) {
+    if (data == null) {
+      data = new HashMap<>();
+    }
+
+    data.put(key, value);
+  }
+
+  public Object getData(String key) {
+    return data.get(key);
   }
 }

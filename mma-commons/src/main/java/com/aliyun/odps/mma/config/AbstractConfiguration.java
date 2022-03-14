@@ -49,6 +49,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
    * Metadata source type. Could be Hive, MaxCompute, OSS.
    */
   public static final String METADATA_SOURCE_TYPE = "mma.metadata.source.type";
+  public static final String DATA_ENABLE_VERIFICATION = "mma.data.enable.verification";
 
   /**
    * Metadata source credentials.
@@ -105,7 +106,6 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_SOURCE_HIVE_JDBC_PASSWORD = "mma.data.source.hive.jdbc.password";
   public static final String DATA_SOURCE_HIVE_TRANSMISSION_SETTINGS = "mma.data.source.hive.settings.transmission";
   public static final String DATA_SOURCE_HIVE_VERIFICATION_SETTINGS = "mma.data.source.hive.settings.verification";
-
   /**
    * Metadata destination type. Could be MaxCompute and OSS.
    */

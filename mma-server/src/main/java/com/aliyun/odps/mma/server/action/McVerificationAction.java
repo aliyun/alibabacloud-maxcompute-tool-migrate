@@ -16,14 +16,14 @@
 
 package com.aliyun.odps.mma.server.action;
 
+import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
+import com.aliyun.odps.mma.server.task.Task;
+import com.aliyun.odps.mma.util.McSqlUtils;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.aliyun.odps.mma.util.McSqlUtils;
-import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
-import com.aliyun.odps.mma.server.task.Task;
 
 public class McVerificationAction extends McSqlAction {
 
@@ -47,7 +47,7 @@ public class McVerificationAction extends McSqlAction {
 
   @Override
   public String getSql() {
-    return McSqlUtils.getVerifySql(tableMetaModel);
+    return McSqlUtils.getTableHashSql(tableMetaModel);
   }
 
   @Override
@@ -70,6 +70,7 @@ public class McVerificationAction extends McSqlAction {
     } else {
       actionExecutionContext.setDestVerificationResult(result);
     }
+    actionExecutionContext.addData("odps_table_hash", result);
   }
 
   @Override

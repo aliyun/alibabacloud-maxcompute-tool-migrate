@@ -36,7 +36,7 @@ limitations under the License.
       <groupId>com.aliyun.odps</groupId>
       <artifactId>odps-sdk-core</artifactId>
       <!-- Different from the version used by MMA server to support java 7 -->
-      <version>0.31.6-public</version>
+      <version>0.38.3-public</version>
       <classifier>shaded</classifier>
     </dependency>
     <dependency>
@@ -51,6 +51,21 @@ limitations under the License.
       <!--TODO remove-->
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-memory-core</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-memory-netty</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.aliyun.odps</groupId>
+      <artifactId>interfaces</artifactId>
+      <version>0.1.0</version>
     </dependency>
   </dependencies>
 

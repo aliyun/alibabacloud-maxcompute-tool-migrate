@@ -24,6 +24,12 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.aliyun.odps.mma.config.ObjectType;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import java.lang.reflect.Type;
 
 public interface MetaSource {
 
@@ -287,6 +293,19 @@ public interface MetaSource {
 
     public String getComment() {
       return comment;
+    }
+
+    public static class GsonSerializer implements JsonSerializer<ColumnMetaModel> {
+      @Override
+      public JsonElement serialize(ColumnMetaModel column, Type type, JsonSerializationContext jsonSerializationContext) {
+        JsonObject jsonObject = new JsonObject();
+
+        jsonObject.addProperty("name", column.getColumnName());
+        jsonObject.addProperty("type", column.getType());
+        jsonObject.addProperty("nullable", true);
+
+        return jsonObject;
+      }
     }
   }
 

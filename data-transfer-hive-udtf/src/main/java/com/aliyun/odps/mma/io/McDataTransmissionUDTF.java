@@ -18,6 +18,7 @@ package com.aliyun.odps.mma.io;
 
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.PartitionSpec;
+import com.aliyun.odps.Table;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
@@ -25,6 +26,7 @@ import com.aliyun.odps.account.BearerTokenAccount;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.data.RecordWriter;
 import com.aliyun.odps.mma.io.converter.HiveObjectConverter;
+import com.aliyun.odps.mma.validation.TableHasherInter;
 import com.aliyun.odps.tunnel.TableTunnel;
 import com.aliyun.odps.tunnel.TableTunnel.UploadSession;
 import com.aliyun.odps.tunnel.TunnelException;
@@ -50,7 +52,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
 public class McDataTransmissionUDTF extends GenericUDTF {
-
   /**
    * Won't change once initialized
    */
@@ -70,6 +71,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private UploadSession currentUploadSession;
   private RecordWriter recordWriter;
   private String currentOdpsPartitionSpec;
+  private TableHasherInter tableHasher;
 
   /**
    * Reused objects
@@ -84,7 +86,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private long startTime = System.currentTimeMillis();
   private long bytesTransferred = 0L;
   private Long numRecordTransferred = 0L;
-  private Object[] forwardObj = new Object[1];
+  private Object[] forwardObj = new Object[2];
 
   private static final int IDX_AUTH_TYPE = 0;
   private static final int IDX_ODPS_CONFIG_PATH = 1;
@@ -106,8 +108,10 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     objectInspectors = args;
     List<String> fieldNames = new ArrayList<>();
     fieldNames.add("num_record_transferred");
+    fieldNames.add("table_hash");
     List<ObjectInspector> outputObjectInspectors = new ArrayList<>();
     outputObjectInspectors.add(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
+    outputObjectInspectors.add(PrimitiveObjectInspectorFactory.javaStringObjectInspector);
     return ObjectInspectorFactory.getStandardStructObjectInspector(fieldNames,
                                                                    outputObjectInspectors);
   }
@@ -179,6 +183,10 @@ public class McDataTransmissionUDTF extends GenericUDTF {
 
         odpsPartitionColumnNames = readList(args, IDX_PTS);
         hivePartitionColumnValues = new Object[odpsPartitionColumnNames.size()];
+
+        tableHasher = TableHasherLoader.load(schema);
+        print("success to init table hasher");
+        print("start to transfer data to odps");
       }
 
       // Step 1: get Hive column value and pt value
@@ -203,6 +211,8 @@ public class McDataTransmissionUDTF extends GenericUDTF {
         resetUploadSession(partitionSpec);
       }
 
+      UpdatePartitionColumnsHash();
+
       // Step 3: set record and write to tunnel
       if (reusedRecord == null) {
         reusedRecord = currentUploadSession.newRecord();
@@ -219,11 +229,18 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           TypeInfo typeInfo = schema.getColumn(odpsColumnName).getTypeInfo();
           reusedRecord.set(odpsColumnName,
                            HiveObjectConverter.convert(objectInspector, value, typeInfo));
+
+          tableHasher.addColumnData(objectInspector, value, schema.getColumn(odpsColumnName));
         }
       }
 
       recordWriter.write(reusedRecord);
+      tableHasher.update();
       numRecordTransferred += 1;
+
+      if (numRecordTransferred % 1000 == 0) {
+        print(String.format("has transferred %d records", numRecordTransferred));
+      }
     } catch (Exception e) {
       e.printStackTrace();
       throw new HiveException(e);
@@ -241,7 +258,6 @@ public class McDataTransmissionUDTF extends GenericUDTF {
       ObjectInspector objectInspector = objectInspectors[i + IDX_PT_BEGIN];
       TypeInfo typeInfo = schema.getPartitionColumn(odpsPartitionColumnNames.get(i)).getTypeInfo();
       Object odpsValue = HiveObjectConverter.convert(objectInspector, colValue, typeInfo);
-
       partitionSpecBuilder.append(odpsPartitionColumnNames.get(i));
       partitionSpecBuilder.append("='");
       partitionSpecBuilder.append(odpsValue.toString()).append("'");
@@ -250,6 +266,18 @@ public class McDataTransmissionUDTF extends GenericUDTF {
       }
     }
     return partitionSpecBuilder.toString();
+  }
+
+  private void UpdatePartitionColumnsHash() {
+    for (int i = 0; i < odpsPartitionColumnNames.size(); ++i) {
+      Object colValue = hivePartitionColumnValues[i];
+      if (colValue == null) {
+        continue;
+      }
+
+      ObjectInspector objectInspector = objectInspectors[i + IDX_PT_BEGIN];
+      tableHasher.addColumnData(objectInspector, colValue, schema.getPartitionColumn(odpsPartitionColumnNames.get(i)));
+    }
   }
 
   private void resetUploadSession(String partitionSpec)
@@ -359,6 +387,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     print("upload speed (in KB): " + bytesTransferred / (System.currentTimeMillis() - startTime));
 
     forwardObj[0] = numRecordTransferred;
+    forwardObj[1] = tableHasher.getTableHash();
     forward(forwardObj);
   }
 

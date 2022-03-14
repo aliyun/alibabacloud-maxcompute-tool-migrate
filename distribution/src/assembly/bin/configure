@@ -218,6 +218,19 @@ function CONFIGURE_METADATA_DB()
     ADD_OR_REPLACE "mma.meta.db.jdbc.password" "mma" ""
 }
 
+function ENABLE_DATA_VERIFICATION() {
+  PRINTLN_STDERR ""
+  enable_data_verification=$(GET_INPUT "Enable data verification? (Y/N)" "" "")
+
+  while true; do
+    case ${enable_data_verification} in
+          [Yy]) ADD_OR_REPLACE "mma.data.enable.verification" "true" ","; break;;
+          [Nn]) ADD_OR_REPLACE "mma.data.enable.verification" "false" ","; break;;
+          *) PRINTLN_STDERR "Please input 'Y' or 'N'";;
+    esac
+  done
+}
+
 rm -f "${MMA_SERVER_CONFIG_PATH}"
 touch ${MMA_SERVER_CONFIG_PATH};
 echo "{" >> ${MMA_SERVER_CONFIG_PATH}
@@ -249,6 +262,7 @@ CONFIGURE_MC
 
 PRINTLN_STDERR ""
 PRINTLN_STDERR_BOLD_YELLOW "Generating MMA server configuration"
+ENABLE_DATA_VERIFICATION
 CONFIGURE_SOURCE_AND_DEST
 CONFIGURE_METADATA_DB
 # append a '}' at the end of file

@@ -16,12 +16,6 @@
 
 package com.aliyun.odps.mma.util;
 
-import java.nio.file.Paths;
-import java.util.List;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.aliyun.odps.mma.Constants;
 import com.aliyun.odps.mma.config.ExternalTableStorage;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
@@ -30,6 +24,16 @@ import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.utils.StringUtils;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class McSqlUtils {
 
@@ -278,6 +282,35 @@ public class McSqlUtils {
     sb.append(";\n");
 
     return sb.toString();
+  }
+
+  public static String getTableHashSql(TableMetaModel tableMetaModel) {
+    String tpl = "select mma_hash_table('%s', %s) as (count, hash) from %s.%s %s;";
+    List<ColumnMetaModel> columns = new ArrayList<>(tableMetaModel.getColumns());
+    List<ColumnMetaModel> partitionedColumns = tableMetaModel.getPartitionColumns();
+    columns.addAll(partitionedColumns);
+
+    Gson gson = new GsonBuilder().
+            disableHtmlEscaping().
+            registerTypeAdapter(ColumnMetaModel.class, new ColumnMetaModel.GsonSerializer())
+            .create();
+    String columnInfo = gson.toJson(columns, new TypeToken<List<ColumnMetaModel>>() {}.getType());
+    String columnsStr = columns.stream().map(ColumnMetaModel::getColumnName).collect(Collectors.joining(", "));
+
+    String whereCondition = "";
+
+    if (partitionedColumns.size() > 0) {
+      whereCondition = getWhereCondition(tableMetaModel).replace("\n", " ");
+    }
+
+    return String.format(
+            tpl,
+            columnInfo,
+            columnsStr,
+            tableMetaModel.getDatabase(),
+            tableMetaModel.getTable(),
+            whereCondition
+    );
   }
 
 //  public static String getDDLSql(TableMetaModel tableMetaModel) {

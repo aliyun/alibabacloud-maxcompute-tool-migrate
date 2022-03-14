@@ -42,6 +42,8 @@ limitations under the License.
     <module>mma-commons</module>
     <module>mma-data-connector</module>
     <module>distribution</module>
+    <module>interfaces</module>
+    <module>data-validation</module>
   </modules>
 
   <repositories>
