@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.validation;
 
+import com.aliyun.odps.OdpsType;
 import com.aliyun.odps.type.StructTypeInfo;
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.arrow.memory.ArrowBuf;
@@ -7,11 +8,9 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.complex.MapVector;
-import org.apache.arrow.vector.complex.impl.UnionListWriter;
 import org.apache.arrow.vector.complex.impl.UnionMapWriter;
 import org.apache.arrow.vector.complex.writer.FieldWriter;
 
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyIntObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.*;
@@ -21,6 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +42,8 @@ public class HiveArrowWriter {
         put(PrimitiveCategory.BINARY, new BinaryWriter());                 // binary
         put(PrimitiveCategory.DATE, new DateWriter());                     // hive date -> odps datetime
         put(PrimitiveCategory.TIMESTAMP, new TimestampWriter());           // timestamp
-     }};
-    
+    }};
+
     public static void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject, TypeInfo odpsTypeInfo, FieldVector fieldVector) {
         if (hiveObject == null) {
             fieldWriter.writeNull();
@@ -53,11 +53,36 @@ public class HiveArrowWriter {
         switch (inspector.getCategory()) {
             case PRIMITIVE: {
                 PrimitiveObjectInspector pi = (PrimitiveObjectInspector) inspector;
+
+                // 应对odps分区只有string和bigint的情况, hive的非string和bigint分区类型会被转换为string或bigint, 目前只处理了date类型
+                if (odpsTypeInfo != null
+                        && odpsTypeInfo.getOdpsType().equals(OdpsType.STRING)
+                        && pi.getPrimitiveCategory().equals(PrimitiveCategory.DATE)) {
+                    try {
+                        Object dateObject = getDateObject(inspector, hiveObject);
+                        String dateStr = getDateStr(dateObject);
+                        byte[] data = dateStr.getBytes();
+                        BufferAllocator bufferAllocator = new RootAllocator();
+                        ArrowBuf buf = bufferAllocator.buffer(data.length);
+                        buf.setBytes(0, data);
+
+                        fieldWriter.writeVarChar(0, data.length, buf);
+                        buf.close();
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    return;
+                }
+
                 HiveFieldWriter writer = primitiveWriterMap.get(pi.getPrimitiveCategory());
                 if (writer == null) {
                     throw new RuntimeException("unsupported hive type " + pi.getPrimitiveCategory());
                 }
                 writer.write(fieldWriter, inspector, hiveObject, odpsTypeInfo, fieldVector);
+
+
                 break;
             }
             case LIST: {
@@ -87,7 +112,7 @@ public class HiveArrowWriter {
             write(fieldWriter, inspector, hiveObject);
         }
     }
- 
+
     static class ByteWriter extends HiveFieldWriter {
         @Override
         public void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject) {
@@ -99,7 +124,7 @@ public class HiveArrowWriter {
     static class ShortWriter extends HiveFieldWriter {
         @Override
         public void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject) {
-            short data = ((ShortObjectInspector)inspector).get(hiveObject);
+            short data = ((ShortObjectInspector) inspector).get(hiveObject);
             fieldWriter.writeSmallInt(data);
         }
     }
@@ -153,7 +178,7 @@ public class HiveArrowWriter {
     static class BigDecimalWriter extends HiveFieldWriter {
         @Override
         public void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject) {
-            BigDecimal data = ((HiveDecimalObjectInspector)inspector).getPrimitiveJavaObject(hiveObject).bigDecimalValue();
+            BigDecimal data = ((HiveDecimalObjectInspector) inspector).getPrimitiveJavaObject(hiveObject).bigDecimalValue();
             data = data.setScale(18, RoundingMode.HALF_UP);
             fieldWriter.writeDecimal(data);
         }
@@ -186,7 +211,7 @@ public class HiveArrowWriter {
 
         @Override
         public void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject) {
-            String value = ((HiveCharObjectInspector)inspector).getPrimitiveJavaObject(hiveObject).getValue();
+            String value = ((HiveCharObjectInspector) inspector).getPrimitiveJavaObject(hiveObject).getValue();
             byte[] data = value.getBytes();
             ArrowBuf buf = bufferAllocator.buffer(data.length);
             buf.setBytes(0, data);
@@ -201,7 +226,7 @@ public class HiveArrowWriter {
 
         @Override
         public void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject) {
-            String value = ((HiveVarcharObjectInspector)inspector).getPrimitiveJavaObject(hiveObject).getValue();
+            String value = ((HiveVarcharObjectInspector) inspector).getPrimitiveJavaObject(hiveObject).getValue();
             byte[] data = value.getBytes();
             ArrowBuf buf = bufferAllocator.buffer(data.length);
             buf.setBytes(0, data);
@@ -230,13 +255,8 @@ public class HiveArrowWriter {
         public void write(FieldWriter fieldWriter, ObjectInspector inspector, Object hiveObject) {
             //Object rawDate = ((DateObjectInspector)inspector).getPrimitiveJavaObject(hiveObject);
             Object rawDate;
-
             try {
-                Class<?> dateInspectorClazz = Class.forName(
-                        "org.apache.hadoop.hive.serde2.objectinspector.primitive.DateObjectInspector");
-                Method getPrimitiveJavaObject = dateInspectorClazz
-                        .getDeclaredMethod("getPrimitiveJavaObject", Object.class);
-                rawDate = getPrimitiveJavaObject.invoke(dateInspectorClazz.cast(inspector), hiveObject);
+                rawDate = getDateObject(inspector, hiveObject);
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -254,8 +274,8 @@ public class HiveArrowWriter {
                     try {
                         Class<?> hiveDateClazz = Class.forName("org.apache.hadoop.hive.common.type.Date");
                         Method toEpochMilli = hiveDateClazz.getDeclaredMethod("toEpochMilli");
-                        dateTimeValue = (long)toEpochMilli.invoke(rawDate);
-                    }  catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+                        dateTimeValue = (long) toEpochMilli.invoke(rawDate);
+                    } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                     break;
@@ -276,11 +296,7 @@ public class HiveArrowWriter {
             Object rawTs;
 
             try {
-                Class<?> timestampInspectorClazz = Class.forName(
-                        "org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector");
-                Method getPrimitiveJavaObject = timestampInspectorClazz
-                        .getDeclaredMethod("getPrimitiveJavaObject", Object.class);
-                rawTs = getPrimitiveJavaObject.invoke(timestampInspectorClazz.cast(inspector), hiveObject);
+                rawTs = getTimeStampObject(inspector, hiveObject);
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -353,7 +369,7 @@ public class HiveArrowWriter {
             writer.setValueCount(count);
             writer.endMap();
             writer.clear();
-         }
+        }
     }
 
     static class StructWriter extends HiveFieldWriter {
@@ -381,5 +397,49 @@ public class HiveArrowWriter {
 
             fieldWriter.end();
         }
+    }
+
+    static Object getDateObject(ObjectInspector inspector, Object hiveObject) throws Exception {
+        Class<?> dateInspectorClazz = Class.forName(
+                "org.apache.hadoop.hive.serde2.objectinspector.primitive.DateObjectInspector");
+        Method getPrimitiveJavaObject = dateInspectorClazz
+                .getDeclaredMethod("getPrimitiveJavaObject", Object.class);
+        return getPrimitiveJavaObject.invoke(dateInspectorClazz.cast(inspector), hiveObject);
+    }
+
+    static Object getTimeStampObject(ObjectInspector inspector, Object hiveObject) throws Exception {
+        Class<?> timestampInspectorClazz = Class.forName(
+                "org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector");
+        Method getPrimitiveJavaObject = timestampInspectorClazz
+                .getDeclaredMethod("getPrimitiveJavaObject", Object.class);
+        return getPrimitiveJavaObject.invoke(timestampInspectorClazz.cast(inspector), hiveObject);
+    }
+
+    static String getDateStr(Object dateObject) {
+        java.sql.Date jDate;
+
+        switch (dateObject.getClass().getName()) {
+            // for hive1, hive2
+            case "java.sql.Date":
+                jDate = (java.sql.Date) dateObject;
+                break;
+            // for hive3
+            case "org.apache.hadoop.hive.common.type.Date":
+                try {
+                    Class<?> hiveDateClazz = Class.forName("org.apache.hadoop.hive.common.type.Date");
+                    Method toEpochMilli = hiveDateClazz.getDeclaredMethod("toEpochMilli");
+                    long dateTimeValue = (long) toEpochMilli.invoke(dateObject);
+                    jDate = new java.sql.Date(dateTimeValue);
+                    break;
+                } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+                // unreachable
+            default:
+                throw new RuntimeException("unreachable!, hive date type must be 'java.sql.Date' or 'org.apache.hadoop.hive.common.type.Date'");
+        }
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        return format.format(jDate);
     }
 }

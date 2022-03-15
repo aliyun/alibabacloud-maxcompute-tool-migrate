@@ -60,16 +60,17 @@ public class HiveSchemaTransformer implements SchemaTransformer {
                   hivePartitionColumnMetaModel.getColumnName(),
                   "STRING",
                   hivePartitionColumnMetaModel.getComment()));
+        } else {
+          TypeTransformResult typeTransformResult = typeTransformer.toMcTypeV2(
+                  hivePartitionColumnMetaModel.getColumnName(),
+                  hivePartitionColumnMetaModel.getType());
+          typeTransformResults.add(typeTransformResult);
+          mcPartitionColumnMetaModels.add(
+                  new ColumnMetaModel(
+                          hivePartitionColumnMetaModel.getColumnName(),
+                          typeTransformResult.getTransformedType(),
+                          hivePartitionColumnMetaModel.getComment()));
         }
-        TypeTransformResult typeTransformResult = typeTransformer.toMcTypeV2(
-            hivePartitionColumnMetaModel.getColumnName(),
-            hivePartitionColumnMetaModel.getType());
-        typeTransformResults.add(typeTransformResult);
-        mcPartitionColumnMetaModels.add(
-            new ColumnMetaModel(
-                hivePartitionColumnMetaModel.getColumnName(),
-                typeTransformResult.getTransformedType(),
-                hivePartitionColumnMetaModel.getComment()));
       }
       builder.partitionColumns(mcPartitionColumnMetaModels);
       builder.partitions(source.getPartitions());
