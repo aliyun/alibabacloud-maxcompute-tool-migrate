@@ -30,7 +30,7 @@ public class MetaSourceLoader implements MetaLoader{
     try {
       HiveMetaConfig hiveMetaConfig = (HiveMetaConfig) config;
       if(hiveMetaConfig.isUseHms()){
-        return new HiveMetaSourceHmsImpl(hiveMetaConfig);
+        return HiveMetaSourceHmsImpl.getInstance(hiveMetaConfig);
       } else {
         return new HiveMetaSourceJdbcImpl(hiveMetaConfig);
       }

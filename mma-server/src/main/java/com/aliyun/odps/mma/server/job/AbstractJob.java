@@ -59,6 +59,11 @@ public abstract class AbstractJob implements Job {
   }
 
   @Override
+  public void init() {
+
+  }
+
+  @Override
   public List<Task> getTasks() {
     return Collections.emptyList();
   }
