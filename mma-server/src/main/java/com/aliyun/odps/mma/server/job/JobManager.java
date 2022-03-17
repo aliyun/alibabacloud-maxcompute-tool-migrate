@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.session.SqlSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -318,35 +319,38 @@ public class JobManager {
     boolean isPartitioned = !tableMetaModel.getPartitionColumns().isEmpty();
 
     if (isPartitioned) {
-      // Add each partition as a sub job
-      JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
-      for (PartitionMetaModel partitionMetaModel : tableMetaModel.getPartitions()) {
+      try (SqlSession session = metaManager.getSqlSessionFactory().openSession(true)) {
+        // Add each partition as a sub job
+        JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
+        for (PartitionMetaModel partitionMetaModel : tableMetaModel.getPartitions()) {
 
-        if (!partitionFilter.filter(partitionMetaModel.getPartitionValues())) {
-          continue;
+          if (!partitionFilter.filter(partitionMetaModel.getPartitionValues())) {
+            continue;
+          }
+
+          String subJobId = JobUtils.generateJobId(true);
+          Map<String, String> subConfig = new HashMap<>(config);
+          String partitionIdentifier = ConfigurationUtils.toPartitionIdentifier(
+                  tableName,
+                  partitionMetaModel.getPartitionValues());
+          subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, partitionIdentifier);
+          subConfig.put(JobConfiguration.DEST_OBJECT_NAME, partitionIdentifier);
+          subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.PARTITION.name());
+          if (partitionMetaModel.getLastModificationTime() != null) {
+            subConfig.put(
+                    JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
+                    Long.toString(partitionMetaModel.getLastModificationTime()));
+          }
+
+          metaManager.addSubJob(
+                  jobId,
+                  subJobId,
+                  jobPriority,
+                  jobMaxAttemptTimes,
+                  new JobConfiguration(subConfig).toString(),
+                  false,
+                  session);
         }
-
-        String subJobId = JobUtils.generateJobId(true);
-        Map<String, String> subConfig = new HashMap<>(config);
-        String partitionIdentifier = ConfigurationUtils.toPartitionIdentifier(
-            tableName,
-            partitionMetaModel.getPartitionValues());
-        subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, partitionIdentifier);
-        subConfig.put(JobConfiguration.DEST_OBJECT_NAME, partitionIdentifier);
-        subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.PARTITION.name());
-        if (partitionMetaModel.getLastModificationTime() != null) {
-          subConfig.put(
-              JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
-              Long.toString(partitionMetaModel.getLastModificationTime()));
-        }
-
-        metaManager.addSubJob(
-            jobId,
-            subJobId,
-            jobPriority,
-            jobMaxAttemptTimes,
-            new JobConfiguration(subConfig).toString(),
-            false);
       }
     } else {
       if (tableMetaModel.getLastModificationTime() != null) {
@@ -356,7 +360,6 @@ public class JobManager {
         config = new JobConfiguration(configMap);
       }
     }
-
 
     if (isSubJob) {
       metaManager.addSubJob(

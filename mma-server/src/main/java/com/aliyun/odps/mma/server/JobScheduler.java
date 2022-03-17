@@ -118,6 +118,7 @@ public class JobScheduler {
 
         synchronized (runningJobs) {
           for (Job job : runningJobs) {
+
             List<Task> tasks = job.getExecutableTasks();
 
             // TODO: a better way to print to the dw console

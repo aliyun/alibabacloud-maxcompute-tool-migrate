@@ -45,6 +45,12 @@ public class CatalogJob extends AbstractJob {
   }
 
   @Override
+  public void init() {
+    // 置状态
+    // 迁移JobManage里, addCatalogJob的部分逻辑
+  }
+
+  @Override
   public synchronized JobStatus getStatus() {
     JobStatus jobStatus = JobStatus.valueOf(record.getJobStatus());
 

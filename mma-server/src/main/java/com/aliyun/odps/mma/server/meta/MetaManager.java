@@ -43,6 +43,10 @@ public class MetaManager {
     setUp();
   }
 
+  public SqlSessionFactory getSqlSessionFactory() {
+    return sqlSessionFactory;
+  }
+
   private void setUp() {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao jobMapper = session.getMapper(JobDao.class);
@@ -125,6 +129,35 @@ public class MetaManager {
       dao.createSubJobTableIfNotExists(parentJobId);
       dao.insertSubJob(parentJobId, record);
     }
+  }
+
+  public void addSubJob(
+          String parentJobId,
+          String subJobId,
+          int jobPriority,
+          int maxAttemptTimes,
+          String jobConf,
+          boolean hasSubJob,
+          SqlSession session) {
+    long time = System.currentTimeMillis();
+    Job record = Job.of(
+            subJobId,
+            jobPriority,
+            JobStatus.PENDING.name(),
+            jobConf,
+            // TODO: use a constant
+            0,
+            maxAttemptTimes,
+            time,
+            time,
+            -1,
+            -1,
+            hasSubJob,
+            null);
+
+    JobDao dao = session.getMapper(JobDao.class);
+    dao.createSubJobTableIfNotExists(parentJobId);
+    dao.insertSubJob(parentJobId, record);
   }
 
   public void removeJob(String jobId) {
