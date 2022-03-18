@@ -58,11 +58,6 @@ public abstract class AbstractJob implements Job {
     this.metaSourceFactory = Objects.requireNonNull(metaSourceFactory);
   }
 
-  @Override
-  public void init() {
-
-  }
-
   public boolean plan() { return true; }
 
   @Override
