@@ -26,8 +26,6 @@ import com.aliyun.odps.mma.server.task.Task;
  * A handle of job.
  */
 public interface Job {
-  void init();
-
   boolean plan();
 
   List<Task> getExecutableTasks();

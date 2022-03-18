@@ -332,14 +332,18 @@ public class JobManager {
   }
 
   public Job getJobById(String jobId) {
+     return getJobById(jobId, false);
+  }
+
+  public Job getJobById(String jobId, boolean refreshFromDb) {
     LOG.info("Get job, job id: {}", jobId);
 
     com.aliyun.odps.mma.server.meta.generated.Job record =
-        metaManager.getJobById(jobId);
+            metaManager.getJobById(jobId);
     if (record == null) {
       throw new IllegalArgumentException("Job does not exist, job id: " + jobId);
     }
-    return getJobInternal(null, record);
+    return getJobInternal(null, record, refreshFromDb);
   }
 
   static class JobDescribe {
@@ -385,16 +389,23 @@ public class JobManager {
   }
 
   private Job getJobInternal(
+          Job parentJob,
+          com.aliyun.odps.mma.server.meta.generated.Job record) {
+    return getJobInternal(parentJob, record, false);
+  }
+
+  private Job getJobInternal(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
+      com.aliyun.odps.mma.server.meta.generated.Job record,
+      boolean refresh) {
 
     String jobId = record.getJobId();
 
-    if (jobs.containsKey(jobId)) {
+    if (!refresh && jobs.containsKey(jobId)) {
       return jobs.get(jobId);
-    } else {
-      LOG.info("Construct job object, job id: {}", record.getJobId());
     }
+
+    LOG.info("Construct job object, job id: {}", record.getJobId());
 
     JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
     JobDescribe jobDescribe = new JobDescribe(config);
