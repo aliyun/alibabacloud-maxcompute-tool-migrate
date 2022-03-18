@@ -49,12 +49,6 @@ public class CatalogJob extends AbstractJob {
   }
 
   @Override
-  public void init() {
-    // 置状态
-    // 迁移JobManage里, addCatalogJob的部分逻辑
-  }
-
-  @Override
   public boolean plan() {
     //TODO refactor
     boolean success = false;
