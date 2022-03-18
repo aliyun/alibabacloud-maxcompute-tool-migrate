@@ -17,12 +17,16 @@
 package com.aliyun.odps.mma.server.job;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.job.utils.JobUtils;
@@ -48,6 +52,43 @@ public class CatalogJob extends AbstractJob {
   public void init() {
     // 置状态
     // 迁移JobManage里, addCatalogJob的部分逻辑
+  }
+
+  @Override
+  public boolean plan() {
+    //TODO refactor
+    boolean success = false;
+    try {
+      if ("1".equals(config.get(JobConfiguration.PLAN_INIT))) {
+        LOG.info("PLANed" + config.get(JobConfiguration.PLAN_INIT));
+        return true;
+      }
+      LOG.info("PLAN" + config.get(JobConfiguration.PLAN_INIT));
+      jobManager.addCatalogJob(record);
+
+      Map<String, String> newConfig = new HashMap<>(config);
+      newConfig.put(JobConfiguration.PLAN_INIT, "1");
+      config = new JobConfiguration(newConfig);
+      success = true;
+    } catch (Exception e) {
+      LOG.info(ExceptionUtils.getStackTrace(e));
+      setStatusInternal(JobStatus.FAILED);
+      for (Job job: getSubJobs()) {
+        try {
+          //TODO status => fail
+          job.stop();
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+      }
+    } finally {
+      com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder
+          jobBuilder = new com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder(record);
+      jobBuilder.attemptTimes(record.getAttemptTimes()+1);
+      update(jobBuilder);
+    }
+
+    return success;
   }
 
   @Override

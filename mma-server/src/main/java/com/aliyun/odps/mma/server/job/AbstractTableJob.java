@@ -234,6 +234,7 @@ public abstract class AbstractTableJob extends AbstractJob {
 
   @Override
   boolean addNewSubJobs() throws Exception {
+    //TODO add to jobmananger
     MetaSource metaSource = metaSourceFactory.getMetaSource(config);
     String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
     String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
@@ -257,18 +258,8 @@ public abstract class AbstractTableJob extends AbstractJob {
           .collect(Collectors.toSet());
       for (Entry<String, Long> entry: partitionIdentifierToLastModificationTime.entrySet()) {
         if (!currentPartitionIdentifierSet.contains(entry.getKey())) {
-          String subJobId = JobUtils.generateJobId(true);
-          Map<String, String> subConfig = new HashMap<>(config);
-          subConfig.put(JobConfiguration.JOB_ID, subJobId);
-          subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, entry.getKey());
-          subConfig.put(JobConfiguration.DEST_OBJECT_NAME, entry.getKey());
-          subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.PARTITION.name());
-          if (entry.getValue() != null) {
-            subConfig.put(
-                JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
-                Long.toString(entry.getValue()));
-          }
-          jobManager.addSubJob(record.getJobId(), new JobConfiguration(subConfig));
+          String subJobId = jobManager.saveSubJobToDb(record.getJobId(), config, entry.getKey(), ObjectType.PARTITION,
+                                    entry.getValue(), null);
           hasNewSubJob = true;
           LOG.info(
               "New sub job, parent job id: {}, sub job id: {}",

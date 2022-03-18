@@ -178,6 +178,21 @@ public class MetaManager {
     }
   }
 
+  //TODO refactor
+  public void removeSubJobTable(String parentJobId) {
+    try (SqlSession session = sqlSessionFactory.openSession(true)) {
+      JobDao dao = session.getMapper(JobDao.class);
+      dao.dropSubJobTable(parentJobId);
+    }
+  }
+
+  public void createSubJobTable(String parentJobId) {
+    try (SqlSession session = sqlSessionFactory.openSession(true)) {
+      JobDao dao = session.getMapper(JobDao.class);
+      dao.createSubJobTableIfNotExists(parentJobId);
+    }
+  }
+
   public Job getJobById(String jobId) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
