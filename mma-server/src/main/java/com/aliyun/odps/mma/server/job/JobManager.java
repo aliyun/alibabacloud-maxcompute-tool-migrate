@@ -20,9 +20,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -31,7 +33,6 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.DataDestType;
 import com.aliyun.odps.mma.config.DataSourceType;
@@ -46,6 +47,11 @@ import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import static com.aliyun.odps.mma.config.ObjectType.CATALOG;
+import static com.aliyun.odps.mma.config.ObjectType.FUNCTION;
+import static com.aliyun.odps.mma.config.ObjectType.PARTITION;
+import static com.aliyun.odps.mma.config.ObjectType.RESOURCE;
+import static com.aliyun.odps.mma.config.ObjectType.TABLE;
 
 public class JobManager {
 
@@ -82,73 +88,21 @@ public class JobManager {
     }
 
     LOG.info("Add job, job id: {}", jobId);
+    JobDescribe jobDescribe = new JobDescribe(config);
+    jobDescribe.check();
 
-    MetaSourceType metaSourceType = MetaSourceType.valueOf(
-        config.get(JobConfiguration.METADATA_SOURCE_TYPE));
-    DataSourceType dataSourceType = DataSourceType.valueOf(
-        config.get(JobConfiguration.DATA_SOURCE_TYPE));
-    MetaDestType metaDestType = MetaDestType.valueOf(
-        config.get(JobConfiguration.METADATA_DEST_TYPE));
-    DataDestType dataDestType = DataDestType.valueOf(
-        config.get(JobConfiguration.DATA_DEST_TYPE));
-
-    if (metaSourceType.equals(MetaSourceType.MaxCompute)
-        && dataSourceType.equals(DataSourceType.MaxCompute)
-        && metaDestType.equals(MetaDestType.OSS)
-        && dataDestType.equals(DataDestType.OSS)) {
-      return addMcToOssJob(config);
-    } else if (metaSourceType.equals(MetaSourceType.OSS)
-               && dataSourceType.equals(DataSourceType.OSS)
-               && metaDestType.equals(MetaDestType.MaxCompute)
-               && dataDestType.equals(DataDestType.MaxCompute)) {
-      return addOssToMcJob(config);
-    } else if (metaSourceType.equals(MetaSourceType.Hive)
-               && dataSourceType.equals(DataSourceType.Hive)
-               && metaDestType.equals(MetaDestType.MaxCompute)
-               && dataDestType.equals(DataDestType.MaxCompute)) {
-      return addHiveToMcJob(config);
-    } else {
-      throw new IllegalArgumentException("Unsupported source and dest combination.");
+    boolean hasSubJob = ObjectType.CATALOG.equals(jobDescribe.objectType);
+    jobId = saveJobToDb(null, config, hasSubJob, null);
+    if (TABLE.equals(jobDescribe.objectType)) {
+      addTableSubJobs(metaManager.getJobById(jobId));
     }
+    return jobId;
   }
 
-  private String addHiveToMcJob(JobConfiguration config) throws Exception {
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    switch (objectType) {
-      case CATALOG: {
-        return addCatalogJob(config);
-      }
-      case TABLE: {
-        return addTableJob(null, config);
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
-  }
-
-  private String addMcToOssJob(JobConfiguration config) throws Exception {
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    switch (objectType) {
-      case CATALOG: {
-        return addCatalogJob(config);
-      }
-      case TABLE: {
-        return addTableJob(null, config);
-      }
-      case RESOURCE:
-      case FUNCTION: {
-        return addSimpleTransmissionJob(null, config);
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
-  }
-
-  private String addCatalogJob(JobConfiguration config) throws Exception {
-    String jobId = config.get(JobConfiguration.JOB_ID);
-    if (StringUtils.isBlank(jobId)) {
-      jobId = JobUtils.generateJobId(false);
-    }
+  public void addCatalogJob(com.aliyun.odps.mma.server.meta.generated.Job record) throws Exception {
+    String jobId = record.getJobId();
+    removeSubJobTable(jobId);
+    JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
 
     List<ObjectType> objectTypes;
     // Supported object types
@@ -160,8 +114,7 @@ public class JobManager {
     // If object types are not specified, use the supported object types
     if (config.containsKey(JobConfiguration.SOURCE_OBJECT_TYPES)) {
       objectTypeList = config.get(JobConfiguration.SOURCE_OBJECT_TYPES).split(",");
-      objectTypes =
-          Arrays.stream(objectTypeList).map(ObjectType::valueOf).collect(Collectors.toList());
+      objectTypes = Arrays.stream(objectTypeList).map(ObjectType::valueOf).collect(Collectors.toList());
       for (ObjectType objectType : objectTypes) {
         if (!supportedObjectTypes.contains(objectType)) {
           throw new IllegalArgumentException("Unsupported object type: " + objectType);
@@ -171,151 +124,131 @@ public class JobManager {
       objectTypes = supportedObjectTypes;
     }
 
-    for (ObjectType objectType : objectTypes) {
-      List<String> objNames;
-      switch (objectType) {
-        case TABLE:
+
+    try (SqlSession session = metaManager.getSqlSessionFactory().openSession(true)) {
+      for (ObjectType objectType : objectTypes) {
+        List<String> objNames;
+        if (TABLE.equals(objectType)) {
           objNames = metaSource.listTables(catalogName);
-          break;
-        case RESOURCE:
+        } else if (RESOURCE.equals(objectType)) {
           objNames = metaSource.listResources(catalogName);
-          break;
-        case FUNCTION:
+        } else if (FUNCTION.equals(objectType)) {
           objNames = metaSource.listFunctions(catalogName);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported object type " + objectType);
-      }
-      for (String objName : objNames) {
-        LOG.info("add {} job, object name: {}", objectType, objName);
-        Map<String, String> subConfig = new HashMap<>(config);
-        subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, objName);
-        subConfig.put(JobConfiguration.DEST_OBJECT_NAME, objName);
-        subConfig.put(JobConfiguration.OBJECT_TYPE, objectType.name());
-        if (ObjectType.TABLE.equals(objectType)) {
-          addTableJob(jobId, catalogName, objName, new JobConfiguration(subConfig));
         } else {
-          addSimpleTransmissionJob(jobId, new JobConfiguration(subConfig));
+          throw new IllegalArgumentException("Unsupported object type " + objectType);
+        }
+        LOG.info(objNames);
+        for (String objName : objNames) {
+          LOG.info("add {} job, object name: {}", objectType, objName);
+          String subJobId = saveSubJobToDb(jobId, config, objName, objectType, null, session);
+          if (ObjectType.TABLE.equals(objectType)) {
+            com.aliyun.odps.mma.server.meta.generated.Job
+                subRecord =
+                metaManager.getSubJobById(jobId, subJobId);
+            addTableSubJobs(subRecord);
+          }
         }
       }
     }
 
-    String jobPriorityString = config.getOrDefault(
-        JobConfiguration.JOB_PRIORITY,
-        JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE);
-    int jobPriority = Integer.valueOf(jobPriorityString);
-    String jobMaxAttemptTimesString = config.getOrDefault(
-        JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
-        JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
-    int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
-    metaManager.addJob(
-        jobId,
-        jobPriority,
-        jobMaxAttemptTimes,
-        config.toString(),
-        true);
-
-    return jobId;
+    Map<String, String> newConfig = new HashMap<>(config);
+    newConfig.put(JobConfiguration.PLAN_INIT, "1");
+    record.setJobConfig(newConfig.toString());
+    metaManager.updateJobById(record);
   }
 
-  private String addTableJob(
-      String parentJobId,
-      JobConfiguration config) throws Exception {
-
-    return addTableJob(
-        parentJobId,
-        config.get(JobConfiguration.SOURCE_CATALOG_NAME),
-        config.get(JobConfiguration.SOURCE_OBJECT_NAME),
-        config);
+  public String saveSubJobToDb(String parentJobId, JobConfiguration config,
+                               String objName, ObjectType objectType,
+                               Long lastModifiedTime, SqlSession session) {
+    Map<String, String> subConfig = new HashMap<>(config);
+    subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, objName);
+    subConfig.put(JobConfiguration.DEST_OBJECT_NAME, objName);
+    subConfig.put(JobConfiguration.OBJECT_TYPE, objectType.name());
+    if (lastModifiedTime != null) {
+      subConfig.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME, Long.toString(lastModifiedTime));
+    }
+    return saveJobToDb(parentJobId, new JobConfiguration(subConfig), false, session);
   }
 
-  private String addSimpleTransmissionJob(
+  public String saveJobToDb(
       String parentJobId,
-      JobConfiguration config) {
+      JobConfiguration config,
+      boolean hasSubJob,
+      SqlSession session
+      ) {
+    // add root job: parentJobId == null
+    // add subjob: parentJobId == null
+    //      jobId in config is parentJobId
+    //      jobId in db must generate like S_xxx
+
     boolean isSubJob = !StringUtils.isBlank(parentJobId);
-    String jobId;
-    if (!isSubJob && config.containsKey(JobConfiguration.JOB_ID)) {
-      jobId = config.get(JobConfiguration.JOB_ID);
-    } else {
+    String jobId = config.get(JobConfiguration.JOB_ID);
+
+    //  isSubJob  hasJobIdInConfig    jobId
+    //  1         0/1                 generate => S_xxx
+    //  0         0                   generate => xxx
+    //  0         1                   use job_id in config
+    if (isSubJob || StringUtils.isBlank(jobId)) {
       jobId = JobUtils.generateJobId(isSubJob);
     }
 
-    if (StringUtils.isBlank(jobId)) {
-      jobId = JobUtils.generateJobId(false);
-    }
-
     String jobPriorityString = config.getOrDefault(
         JobConfiguration.JOB_PRIORITY,
         JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE);
-    int jobPriority = Integer.valueOf(jobPriorityString);
+    int jobPriority = Integer.parseInt(jobPriorityString);
     String jobMaxAttemptTimesString = config.getOrDefault(
         JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
         JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
-    int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
+    int jobMaxAttemptTimes = Integer.parseInt(jobMaxAttemptTimesString);
+
 
     if (isSubJob) {
-      metaManager.addSubJob(
-          parentJobId,
-          jobId,
-          jobPriority,
-          jobMaxAttemptTimes,
-          config.toString(),
-          false);
+      // overwrite parent jobid
+      Map<String, String> subConfig = new HashMap<>(config);
+      subConfig.put(JobConfiguration.JOB_ID, jobId);
+      config = new JobConfiguration(subConfig);
+      if (session != null) {
+        metaManager.addSubJob(
+            parentJobId,
+            jobId,
+            jobPriority,
+            jobMaxAttemptTimes,
+            config.toString(),
+            hasSubJob,
+            session);
+      } else {
+        metaManager.addSubJob(
+            parentJobId,
+            jobId,
+            jobPriority,
+            jobMaxAttemptTimes,
+            config.toString(),
+            hasSubJob);
+      }
     } else {
       metaManager.addJob(
           jobId,
           jobPriority,
           jobMaxAttemptTimes,
           config.toString(),
-          false);
+          hasSubJob);
     }
     return jobId;
   }
 
-  private String addOssToMcJob(JobConfiguration config) throws Exception {
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    switch (objectType) {
-      case CATALOG: {
-        return addCatalogJob(config);
-      }
-      case TABLE: {
-        return addTableJob(null, config);
-      }
-      case RESOURCE:
-      case FUNCTION: {
-        return addSimpleTransmissionJob(null, config);
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
-  }
+  private void addTableSubJobs(com.aliyun.odps.mma.server.meta.generated.Job record) throws Exception {
+    // update tablejob lastModifiedTime(in config) and hasSubJob(partition)
+    // add subjobs
 
-  private String addTableJob(
-      String parentJobId,
-      String catalogName,
-      String tableName,
-      JobConfiguration config) throws Exception {
-    boolean isSubJob = !StringUtils.isBlank(parentJobId);
-    String jobId;
-    if (!isSubJob && config.containsKey(JobConfiguration.JOB_ID)) {
-      jobId = config.get(JobConfiguration.JOB_ID);
-    } else {
-      jobId = JobUtils.generateJobId(isSubJob);
-    }
+    JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
+    String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
+    String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
+    String jobId = record.getJobId();
+    removeSubJobTable(jobId);
 
     // Ignore schema name for now, since MetaSource interface doesn't support it.
     MetaSource metaSource = metaSourceFactory.getMetaSource(config);
     TableMetaModel tableMetaModel = metaSource.getTableMeta(catalogName, tableName);
-
-    String jobPriorityString = config.getOrDefault(
-        JobConfiguration.JOB_PRIORITY,
-        JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE);
-    int jobPriority = Integer.valueOf(jobPriorityString);
-    String jobMaxAttemptTimesString = config.getOrDefault(
-        JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
-        JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
-    int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
-
     boolean isPartitioned = !tableMetaModel.getPartitionColumns().isEmpty();
 
     if (isPartitioned) {
@@ -328,28 +261,11 @@ public class JobManager {
             continue;
           }
 
-          String subJobId = JobUtils.generateJobId(true);
-          Map<String, String> subConfig = new HashMap<>(config);
           String partitionIdentifier = ConfigurationUtils.toPartitionIdentifier(
                   tableName,
                   partitionMetaModel.getPartitionValues());
-          subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, partitionIdentifier);
-          subConfig.put(JobConfiguration.DEST_OBJECT_NAME, partitionIdentifier);
-          subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.PARTITION.name());
-          if (partitionMetaModel.getLastModificationTime() != null) {
-            subConfig.put(
-                    JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
-                    Long.toString(partitionMetaModel.getLastModificationTime()));
-          }
-
-          metaManager.addSubJob(
-                  jobId,
-                  subJobId,
-                  jobPriority,
-                  jobMaxAttemptTimes,
-                  new JobConfiguration(subConfig).toString(),
-                  false,
-                  session);
+          saveSubJobToDb(jobId, config, partitionIdentifier, PARTITION,
+                         partitionMetaModel.getLastModificationTime(), session);
         }
       }
     } else {
@@ -358,66 +274,12 @@ public class JobManager {
         configMap.put(JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
                       Long.toString(tableMetaModel.getLastModificationTime()));
         config = new JobConfiguration(configMap);
+        record.setJobConfig(config.toString());
       }
     }
 
-    if (isSubJob) {
-      metaManager.addSubJob(
-          parentJobId,
-          jobId,
-          jobPriority,
-          jobMaxAttemptTimes,
-          config.toString(),
-          isPartitioned);
-    } else {
-      metaManager.addJob(
-          jobId,
-          jobPriority,
-          jobMaxAttemptTimes,
-          config.toString(),
-          isPartitioned);
-    }
-
-    return jobId;
-  }
-
-  public synchronized void addSubJob(String parentJobId, JobConfiguration config) {
-    if (!config.containsKey(JobConfiguration.JOB_ID)) {
-      throw new IllegalArgumentException("Sub job id is required");
-    }
-    String jobId = config.get(JobConfiguration.JOB_ID);
-    LOG.info("Add sub job, parent job id: {}, sub job id: {}", parentJobId, jobId);
-
-    if (metaManager.getSubJobById(parentJobId, jobId) != null) {
-      throw new IllegalArgumentException("Sub job already exists: " + parentJobId + "." + jobId);
-    }
-
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    String jobPriorityString = config.getOrDefault(
-        JobConfiguration.JOB_PRIORITY,
-        JobConfiguration.JOB_PRIORITY_DEFAULT_VALUE);
-    int jobPriority = Integer.valueOf(jobPriorityString);
-    String jobMaxAttemptTimesString = config.getOrDefault(
-        JobConfiguration.JOB_MAX_ATTEMPT_TIMES,
-        JobConfiguration.JOB_MAX_ATTEMPT_TIMES_DEFAULT_VALUE);
-    int jobMaxAttemptTimes = Integer.valueOf(jobMaxAttemptTimesString);
-    switch (objectType) {
-      case TABLE: {
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-      }
-      case PARTITION: {
-        metaManager.addSubJob(
-            parentJobId,
-            jobId,
-            jobPriority,
-            jobMaxAttemptTimes,
-            config.toString(),
-            false);
-        break;
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
+    record.setHasSubJob(isPartitioned);
+    metaManager.updateJobById(record);
   }
 
   public synchronized void removeJob(String jobId) {
@@ -428,6 +290,16 @@ public class JobManager {
   public synchronized void removeSubJob(String parentJobId, String jobId) {
     LOG.info("Remove sub job, parent job id: {}, sub job id: {}");
     removeJobInternal(parentJobId, jobId);
+  }
+
+  public synchronized void removeSubJobTable(String parentJobId) {
+    metaManager.createSubJobTable(parentJobId);
+    for(com.aliyun.odps.mma.server.meta.generated.Job job: metaManager.listSubJobs(parentJobId)) {
+      metaManager.removeSubJobTable(job.getJobId());
+    }
+    metaManager.removeSubJobTable(parentJobId);
+    metaManager.createSubJobTable(parentJobId);
+    LOG.info("Remove sub job table, parent job id: {}", parentJobId);
   }
 
   private void removeJobInternal(String parentJobId, String jobId) {
@@ -470,6 +342,48 @@ public class JobManager {
     return getJobInternal(null, record);
   }
 
+  static class JobDescribe {
+    MetaSourceType metaSourceType;
+    DataSourceType dataSourceType;
+    MetaDestType metaDestType;
+    DataDestType dataDestType;
+    ObjectType objectType;
+
+    public JobDescribe(JobConfiguration config) {
+      metaSourceType = MetaSourceType.valueOf(config.get(JobConfiguration.METADATA_SOURCE_TYPE));
+      dataSourceType = DataSourceType.valueOf(config.get(JobConfiguration.DATA_SOURCE_TYPE));
+      metaDestType = MetaDestType.valueOf(config.get(JobConfiguration.METADATA_DEST_TYPE));
+      dataDestType = DataDestType.valueOf(config.get(JobConfiguration.DATA_DEST_TYPE));
+      objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
+    }
+
+    boolean isMcToOSSJob() {
+      return metaSourceType.equals(MetaSourceType.MaxCompute) && dataSourceType.equals(DataSourceType.MaxCompute)
+          && metaDestType.equals(MetaDestType.OSS) && dataDestType.equals(DataDestType.OSS);
+    }
+
+    boolean isOSSToMcJob() {
+      return metaSourceType.equals(MetaSourceType.OSS) && dataSourceType.equals(DataSourceType.OSS)
+          && metaDestType.equals(MetaDestType.MaxCompute) && dataDestType.equals(DataDestType.MaxCompute);
+    }
+
+    boolean isHiveToMcJob() {
+      return metaSourceType.equals(MetaSourceType.Hive) && dataSourceType.equals(DataSourceType.Hive)
+          && metaDestType.equals(MetaDestType.MaxCompute) && dataDestType.equals(DataDestType.MaxCompute);
+    }
+
+    void check() {
+      Set<ObjectType> mcOSSValidType = new HashSet<>(Arrays.asList(CATALOG, TABLE, FUNCTION, RESOURCE));
+      Set<ObjectType> hiveMcValidType = new HashSet<>(Arrays.asList(CATALOG, TABLE));
+      boolean isValidMcToOSSJob = isMcToOSSJob() && mcOSSValidType.contains(objectType);
+      boolean isValidOSSToMcJob = isOSSToMcJob() && mcOSSValidType.contains(objectType);
+      boolean isValidHiveToMcJob = isHiveToMcJob() && hiveMcValidType.contains(objectType);
+      if (!isValidMcToOSSJob && !isValidOSSToMcJob && !isValidHiveToMcJob) {
+        throw new IllegalArgumentException("Unsupported source and dest combination");
+      }
+    }
+  }
+
   private Job getJobInternal(
       Job parentJob,
       com.aliyun.odps.mma.server.meta.generated.Job record) {
@@ -483,176 +397,54 @@ public class JobManager {
     }
 
     JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
-    MetaSourceType metaSourceType = MetaSourceType.valueOf(
-        config.get(JobConfiguration.METADATA_SOURCE_TYPE));
-    DataSourceType dataSourceType = DataSourceType.valueOf(
-        config.get(JobConfiguration.DATA_SOURCE_TYPE));
-    MetaDestType metaDestType = MetaDestType.valueOf(
-        config.get(JobConfiguration.METADATA_DEST_TYPE));
-    DataDestType dataDestType = DataDestType.valueOf(
-        config.get(JobConfiguration.DATA_DEST_TYPE));
+    JobDescribe jobDescribe = new JobDescribe(config);
+    ObjectType objectType = jobDescribe.objectType;
 
     Job job;
-    if (metaSourceType.equals(MetaSourceType.MaxCompute)
-        && dataSourceType.equals(DataSourceType.MaxCompute)
-        && metaDestType.equals(MetaDestType.OSS)
-        && dataDestType.equals(DataDestType.OSS)) {
-      job = getMcToOssJob(parentJob, config, record);
-    } else if (metaSourceType.equals(MetaSourceType.OSS)
-               && dataSourceType.equals(DataSourceType.OSS)
-               && metaDestType.equals(MetaDestType.MaxCompute)
-               && dataDestType.equals(DataDestType.MaxCompute)) {
-      job = getOssToMcJob(parentJob, config, record);
-    } else if (metaSourceType.equals(MetaSourceType.Hive)
-               && dataSourceType.equals(DataSourceType.Hive)
-               && metaDestType.equals(MetaDestType.MaxCompute)
-               && dataDestType.equals(DataDestType.MaxCompute)) {
-      job = getHiveToMcJob(parentJob, config, record);
+    if (jobDescribe.isMcToOSSJob()) {
+      if (CATALOG.equals(objectType)) {
+        job = new McToOssCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (TABLE.equals(objectType)) {
+        job = new McToOssTableJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (PARTITION.equals(objectType)) {
+        job = new PartitionJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (RESOURCE.equals(objectType)) {
+        job = new McToOssResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (FUNCTION.equals(objectType)) {
+        job = new McToOssFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else {
+        throw new IllegalArgumentException("Unsupported object type " + jobDescribe.objectType);
+      }
+    } else if (jobDescribe.isOSSToMcJob()) {
+      if (CATALOG.equals(objectType)) {
+        job = new McToOssCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (TABLE.equals(objectType)) {
+        job = new OssToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (PARTITION.equals(objectType)) {
+        job = new PartitionJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (RESOURCE.equals(objectType)) {
+        job = new OssToMcResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (FUNCTION.equals(objectType)) {
+        job = new OssToMcFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else {
+        throw new IllegalArgumentException("Unsupported object type " + jobDescribe.objectType);
+      }
+    } else if (jobDescribe.isHiveToMcJob()) {
+      if (CATALOG.equals(objectType)) {
+        job = new CatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (TABLE.equals(objectType)) {
+        job = new HiveToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else if (PARTITION.equals(objectType)) {
+        job = new PartitionJob(parentJob, record, this, metaManager, metaSourceFactory);
+      } else {
+          throw new IllegalArgumentException("Unsupported object type " + jobDescribe.objectType);
+      }
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
 
     jobs.put(job.getId(), job);
     return job;
-  }
-
-  private Job getMcToOssJob(
-      Job parentJob,
-      JobConfiguration config,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    switch (objectType) {
-      case CATALOG: {
-        return getMcToOssCatalogJob(parentJob, record);
-      }
-      case TABLE: {
-        return getMcToOssTableJob(parentJob, record);
-      }
-      case PARTITION: {
-        return getPartitionJob(parentJob, record);
-      }
-      case RESOURCE: {
-        return getMcToOssResourceJob(parentJob, record);
-      }
-      case FUNCTION: {
-        return getMcToOssFunctionJob(parentJob, record);
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
-  }
-
-  private Job getOssToMcJob(
-      Job parentJob,
-      JobConfiguration config,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    switch (objectType) {
-      case CATALOG: {
-        return getOssToMcCatalogJob(parentJob, record);
-      }
-      case TABLE: {
-        return getOssToMcTableJob(parentJob, record);
-      }
-      case PARTITION: {
-        return getPartitionJob(parentJob, record);
-      }
-      case RESOURCE: {
-        return getOssToMcResourceJob(parentJob, record);
-      }
-      case FUNCTION: {
-        return getOssToMcFunctionJob(parentJob, record);
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
-  }
-
-  private Job getHiveToMcJob(
-      Job parentJob,
-      JobConfiguration config,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
-    switch (objectType) {
-      case CATALOG: {
-        return getHiveToMcCatalogJob(parentJob, record);
-      }
-      case TABLE: {
-        return getHiveToMcTableJob(parentJob, record);
-      }
-      case PARTITION: {
-        return getPartitionJob(parentJob, record);
-      }
-      default:
-        throw new IllegalArgumentException("Unsupported object type " + objectType);
-    }
-  }
-
-  private Job getHiveToMcCatalogJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new CatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getHiveToMcTableJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new HiveToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getMcToOssCatalogJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McToOssCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getMcToOssTableJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McToOssTableJob(
-        parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getMcToOssResourceJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McToOssResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getMcToOssFunctionJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McToOssFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getOssToMcCatalogJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new McToOssCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getOssToMcTableJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new OssToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getOssToMcResourceJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new OssToMcResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getOssToMcFunctionJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new OssToMcFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
-  }
-
-  private Job getPartitionJob(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record) {
-    return new PartitionJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   public Job getSubJobById(Job parentJob, String subJobId) {

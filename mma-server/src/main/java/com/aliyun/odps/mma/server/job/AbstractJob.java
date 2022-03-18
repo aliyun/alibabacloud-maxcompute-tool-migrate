@@ -63,6 +63,8 @@ public abstract class AbstractJob implements Job {
 
   }
 
+  public boolean plan() { return true; }
+
   @Override
   public List<Task> getTasks() {
     return Collections.emptyList();

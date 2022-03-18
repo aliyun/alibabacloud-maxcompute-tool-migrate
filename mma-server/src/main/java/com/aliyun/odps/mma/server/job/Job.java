@@ -28,6 +28,8 @@ import com.aliyun.odps.mma.server.task.Task;
 public interface Job {
   void init();
 
+  boolean plan();
+
   List<Task> getExecutableTasks();
 
   List<Job> getSubJobs();

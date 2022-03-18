@@ -37,6 +37,8 @@ public class JobConfiguration extends AbstractConfiguration {
    */
   public static final String OBJECT_TYPE = "mma.object.type";
 
+  public static final String PLAN_INIT = "mma.job.plan.init";
+
   /**
    * Source object position.
    */
