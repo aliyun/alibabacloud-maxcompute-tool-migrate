@@ -154,7 +154,7 @@ mma 的配置文件一般不手动修改，使用工具进行管理，主要包�
 上传 Hive UDTF Jar 包至 HDFS：
 
 ```shell
-hdfs dfs -put -f ${MMA_HOME}/lib/data-transfer-hive-udtf-${MMA_VERSION}-jar-with-dependencies.jar hdfs:///tmp/
+hdfs dfs -put -f ${MMA_HOME}/res/data-transfer-hive-udtf-${MMA_VERSION}-jar-with-dependencies.jar hdfs:///tmp/
 ```
 
 使用 beeline 创建 Hive 函数：
