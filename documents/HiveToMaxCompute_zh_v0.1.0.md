@@ -166,6 +166,8 @@ CREATE FUNCTION default.odps_data_dump_multi as 'com.aliyun.odps.mma.io.McDataTr
 
 ### 进度推送
 
+此功能尚未上线。
+
 MMA 支持向钉钉群推送进度信息。目前支持任务（Job）级别的 状态总结（SUMMARY），迁移成功（SUCCEEDED）以及迁移失败（FAILED）三种类型的事件。
 
 - 准备：使用本功能前需要创建一个钉钉群，并获取钉钉群自定义机器人的 webhook url，方法可以参考[文档](https://ding-doc.dingtalk.com/document#/isv-dev-guide/custom-robot-development)。
