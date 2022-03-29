@@ -180,6 +180,7 @@ public class MetaManager {
   public List<Job> listSubJobs(String parentJobId) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
+      dao.createSubJobTableIfNotExists(parentJobId);
       return dao.selectSubJobs(parentJobId);
     }
   }
@@ -194,6 +195,7 @@ public class MetaManager {
   public List<Job> listSubJobsByStatus(String parentJobId, JobStatus jobStatus) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
+      dao.createSubJobTableIfNotExists(parentJobId);
       return dao.selectSubJobsByJobStatus(parentJobId, jobStatus.name());
     }
   }
