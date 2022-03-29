@@ -51,6 +51,9 @@ public class McToOssCatalogJob extends CatalogJob {
   @Override
   public synchronized List<Task> getExecutableTasks() {
     subJobs = getSubJobs();
+    if (subJobs.isEmpty()) {
+      setStatusInternal(JobStatus.SUCCEEDED);
+    }
     List<Task> ret = new LinkedList<>();
 
     // Firstly, execute table jobs
@@ -90,6 +93,12 @@ public class McToOssCatalogJob extends CatalogJob {
 
   @Override
   public boolean clean() {
-    return subJobs.stream().anyMatch(Job::clean);
+    // all subjobs is clean => true
+    // else false
+    boolean clean = true;
+    for (Job job : subJobs) {
+      clean = job.clean() && clean;
+    }
+    return clean;
   }
 }

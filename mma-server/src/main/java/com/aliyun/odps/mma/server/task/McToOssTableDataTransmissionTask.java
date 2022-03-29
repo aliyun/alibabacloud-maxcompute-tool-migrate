@@ -21,6 +21,8 @@ import java.util.List;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McToMcTableDataTransmissionAction;
+import com.aliyun.odps.mma.server.action.McVerificationAction;
+import com.aliyun.odps.mma.server.action.VerificationAction;
 import com.aliyun.odps.mma.server.job.Job;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 
@@ -54,7 +56,42 @@ public class McToOssTableDataTransmissionTask extends TableDataTransmissionTask 
         this,
         context);
     dag.addVertex(action);
-    // TODO: verification
+
+    McVerificationAction mcVerificationAction = new McVerificationAction(
+        id + ".McDataVerification",
+        config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
+        config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
+        executionProject,
+        config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
+        source,
+        true,
+        this,
+        context);
+    dag.addVertex(mcVerificationAction);
+
+    McVerificationAction ossVerificationAction = new McVerificationAction(
+        id + ".OssDataVerification",
+        config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
+        config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),
+        executionProject,
+        config.get(JobConfiguration.DATA_SOURCE_MC_ENDPOINT),
+        dest,
+        false,
+        this,
+        context);
+    dag.addVertex(ossVerificationAction);
+
+    VerificationAction verificationAction = new VerificationAction(
+        id + ".FinalVerification",
+        source,
+        this,
+        context);
+    dag.addVertex(verificationAction);
+
+    dag.addEdge(action, mcVerificationAction);
+    dag.addEdge(action, ossVerificationAction);
+    dag.addEdge(ossVerificationAction, verificationAction);
+    dag.addEdge(mcVerificationAction, verificationAction);
   }
 
   @Override
