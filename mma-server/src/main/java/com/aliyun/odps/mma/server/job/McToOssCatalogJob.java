@@ -37,6 +37,7 @@ import com.aliyun.odps.mma.server.task.Task;
 public class McToOssCatalogJob extends CatalogJob {
 
   private static final Logger LOG = LogManager.getLogger(McToOssCatalogJob.class);
+  private List<Job> subJobs;
 
   public McToOssCatalogJob(
       Job parentJob,
@@ -49,7 +50,10 @@ public class McToOssCatalogJob extends CatalogJob {
 
   @Override
   public synchronized List<Task> getExecutableTasks() {
-    List<Job> subJobs = getSubJobs();
+    subJobs = getSubJobs();
+    if (subJobs.isEmpty()) {
+      setStatusInternal(JobStatus.SUCCEEDED);
+    }
     List<Task> ret = new LinkedList<>();
 
     // Firstly, execute table jobs
@@ -85,5 +89,16 @@ public class McToOssCatalogJob extends CatalogJob {
       }
       ret.addAll(job.getExecutableTasks());
     }
+  }
+
+  @Override
+  public boolean clean() {
+    // all subjobs is clean => true
+    // else false
+    boolean clean = true;
+    for (Job job : subJobs) {
+      clean = job.clean() && clean;
+    }
+    return clean;
   }
 }

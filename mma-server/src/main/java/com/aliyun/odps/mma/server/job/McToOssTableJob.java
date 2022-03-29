@@ -290,4 +290,11 @@ public class McToOssTableJob extends AbstractTableJob {
     cleaned = true;
     return false;
   }
+
+  @Override
+  public synchronized boolean reset(boolean force) throws Exception {
+    cleaned = false;
+    return super.reset(force);
+  }
+
 }
