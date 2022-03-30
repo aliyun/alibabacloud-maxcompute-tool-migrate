@@ -47,7 +47,8 @@ import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
-import com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord.JobBuilder;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.TableDataTransmissionTask;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.server.task.TaskProgress;
@@ -84,7 +85,7 @@ public abstract class AbstractTableJob extends AbstractJob {
 
   AbstractTableJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {

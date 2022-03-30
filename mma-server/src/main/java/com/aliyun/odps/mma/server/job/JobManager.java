@@ -47,6 +47,8 @@ import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
+
 import static com.aliyun.odps.mma.config.ObjectType.CATALOG;
 import static com.aliyun.odps.mma.config.ObjectType.FUNCTION;
 import static com.aliyun.odps.mma.config.ObjectType.PARTITION;
@@ -99,7 +101,7 @@ public class JobManager {
     return jobId;
   }
 
-  public void addCatalogJob(com.aliyun.odps.mma.server.meta.generated.Job record) throws Exception {
+  public void addCatalogJob(JobRecord record) throws Exception {
     String jobId = record.getJobId();
     removeSubJobTable(jobId);
     JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
@@ -142,9 +144,7 @@ public class JobManager {
           LOG.info("add {} job, object name: {}", objectType, objName);
           String subJobId = saveSubJobToDb(jobId, config, objName, objectType, null, session);
           if (ObjectType.TABLE.equals(objectType)) {
-            com.aliyun.odps.mma.server.meta.generated.Job
-                subRecord =
-                metaManager.getSubJobById(jobId, subJobId);
+            JobRecord subRecord = metaManager.getSubJobById(jobId, subJobId);
             addTableSubJobs(subRecord);
           }
         }
@@ -236,7 +236,7 @@ public class JobManager {
     return jobId;
   }
 
-  private void addTableSubJobs(com.aliyun.odps.mma.server.meta.generated.Job record) throws Exception {
+  private void addTableSubJobs(JobRecord record) throws Exception {
     // update tablejob lastModifiedTime(in config) and hasSubJob(partition)
     // add subjobs
 
@@ -294,8 +294,8 @@ public class JobManager {
 
   public synchronized void removeSubJobTable(String parentJobId) {
     metaManager.createSubJobTable(parentJobId);
-    for(com.aliyun.odps.mma.server.meta.generated.Job job: metaManager.listSubJobs(parentJobId)) {
-      metaManager.removeSubJobTable(job.getJobId());
+    for(JobRecord jobRecord : metaManager.listSubJobs(parentJobId)) {
+      metaManager.removeSubJobTable(jobRecord.getJobId());
     }
     metaManager.removeSubJobTable(parentJobId);
     metaManager.createSubJobTable(parentJobId);
@@ -304,7 +304,7 @@ public class JobManager {
 
   private void removeJobInternal(String parentJobId, String jobId) {
     jobs.remove(jobId);
-    com.aliyun.odps.mma.server.meta.generated.Job record;
+    JobRecord record;
 
     if (StringUtils.isBlank(parentJobId)) {
       record = metaManager.getJobById(jobId);
@@ -317,9 +317,8 @@ public class JobManager {
     }
 
     if (record.hasSubJob()) {
-      List<com.aliyun.odps.mma.server.meta.generated.Job> subRecords =
-          metaManager.listSubJobs(record.getJobId());
-      for (com.aliyun.odps.mma.server.meta.generated.Job subRecord : subRecords) {
+      List<JobRecord> subRecords = metaManager.listSubJobs(record.getJobId());
+      for (JobRecord subRecord : subRecords) {
         removeJobInternal(jobId, subRecord.getJobId());
       }
     }
@@ -338,8 +337,7 @@ public class JobManager {
   public Job getJobById(String jobId, boolean refreshFromDb) {
     LOG.info("Get job, job id: {}", jobId);
 
-    com.aliyun.odps.mma.server.meta.generated.Job record =
-            metaManager.getJobById(jobId);
+    JobRecord record = metaManager.getJobById(jobId);
     if (record == null) {
       throw new IllegalArgumentException("Job does not exist, job id: " + jobId);
     }
@@ -388,16 +386,11 @@ public class JobManager {
     }
   }
 
-  private Job getJobInternal(
-          Job parentJob,
-          com.aliyun.odps.mma.server.meta.generated.Job record) {
+  private Job getJobInternal(Job parentJob, JobRecord record) {
     return getJobInternal(parentJob, record, false);
   }
 
-  private Job getJobInternal(
-      Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
-      boolean refresh) {
+  private Job getJobInternal(Job parentJob, JobRecord record, boolean refresh) {
 
     String jobId = record.getJobId();
 
@@ -460,8 +453,7 @@ public class JobManager {
 
   public Job getSubJobById(Job parentJob, String subJobId) {
     LOG.info("Get sub job, parent job id: {}, job id: {}", parentJob.getId(), subJobId);
-    com.aliyun.odps.mma.server.meta.generated.Job subRecord =
-        metaManager.getSubJobById(parentJob.getId(), subJobId);
+    JobRecord subRecord = metaManager.getSubJobById(parentJob.getId(), subJobId);
     if (subRecord == null) {
       throw new IllegalArgumentException("Sub job does not exist, job id: " + subJobId);
     }
@@ -470,15 +462,14 @@ public class JobManager {
 
   public List<Job> listJobs() {
     LOG.info("List jobs");
-    List<com.aliyun.odps.mma.server.meta.generated.Job> records =
-        metaManager.listJobs();
+    List<JobRecord> records = metaManager.listJobs();
 
     if (records.isEmpty()) {
       return Collections.emptyList();
     }
 
     List<Job> ret = new ArrayList<>(records.size());
-    for (com.aliyun.odps.mma.server.meta.generated.Job record : records) {
+    for (JobRecord record : records) {
       ret.add(getJobInternal(null, record));
     }
 
@@ -490,15 +481,14 @@ public class JobManager {
   }
 
   private List<Job> listJobByStatusInternal(JobStatus jobStatus) {
-    List<com.aliyun.odps.mma.server.meta.generated.Job> records =
-        metaManager.listJobsByStatus(jobStatus);
+    List<JobRecord> records = metaManager.listJobsByStatus(jobStatus);
 
     if (records.isEmpty()) {
       return Collections.emptyList();
     }
 
     List<Job> ret = new ArrayList<>(records.size());
-    for (com.aliyun.odps.mma.server.meta.generated.Job record : records) {
+    for (JobRecord record : records) {
       ret.add(getJobInternal(null, record));
     }
 
@@ -507,15 +497,14 @@ public class JobManager {
 
   public List<Job> listSubJobs(Job parentJob) {
     LOG.info("List sub jobs, parent job id: {}", parentJob.getId());
-    List<com.aliyun.odps.mma.server.meta.generated.Job> records =
-        metaManager.listSubJobs(parentJob.getId());
+    List<JobRecord> records = metaManager.listSubJobs(parentJob.getId());
 
     if (records.isEmpty()) {
       return Collections.emptyList();
     }
 
     List<Job> ret = new ArrayList<>(records.size());
-    for (com.aliyun.odps.mma.server.meta.generated.Job record : records) {
+    for (JobRecord record : records) {
       ret.add(getJobInternal(parentJob, record));
     }
 
@@ -527,15 +516,14 @@ public class JobManager {
         "List sub jobs by status, parent job id: {}, status: {}",
         parentJob,
         jobStatus.name());
-    List<com.aliyun.odps.mma.server.meta.generated.Job> records =
-        metaManager.listSubJobsByStatus(parentJob.getId(), jobStatus);
+    List<JobRecord> records = metaManager.listSubJobsByStatus(parentJob.getId(), jobStatus);
 
     if (records.isEmpty()) {
       return Collections.emptyList();
     }
 
     List<Job> ret = new ArrayList<>(records.size());
-    for (com.aliyun.odps.mma.server.meta.generated.Job record : records) {
+    for (JobRecord record : records) {
       ret.add(getJobInternal(parentJob, record));
     }
 

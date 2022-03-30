@@ -25,7 +25,7 @@ import com.aliyun.odps.mma.job.JobStatus;
 import lombok.Data;
 
 @Data
-public class Job implements Serializable {
+public class JobRecord implements Serializable {
 
   public static class JobBuilder {
 
@@ -42,19 +42,19 @@ public class Job implements Serializable {
     private Boolean hasSubJob;
     private String jobInfo;
 
-    public JobBuilder(Job job) {
-      this.jobId = job.jobId;
-      this.jobPriority = job.jobPriority;
-      this.jobStatus = job.jobStatus;
-      this.jobConfig = job.jobConfig;
-      this.attemptTimes = job.attemptTimes;
-      this.maxAttemptTimes = job.maxAttemptTimes;
-      this.cTime = job.cTime;
-      this.mTime = job.mTime;
-      this.sTime = job.sTime;
-      this.eTime = job.eTime;
-      this.hasSubJob = job.hasSubJob;
-      this.jobInfo = job.jobInfo;
+    public JobBuilder(JobRecord jobRecord) {
+      this.jobId = jobRecord.jobId;
+      this.jobPriority = jobRecord.jobPriority;
+      this.jobStatus = jobRecord.jobStatus;
+      this.jobConfig = jobRecord.jobConfig;
+      this.attemptTimes = jobRecord.attemptTimes;
+      this.maxAttemptTimes = jobRecord.maxAttemptTimes;
+      this.cTime = jobRecord.cTime;
+      this.mTime = jobRecord.mTime;
+      this.sTime = jobRecord.sTime;
+      this.eTime = jobRecord.eTime;
+      this.hasSubJob = jobRecord.hasSubJob;
+      this.jobInfo = jobRecord.jobInfo;
     }
 
     public JobBuilder jobStatus(JobStatus jobStatus) {
@@ -151,7 +151,7 @@ public class Job implements Serializable {
     return jobInfo;
   }
 
-  public static Job of(
+  public static JobRecord of(
       String jobId,
       int jobPriority,
       String jobStatus,
@@ -164,7 +164,7 @@ public class Job implements Serializable {
       long eTime,
       boolean hasSubJob,
       String jobInfo) {
-    Job record = new Job();
+    JobRecord record = new JobRecord();
     record.jobId = Objects.requireNonNull(jobId);
     record.jobPriority = jobPriority;
     record.jobStatus = Objects.requireNonNull(jobStatus);
@@ -180,8 +180,8 @@ public class Job implements Serializable {
     return record;
   }
 
-  public static Job from(JobBuilder jobBuilder) {
-    Job record = new Job();
+  public static JobRecord from(JobBuilder jobBuilder) {
+    JobRecord record = new JobRecord();
     record.jobId = jobBuilder.jobId;
     record.jobPriority = jobBuilder.jobPriority;
     record.jobStatus = jobBuilder.jobStatus;
