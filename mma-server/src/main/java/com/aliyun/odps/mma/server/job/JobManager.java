@@ -101,21 +101,74 @@ public class JobManager {
     return jobId;
   }
 
-  public void addCatalogJob(JobRecord record) throws Exception {
-    String jobId = record.getJobId();
-    removeSubJobTable(jobId);
-    JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
+  public void addSubJobsInCatalogJob(JobRecord record) throws Exception {
+    // add sub jobs first time
+    removeSubJobTable(record.getJobId());
+    Job job = getJobById(record.getJobId());
+    String blacklistStr = job.getJobConfiguration().get(JobConfiguration.SOURCE_BLACKLIST);
+    HashMap<ObjectType, Set<String>> blackList = new HashMap<>();
+    if (StringUtils.isNotBlank(blacklistStr)) {
+      // TABLE:t1,t2,t3...;RESOURCE:r1,r2,r3;...
+      blacklistStr = blacklistStr.replaceAll("\\s+", "");
+      List<String> blacklist = Arrays.asList(blacklistStr.split(";"));
+      for (String item : blacklist) {
+        String[] parts = item.split(":");
+        ObjectType objectType = ObjectType.valueOf(parts[0]);
+        Set<String> set = new HashSet<>(Arrays.asList(parts[1].split(",")));
+        blackList.put(objectType, set);
+      }
+    }
+    addCatalogJob(record, blackList);
+  }
 
-    List<ObjectType> objectTypes;
-    // Supported object types
+  public boolean addNewSubJobsInCatalogJob(JobRecord record) throws Exception {
+    // add new sub jobs when reset catalog job
+    // group existed jobs by object type
+    //   table => t1,t2,t3...
+    //   resource => r1,r2,r3...
+    LOG.info("add new subjobs in catalog job, job id: {}", record.getJobId());
+    Map<ObjectType, Set<String>> objectExistsJobs = new HashMap<>();
+
+    Job job = getJobById(record.getJobId());
+    List<Job> subJobs = listSubJobs(job);
+    for (Job subjob: subJobs) {
+      ObjectType objectType = ObjectType.valueOf(subjob.getJobConfiguration().get(JobConfiguration.OBJECT_TYPE));
+      if (!objectExistsJobs.containsKey(objectType)) {
+        objectExistsJobs.put(objectType, new HashSet<>());
+      }
+      String objectName = subjob.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME);
+      objectExistsJobs.get(objectType).add(objectName);
+    }
+    return addCatalogJob(record, objectExistsJobs);
+  }
+
+  public void removeInvalidSubJobsInCatalogJob(JobRecord record) throws Exception {
+    // remove subjobs not in the current catalog
+    Job job = getJobById(record.getJobId());
+    JobConfiguration config = job.getJobConfiguration();
     MetaSource metaSource = metaSourceFactory.getMetaSource(config);
-    List<ObjectType> supportedObjectTypes = metaSource.getSupportedObjectTypes();
-    // Specified object types
     String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
-    String[] objectTypeList;
-    // If object types are not specified, use the supported object types
+
+    Map<ObjectType, Set<String>> currentObjectNames =
+        getCurrentObjectNames(metaSource, config, catalogName);
+
+    for (Job subJob : job.getSubJobs()) {
+      ObjectType objectType = ObjectType.valueOf(subJob.getJobConfiguration().get(JobConfiguration.OBJECT_TYPE));
+      String objectName = subJob.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME);
+      if (!currentObjectNames.get(objectType).contains(objectName)) {
+        LOG.info("Remove invalid sub job, parent job id: {}, sub job id: {}",
+                 record.getJobId(), subJob.getId());
+        removeSubJob(record.getJobId(), subJob.getId());
+      }
+    }
+  }
+
+  private List<ObjectType> getSupportedObjectTypes(
+      MetaSource metaSource, JobConfiguration config) throws Exception {
+    List<ObjectType> objectTypes;
+    List<ObjectType> supportedObjectTypes = metaSource.getSupportedObjectTypes();
     if (config.containsKey(JobConfiguration.SOURCE_OBJECT_TYPES)) {
-      objectTypeList = config.get(JobConfiguration.SOURCE_OBJECT_TYPES).split(",");
+      String[] objectTypeList = config.get(JobConfiguration.SOURCE_OBJECT_TYPES).split(",");
       objectTypes = Arrays.stream(objectTypeList).map(ObjectType::valueOf).collect(Collectors.toList());
       for (ObjectType objectType : objectTypes) {
         if (!supportedObjectTypes.contains(objectType)) {
@@ -123,24 +176,41 @@ public class JobManager {
         }
       }
     } else {
+      // If object types are not specified, use the supported object types
       objectTypes = supportedObjectTypes;
     }
+    return objectTypes;
+  }
 
+  public boolean addCatalogJob(JobRecord record, Map<ObjectType, Set<String>> blackList) throws Exception {
+    // only use in update mode
+    boolean addNew = false;
 
+    String jobId = record.getJobId();
+    JobConfiguration config = JobConfiguration.fromJson(record.getJobConfig());
+
+    // Supported object types
+    MetaSource metaSource = metaSourceFactory.getMetaSource(config);
+    List<ObjectType> objectTypes = getSupportedObjectTypes(metaSource, config);
+
+    String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
     try (SqlSession session = metaManager.getSqlSessionFactory().openSession(true)) {
-      for (ObjectType objectType : objectTypes) {
-        List<String> objNames;
-        if (TABLE.equals(objectType)) {
-          objNames = metaSource.listTables(catalogName);
-        } else if (RESOURCE.equals(objectType)) {
-          objNames = metaSource.listResources(catalogName);
-        } else if (FUNCTION.equals(objectType)) {
-          objNames = metaSource.listFunctions(catalogName);
-        } else {
-          throw new IllegalArgumentException("Unsupported object type " + objectType);
+      Map<ObjectType, Set<String>> currentObjectNames = getCurrentObjectNames(
+          metaSource, config, catalogName);
+      for (Map.Entry<ObjectType, Set<String>> entry : currentObjectNames.entrySet()) {
+        ObjectType objectType = entry.getKey();
+        Set<String> objectNames = entry.getValue();
+        Set<String> blackListNames = new HashSet<String>();
+        if (blackList != null && blackList.containsKey(objectType)) {
+          blackListNames = blackList.get(objectType);
         }
-        LOG.info(objNames);
-        for (String objName : objNames) {
+
+        LOG.info(objectNames);
+        for (String objName : objectNames) {
+          if (blackListNames.contains(objName)) {
+            continue;
+          }
+          addNew = true;
           LOG.info("add {} job, object name: {}", objectType, objName);
           String subJobId = saveSubJobToDb(jobId, config, objName, objectType, null, session);
           if (ObjectType.TABLE.equals(objectType)) {
@@ -153,8 +223,27 @@ public class JobManager {
 
     Map<String, String> newConfig = new HashMap<>(config);
     newConfig.put(JobConfiguration.PLAN_INIT, "1");
-    record.setJobConfig(newConfig.toString());
+    record.setJobConfig(new JobConfiguration(newConfig).toString());
     metaManager.updateJobById(record);
+    return addNew;
+  }
+
+  Map<ObjectType, Set<String>> getCurrentObjectNames(
+      MetaSource metaSource, JobConfiguration config, String catalogName) throws Exception {
+    Map<ObjectType, Set<String>> currentObjects = new HashMap<>();
+    List<ObjectType> objectTypes = getSupportedObjectTypes(metaSource, config);
+    for (ObjectType objectType : objectTypes) {
+      if (ObjectType.TABLE.equals(objectType)) {
+        currentObjects.put(objectType, new HashSet<>(metaSource.listTables(catalogName)));
+      } else if (ObjectType.RESOURCE.equals(objectType)) {
+        currentObjects.put(objectType, new HashSet<>(metaSource.listResources(catalogName)));
+      } else if (ObjectType.FUNCTION.equals(objectType)) {
+        currentObjects.put(objectType, new HashSet<>(metaSource.listFunctions(catalogName)));
+      } else {
+        throw new IllegalArgumentException("Unsupported object type " + objectType);
+      }
+    }
+    return currentObjects;
   }
 
   public String saveSubJobToDb(String parentJobId, JobConfiguration config,
