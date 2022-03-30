@@ -22,13 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.aliyun.odps.Partition;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.PartitionOrderType;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.meta.MetaManager;
-import com.aliyun.odps.mma.server.meta.generated.Job;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 
 
 public class JobUtils
@@ -42,13 +41,13 @@ public class JobUtils
     return jobIdBuilder.toString();
   }
 
-  public static JobStatus getJobStatus(Job record, MetaManager metaManager) {
+  public static JobStatus getJobStatus(JobRecord record, MetaManager metaManager) {
     JobStatus jobStatus = JobStatus.valueOf(record.getJobStatus());
     if (record.hasSubJob() && !metaManager.listSubJobs(record.getJobId()).isEmpty()) {
-      List<Job> subJobs = metaManager.listSubJobs(record.getJobId());
+      List<JobRecord> subJobRecords = metaManager.listSubJobs(record.getJobId());
       Map<JobStatus, Integer> subJobStatusToJobCount = new HashMap<>();
-      for (Job subJob : subJobs) {
-        JobStatus subJobStatus = JobStatus.valueOf(subJob.getJobStatus());
+      for (JobRecord subJobRecord : subJobRecords) {
+        JobStatus subJobStatus = JobStatus.valueOf(subJobRecord.getJobStatus());
         if (!subJobStatusToJobCount.containsKey(subJobStatus)) {
           subJobStatusToJobCount.put(subJobStatus, 0);
         }
@@ -61,7 +60,7 @@ public class JobUtils
       int running = subJobStatusToJobCount.getOrDefault(JobStatus.RUNNING, 0);
       int canceled = subJobStatusToJobCount.getOrDefault(JobStatus.CANCELED, 0);
 
-      if (canceled == subJobs.size()) {
+      if (canceled == subJobRecords.size()) {
         return JobStatus.CANCELED;
       } else if (canceled != 0) {
         throw new IllegalStateException("Illegal sub job status dist: " + subJobStatusToJobCount);
@@ -80,15 +79,15 @@ public class JobUtils
       // RUNNING:
       // PENDING: SR, FR, PR, SFR, FCR,
       // CANCELED: C, SC
-      if (succeeded == subJobs.size()) {
+      if (succeeded == subJobRecords.size()) {
         return JobStatus.SUCCEEDED;
-      } else if (pending == subJobs.size()) {
+      } else if (pending == subJobRecords.size()) {
         return JobStatus.PENDING;
       } else if (running > 0) {
         return JobStatus.RUNNING;
       } else if (pending > 0) {
         return JobStatus.PENDING;
-      } else if (succeeded + failed + canceled == subJobs.size() && failed > 0) {
+      } else if (succeeded + failed + canceled == subJobRecords.size() && failed > 0) {
         return JobStatus.FAILED;
       } else {
         throw new IllegalStateException("Illegal sub job status: " + subJobStatusToJobCount);

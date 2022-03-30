@@ -41,6 +41,7 @@ import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.OssToMcTableCleanUpTask;
 import com.aliyun.odps.mma.server.task.OssToMcTableDataTransmissionTask;
 import com.aliyun.odps.mma.server.task.OssToMcTableSetUpTask;
@@ -56,7 +57,7 @@ public class OssToMcTableJob extends AbstractTableJob {
 
   OssToMcTableJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {

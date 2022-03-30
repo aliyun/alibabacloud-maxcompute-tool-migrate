@@ -18,7 +18,6 @@ package com.aliyun.odps.mma.server.job;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +30,7 @@ import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.job.utils.JobUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.Task;
 
 public class CatalogJob extends AbstractJob {
@@ -41,7 +41,7 @@ public class CatalogJob extends AbstractJob {
 
   public CatalogJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {
@@ -76,8 +76,7 @@ public class CatalogJob extends AbstractJob {
         }
       }
     } finally {
-      com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder
-          jobBuilder = new com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder(record);
+      JobRecord.JobBuilder jobBuilder = new JobRecord.JobBuilder(record);
       jobBuilder.attemptTimes(record.getAttemptTimes()+1);
       update(jobBuilder);
     }
