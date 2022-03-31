@@ -326,6 +326,19 @@ public abstract class AbstractTableJob extends AbstractJob {
     return getStaticTablePartitionGroups(metaSource, source, dest, pendingSubJobs);
   }
 
+  static class JobAndPtMeta {
+    PartitionMetaModel partitionMetaModel;
+    Job job;
+
+    JobAndPtMeta(Job job, MetaSource metaSource, TableMetaModel source) throws Exception {
+      this.job = job;
+      List<String> partitionVals = ConfigurationUtils.getPartitionValuesFromPartitionIdentifier(
+          job.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME));
+      partitionMetaModel = metaSource.getPartitionMeta(
+          source.getDatabase(), source.getTable(), partitionVals);
+    }
+  }
+
   /**
    * Generate partition groups. For each partition group, the number of partition it contains
    * will not exceed {@link Constants#MAX_PARTITION_GROUP_SIZE} and the
@@ -351,15 +364,25 @@ public abstract class AbstractTableJob extends AbstractJob {
       return null;
     }
 
-    List<PartitionMetaModel> partitionMetaModels = new LinkedList<>();
-    for (Job job : pendingSubJobs) {
-      List<String> partitionVals = ConfigurationUtils.getPartitionValuesFromPartitionIdentifier(
-          job.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME));
-      // TODO: The source table metadata already contains the partition metadata
-      PartitionMetaModel partitionMetaModel = metaSource.getPartitionMeta(
-          source.getDatabase(), source.getTable(), partitionVals);
-      partitionMetaModels.add(partitionMetaModel);
+    List<JobAndPtMeta> tmpList = new ArrayList<>();
+    for (Job job: pendingSubJobs) {
+      tmpList.add(new JobAndPtMeta(job, metaSource, source));
     }
+
+    // Sort subjobs & ptModel by pt size in descending order
+    tmpList.sort((o1, o2) -> {
+      if (o1.partitionMetaModel.getSize() > o2.partitionMetaModel.getSize()) {
+        return -1;
+      } else if (o1.partitionMetaModel.getSize().equals(o2.partitionMetaModel.getSize())) {
+        return 0;
+      } else {
+        return 1;
+      }
+    });
+
+    List<PartitionMetaModel> partitionMetaModels = tmpList.stream()
+        .map(o->o.partitionMetaModel).collect(Collectors.toList());
+    pendingSubJobs = tmpList.stream().map(o->o.job).collect(Collectors.toList());
 
     // Make sure that the size of each partition is valid.
     for (PartitionMetaModel p : partitionMetaModels) {
@@ -382,17 +405,6 @@ public abstract class AbstractTableJob extends AbstractJob {
     int groupNumOfPartitionLimit = Integer.valueOf(config.getOrDefault(
         JobConfiguration.TABLE_PARTITION_GROUP_SIZE,
         JobConfiguration.TABLE_PARTITION_GROUP_SIZE_DEFAULT_VALUE));
-
-    // Sort by size in descending order
-    partitionMetaModels.sort((o1, o2) -> {
-      if (o1.getSize() > o2.getSize()) {
-        return -1;
-      } else if (o1.getSize().equals(o2.getSize())) {
-        return 0;
-      } else {
-        return 1;
-      }
-    });
 
     int i = 0;
     while (i < partitionMetaModels.size()) {
