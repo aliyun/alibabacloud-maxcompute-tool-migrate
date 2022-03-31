@@ -321,6 +321,12 @@ limitations under the License.
     </dependency>
   </dependencies>
 
+  <scm>
+    <connection>scm:git:https://github.com/aliyun/alibabacloud-maxcompute-tool-migrate.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com:aliyun/alibabacloud-maxcompute-tool-migrate.git</developerConnection>
+    <url/>
+  </scm>
+
   <build>
     <plugins>
       <plugin>

@@ -70,5 +70,9 @@ limitations under the License.
     <file>
       <source>target/version.txt</source>
     </file>
+    <file>
+      <source>../mma-server/target/classes/version.txt</source>
+      <destName>res/version_detail.txt</destName>
+    </file>
   </files>
 </assembly>
