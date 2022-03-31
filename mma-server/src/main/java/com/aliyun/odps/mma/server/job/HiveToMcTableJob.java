@@ -191,6 +191,7 @@ public class HiveToMcTableJob extends AbstractTableJob {
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();
