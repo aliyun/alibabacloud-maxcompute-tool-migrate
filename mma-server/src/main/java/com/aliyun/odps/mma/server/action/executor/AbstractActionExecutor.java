@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public abstract class AbstractActionExecutor implements ActionExecutor {
@@ -41,10 +42,30 @@ public abstract class AbstractActionExecutor implements ActionExecutor {
         .setDaemon(true)
         .build();
 
+    int coreSize = DEFAULT_CORE_POOL_SIZE;
+    int maxSize = DEFAULT_MAX_POOL_SIZE;
+    long seconds = DEFAULT_KEEP_ALIVE_SECONDS;
+
+    MmaServerConfiguration config = MmaServerConfiguration.getInstance();
+
+    if (config.containsKey(MmaServerConfiguration.CORE_POOL_SIZE)) {
+      coreSize = Integer.parseInt(config.get(MmaServerConfiguration.CORE_POOL_SIZE));
+    }
+
+    if (config.containsKey(MmaServerConfiguration.MAX_POOL_SIZE)) {
+      maxSize = Integer.parseInt(config.get(MmaServerConfiguration.MAX_POOL_SIZE));
+    }
+
+    if (config.containsKey(MmaServerConfiguration.KEEP_ALIVE_SECONDS)) {
+      seconds = Long.parseLong(config.get(MmaServerConfiguration.KEEP_ALIVE_SECONDS));
+    }
+
+    LOG.info("Thread Pool settings: core size: {}, max size: {}, seconds: {}", coreSize, maxSize, seconds);
+
     this.executor = new ThreadPoolExecutor(
-        DEFAULT_CORE_POOL_SIZE,
-        DEFAULT_MAX_POOL_SIZE,
-        DEFAULT_KEEP_ALIVE_SECONDS,
+        coreSize,
+        maxSize,
+        seconds,
         TimeUnit.SECONDS,
         new LinkedBlockingQueue(),
         factory,
