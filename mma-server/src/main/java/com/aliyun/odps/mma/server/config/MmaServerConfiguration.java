@@ -88,6 +88,13 @@ public class MmaServerConfiguration extends AbstractConfiguration {
   public static final String RESOURCE_METADATA_WORKER = "mma.resource.metadata.worker";
   public static final String RESOURCE_METADATA_WORKER_DEFAULT_VALUE = "5";
 
+  /**
+   * Thread pool configurations
+   */
+  public static final String CORE_POOL_SIZE = "mma.thread.core.pool.size";
+  public static final String MAX_POOL_SIZE = "mma.thread.max.pool.size";
+  public static final String KEEP_ALIVE_SECONDS = "mma.thread.keep.alive.seconds";
+
   private static MmaServerConfiguration instance;
 
   private MmaServerConfiguration(Map<String, String> builder) {
