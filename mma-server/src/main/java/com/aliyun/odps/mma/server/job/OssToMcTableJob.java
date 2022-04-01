@@ -137,6 +137,9 @@ public class OssToMcTableJob extends AbstractTableJob {
 
       dataTransmissionTasks.forEach(t -> dag.addEdge(setUpTask, t));
       dataTransmissionTasks.forEach(t -> dag.addEdge(t, cleanUpTask));
+      if (dataTransmissionTasks.isEmpty()) {
+        dag.addEdge(setUpTask, cleanUpTask);
+      }
       return dag;
     } catch (Exception e) {
       String stackTrace = ExceptionUtils.getStackTrace(e);

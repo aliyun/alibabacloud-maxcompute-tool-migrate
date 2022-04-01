@@ -27,6 +27,7 @@ import java.util.Map;
 import com.aliyun.odps.mma.meta.MetaDriver;
 import com.aliyun.odps.mma.meta.MetaLoader;
 import com.aliyun.odps.mma.meta.MetaSourceClassLoader;
+import com.aliyun.odps.utils.StringUtils;
 
 public class MetaLoaderConfig {
 
@@ -50,6 +51,9 @@ public class MetaLoaderConfig {
       throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException,
              SQLException {
     String pathConfig = config.get(AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH);
+    if (StringUtils.isBlank(pathConfig)) {
+      return;
+    }
     for (String kvStr : pathConfig.split(";")) {
       String[] kv = kvStr.split(":");
       MetaSourceType metaSourceType = MetaSourceType.valueOf(kv[0]);
