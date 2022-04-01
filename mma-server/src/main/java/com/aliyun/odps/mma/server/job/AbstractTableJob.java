@@ -304,16 +304,24 @@ public abstract class AbstractTableJob extends AbstractJob {
       TableMetaModel dest,
       List<Job> pendingSubJobs) throws Exception {
 
-    if (source.getPartitionColumns().isEmpty() || pendingSubJobs.isEmpty()) {
-      // Not a partitioned table or the number of partitions to transfer is zero
-      LOG.info(
-          "Create partition group, database: {}, table: {}, is partitioned: {}, num partitions: {}",
-          source.getDatabase(),
-          source.getTable(),
-          !source.getPartitionColumns().isEmpty(),
-          pendingSubJobs.size());
+    LOG.info(
+        "Create partition group, database: {}, table: {}, is partitioned: {}, num partitions: {}",
+        source.getDatabase(),
+        source.getTable(),
+        !source.getPartitionColumns().isEmpty(),
+        pendingSubJobs.size());
+
+    if (source.getPartitionColumns().isEmpty()) {
+      LOG.info("Create partition group for non-partitioned table: {}.{}",
+               source.getDatabase(),
+               source.getTable());
       return Collections.singletonList(
           new TablePartitionGroup(source, dest, Collections.singletonList(this)));
+    }
+
+    if (pendingSubJobs.isEmpty()) {
+      // the number of partitions to transfer is zero
+      return Collections.emptyList();
     }
 
     List<TablePartitionGroup> groups =
