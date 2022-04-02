@@ -96,7 +96,7 @@ public class JobManager {
     boolean hasSubJob = ObjectType.CATALOG.equals(jobDescribe.objectType);
     jobId = saveJobToDb(null, config, hasSubJob, null);
     if (TABLE.equals(jobDescribe.objectType)) {
-      addTableSubJobs(metaManager.getJobById(jobId));
+      addTableSubJobs(metaManager.getJobById(jobId), null);
     }
     return jobId;
   }
@@ -215,7 +215,7 @@ public class JobManager {
           String subJobId = saveSubJobToDb(jobId, config, objName, objectType, null, session);
           if (ObjectType.TABLE.equals(objectType)) {
             JobRecord subRecord = metaManager.getSubJobById(jobId, subJobId);
-            addTableSubJobs(subRecord);
+            addTableSubJobs(subRecord, jobId);
           }
         }
       }
@@ -325,7 +325,7 @@ public class JobManager {
     return jobId;
   }
 
-  private void addTableSubJobs(JobRecord record) throws Exception {
+  private void addTableSubJobs(JobRecord record, String parentJobId) throws Exception {
     // update tablejob lastModifiedTime(in config) and hasSubJob(partition)
     // add subjobs
 
@@ -368,7 +368,11 @@ public class JobManager {
     }
 
     record.setHasSubJob(isPartitioned);
-    metaManager.updateJobById(record);
+    if (parentJobId == null) {
+      metaManager.updateJobById(record);
+    } else {
+      metaManager.updateSubJobById(parentJobId, record);
+    }
   }
 
   public synchronized void removeJob(String jobId) {
