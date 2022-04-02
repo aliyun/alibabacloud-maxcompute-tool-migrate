@@ -16,12 +16,14 @@
 
 package com.aliyun.odps.mma.io;
 
+import com.aliyun.odps.Column;
 import com.aliyun.odps.Odps;
 import com.aliyun.odps.PartitionSpec;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.account.BearerTokenAccount;
+import com.aliyun.odps.data.ArrayRecord;
 import com.aliyun.odps.data.Record;
 import com.aliyun.odps.data.RecordWriter;
 import com.aliyun.odps.mma.io.converter.HiveObjectConverter;
@@ -205,7 +207,8 @@ public class McDataTransmissionUDTF extends GenericUDTF {
 
       // Step 3: set record and write to tunnel
       if (reusedRecord == null) {
-        reusedRecord = currentUploadSession.newRecord();
+        // reusedRecord = currentUploadSession.newRecord();
+        reusedRecord = new ArrayRecord(currentUploadSession.getSchema().getColumns().toArray(new Column[0]), false);
       }
 
       for (int i = 0; i < odpsColumnNames.size(); i++) {
