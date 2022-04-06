@@ -61,6 +61,7 @@ public class HiveToMcTableJob extends AbstractTableJob {
     try {
       MetaSource metaSource = metaSourceFactory.getMetaSource(config);
       String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
+      String schemaName = config.get(JobConfiguration.DEST_SCHEMA_NAME);
       String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
       boolean onlySchema = config.getOrDefault(JobConfiguration.MMA_HIVE_ONLY_SCHEMA, "false").equals("true");
 
@@ -69,6 +70,8 @@ public class HiveToMcTableJob extends AbstractTableJob {
           .get(DataSourceType.Hive)
           .transform(hiveTableMetaModel, config);
       TableMetaModel mcTableMetaModel = schemaTransformResult.getTableMetaModel();
+      mcTableMetaModel = new TableMetaModel.TableMetaModelBuilder(mcTableMetaModel)
+          .schema(schemaName).build();
 
       List<Job> pendingSubJobs = null;
       if (!mcTableMetaModel.getPartitionColumns().isEmpty()) {

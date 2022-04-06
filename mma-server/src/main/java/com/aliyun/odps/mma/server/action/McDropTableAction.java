@@ -44,9 +44,7 @@ public class McDropTableAction extends McSqlAction {
 
   @Override
   public String getSql() {
-    return McSqlUtils.getDropTableStatement(
-        tableMetaModel.getDatabase(),
-        tableMetaModel.getTable());
+    return McSqlUtils.getDropTableStatement(tableMetaModel);
   }
 
   @Override

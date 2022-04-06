@@ -64,7 +64,7 @@ public class JobConfiguration extends AbstractConfiguration {
    * Dest object position.
    */
   public static final String DEST_CATALOG_NAME = "mma.object.dest.catalog.name";
-  //  public static final String DEST_SCHEMA_NAME = "mma.object.dest.schema.name";
+  public static final String DEST_SCHEMA_NAME = "mma.object.dest.schema.name";
   public static final String DEST_OBJECT_NAME = "mma.object.dest.name";
 
 

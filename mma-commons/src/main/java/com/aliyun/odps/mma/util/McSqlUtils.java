@@ -35,8 +35,8 @@ public class McSqlUtils {
 
   static final Logger LOG = LogManager.getLogger(McSqlUtils.class);
 
-  public static String getDropTableStatement(String db, String tb) {
-    return "DROP TABLE IF EXISTS " + db + ".`" + tb + "`;\n";
+  public static String getDropTableStatement(TableMetaModel tableMetaModel) {
+    return "DROP TABLE IF EXISTS " + getCoordinate(tableMetaModel) + ";\n";
   }
 
   public static String getCreateTableStatement(TableMetaModel tableMetaModel) {
@@ -51,8 +51,7 @@ public class McSqlUtils {
     } else {
       sb.append("CREATE TABLE IF NOT EXISTS ");
     }
-    sb.append(tableMetaModel.getDatabase()).append(".")
-      .append("`").append(tableMetaModel.getTable()).append("`");
+    sb.append(getCoordinate(tableMetaModel));
     sb.append(getCreateTableStatementWithoutDatabaseName(tableMetaModel, storage));
     return sb.toString();
   }
@@ -150,8 +149,8 @@ public class McSqlUtils {
     }
 
     sb.append("ALTER TABLE\n");
-    sb.append(tableMetaModel.getDatabase())
-      .append(".`").append(tableMetaModel.getTable()).append("`\n");
+    sb.append(getCoordinate(tableMetaModel));
+    sb.append("\n");
     sb.append("DROP IF EXISTS");
     for (int i = 0; i < tableMetaModel.getPartitions().size(); i++) {
       PartitionMetaModel partitionMetaModel = tableMetaModel.getPartitions().get(i);
@@ -190,8 +189,8 @@ public class McSqlUtils {
     }
 
     sb.append("ALTER TABLE\n");
-    sb.append(tableMetaModel.getDatabase())
-      .append(".`").append(tableMetaModel.getTable()).append("`\n");
+    sb.append(getCoordinate(tableMetaModel));
+    sb.append("\n");
     sb.append(getAddPartitionStatementWithoutDatabaseName(tableMetaModel));
     return sb.toString();
   }
@@ -249,9 +248,8 @@ public class McSqlUtils {
     }
 
     sb.append("COUNT(1) FROM\n");
-    String database = tableMetaModel.getDatabase();
-    String table = tableMetaModel.getTable();
-    sb.append(database).append(".`").append(table).append("`\n");
+    sb.append(getCoordinate(tableMetaModel));
+    sb.append("\n");
 
     if (!tableMetaModel.getPartitionColumns().isEmpty()) {
       String whereCondition = getWhereCondition(tableMetaModel);
@@ -500,6 +498,14 @@ public class McSqlUtils {
     }
 
     return sb.toString();
+  }
+
+  private static String getCoordinate(TableMetaModel tableMetaModel) {
+    String schemaPart = "";
+    if (tableMetaModel.getSchema() != null) {
+      schemaPart = tableMetaModel.getSchema() + ".";
+    }
+    return tableMetaModel.getDatabase() + "." + schemaPart + "`" + tableMetaModel.getTable() + "`";
   }
 
 }

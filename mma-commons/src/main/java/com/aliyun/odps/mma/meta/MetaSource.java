@@ -36,6 +36,7 @@ public interface MetaSource {
         this.tableMetaModel = new TableMetaModel();
 
         this.tableMetaModel.database = Objects.requireNonNull(tableMetaModel.database);
+        this.tableMetaModel.schema = tableMetaModel.schema;
         this.tableMetaModel.table = Objects.requireNonNull(tableMetaModel.table);
         this.tableMetaModel.columns = new ArrayList<>(Objects.requireNonNull(tableMetaModel.columns));
         this.tableMetaModel.columns.forEach(Objects::requireNonNull);
@@ -67,6 +68,11 @@ public interface MetaSource {
 
       public TableMetaModelBuilder database(String database) {
         this.tableMetaModel.database = Objects.requireNonNull(database);
+        return this;
+      }
+
+      public TableMetaModelBuilder schema(String schema) {
+        this.tableMetaModel.schema = schema;
         return this;
       }
 
@@ -160,6 +166,8 @@ public interface MetaSource {
     }
 
     private String database;
+    // only for mc
+    private String schema;
     private String table;
     // Specify the table storage, such as OSS
     private String tableStorage;
@@ -183,6 +191,10 @@ public interface MetaSource {
 
     public String getDatabase() {
       return database;
+    }
+
+    public String getSchema() {
+      return schema;
     }
 
     public String getTable() {
