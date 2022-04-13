@@ -164,9 +164,9 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
     settings.put("mapreduce.job.running.map.limit",
                  Long.toString(resourceMap.get(Resource.DATA_WORKER)));
     for (Map.Entry<String, String> entry: userHiveSettings.entrySet()) {
-      if (FINAL_SETTINGS.containsKey(entry.getKey())) {
-        throw new MmaException("Hive setting: "+ entry.getKey() +" is unchangeable");
-      }
+//      if (FINAL_SETTINGS.containsKey(entry.getKey())) {
+//        throw new MmaException("Hive setting: "+ entry.getKey() +" is unchangeable");
+//      }
       settings.put(entry.getKey(), entry.getValue());
       LOG.info("Add User Hive setting: {}={}", entry.getKey(), entry.getValue());
     }
