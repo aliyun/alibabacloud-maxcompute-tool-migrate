@@ -22,7 +22,7 @@ limitations under the License.
   <groupId>com.aliyun.odps</groupId>
   <artifactId>mma</artifactId>
   <packaging>pom</packaging>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 
   <properties>
     <odps.sdk.version>0.36.4-public</odps.sdk.version>
