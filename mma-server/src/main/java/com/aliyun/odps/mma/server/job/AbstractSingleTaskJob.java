@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.MetaManager;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.server.task.TaskProgress;
 
@@ -22,7 +23,7 @@ public abstract class AbstractSingleTaskJob extends AbstractJob{
 
   public AbstractSingleTaskJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {
@@ -86,6 +87,7 @@ public abstract class AbstractSingleTaskJob extends AbstractJob{
                getStatus(),
                task.getId(),
                task.getProgress());
+      return;
     }
 
     TaskProgress taskStatus = task.getProgress();

@@ -16,7 +16,7 @@ limitations under the License.
 -->
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aliyun.odps.mma.server.meta.generated.JobDao">
-  <resultMap id="BaseResultMap" type="com.aliyun.odps.mma.server.meta.generated.Job">
+  <resultMap id="BaseResultMap" type="com.aliyun.odps.mma.server.meta.generated.JobRecord">
     <id column="JOB_ID" jdbcType="VARCHAR" property="jobId" />
     <result column="JOB_PRIORITY" jdbcType="INTEGER" property="jobPriority" />
     <result column="JOB_STATUS" jdbcType="VARCHAR" property="jobStatus" />
@@ -126,7 +126,7 @@ limitations under the License.
     id="insertJob"
     keyColumn="JOB_ID"
     keyProperty="jobId"
-    parameterType="com.aliyun.odps.mma.server.meta.generated.Job"
+    parameterType="com.aliyun.odps.mma.server.meta.generated.JobRecord"
     useGeneratedKeys="true"
     flushCache="true">
     INSERT INTO MMA.JOB (
@@ -215,7 +215,7 @@ limitations under the License.
     <!--</trim>-->
   <!--</insert>-->
 
-  <update id="updateJobByPrimaryKeySelective" parameterType="com.aliyun.odps.mma.server.meta.generated.Job">
+  <update id="updateJobByPrimaryKeySelective" parameterType="com.aliyun.odps.mma.server.meta.generated.JobRecord">
     update MMA.JOB
     <set>
       <if test="jobPriority != null">
@@ -255,7 +255,7 @@ limitations under the License.
     where JOB_ID = #{jobId,jdbcType=VARCHAR}
   </update>
 
-  <update id="updateJobById" parameterType="com.aliyun.odps.mma.server.meta.generated.Job">
+  <update id="updateJobById" parameterType="com.aliyun.odps.mma.server.meta.generated.JobRecord">
     update MMA.JOB
     set JOB_PRIORITY = #{jobPriority,jdbcType=INTEGER},
       JOB_STATUS = #{jobStatus,jdbcType=VARCHAR},

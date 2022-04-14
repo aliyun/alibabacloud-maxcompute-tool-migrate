@@ -205,7 +205,10 @@ public class JobApi extends AbstractRestfulApi {
 
     Job job;
     try {
-      job = jobManager.getJobById(jobId);
+      // 改成异步后，会现在数据库插入job，再执行获取分区信息等操作，最后设置job的hasSubJob状态，
+      // 如果在设置job.hasSubJob状态之前刷了页面，页面会加载一个hasSubJob=false的job进jobManager,
+      // jobManager后续的job.hasSubJob就会一直为false, 所有这里强制要求jobManager重新从db加载job
+      job = jobManager.getJobById(jobId, true);
     } catch (Exception e) {
       if (e instanceof IllegalArgumentException) {
         ApiUtils.handleError(response, HttpServletResponse.SC_NOT_FOUND, e);

@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
-import com.aliyun.odps.mma.server.meta.generated.Job;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.meta.generated.JobDao;
 
 public class MetaManager {
@@ -41,6 +41,10 @@ public class MetaManager {
   public MetaManager() {
     initSqlSessionFactory();
     setUp();
+  }
+
+  public SqlSessionFactory getSqlSessionFactory() {
+    return sqlSessionFactory;
   }
 
   private void setUp() {
@@ -75,7 +79,7 @@ public class MetaManager {
       String jobConf,
       boolean hasSubJob) {
     long time = System.currentTimeMillis();
-    Job record = Job.of(
+    JobRecord record = JobRecord.of(
         jobId,
         jobPriority,
         JobStatus.PENDING.name(),
@@ -106,7 +110,7 @@ public class MetaManager {
       String jobConf,
       boolean hasSubJob) {
     long time = System.currentTimeMillis();
-    Job record = Job.of(
+    JobRecord record = JobRecord.of(
         subJobId,
         jobPriority,
         JobStatus.PENDING.name(),
@@ -127,6 +131,35 @@ public class MetaManager {
     }
   }
 
+  public void addSubJob(
+          String parentJobId,
+          String subJobId,
+          int jobPriority,
+          int maxAttemptTimes,
+          String jobConf,
+          boolean hasSubJob,
+          SqlSession session) {
+    long time = System.currentTimeMillis();
+    JobRecord record = JobRecord.of(
+            subJobId,
+            jobPriority,
+            JobStatus.PENDING.name(),
+            jobConf,
+            // TODO: use a constant
+            0,
+            maxAttemptTimes,
+            time,
+            time,
+            -1,
+            -1,
+            hasSubJob,
+            null);
+
+    JobDao dao = session.getMapper(JobDao.class);
+    dao.createSubJobTableIfNotExists(parentJobId);
+    dao.insertSubJob(parentJobId, record);
+  }
+
   public void removeJob(String jobId) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
@@ -145,58 +178,75 @@ public class MetaManager {
     }
   }
 
-  public Job getJobById(String jobId) {
+  //TODO refactor
+  public void removeSubJobTable(String parentJobId) {
+    try (SqlSession session = sqlSessionFactory.openSession(true)) {
+      JobDao dao = session.getMapper(JobDao.class);
+      dao.dropSubJobTable(parentJobId);
+    }
+  }
+
+  public void createSubJobTable(String parentJobId) {
+    try (SqlSession session = sqlSessionFactory.openSession(true)) {
+      JobDao dao = session.getMapper(JobDao.class);
+      dao.createSubJobTableIfNotExists(parentJobId);
+    }
+  }
+
+  public JobRecord getJobById(String jobId) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       return dao.selectJobById(jobId);
     }
   }
 
-  public Job getSubJobById(String parentJobId, String subJobId) {
+  public JobRecord getSubJobById(String parentJobId, String subJobId) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       return dao.selectSubJobById(parentJobId, subJobId);
     }
   }
 
-  public void updateJobById(Job record) {
+  public void updateJobById(JobRecord record) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       dao.updateJobById(record);
     }
   }
 
-  public void updateSubJobById(String parentJobId, Job record) {
+  public void updateSubJobById(String parentJobId, JobRecord record) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       dao.updateSubJobById(parentJobId, record);
     }
   }
 
-  public List<Job> listJobs() {
+  public List<JobRecord> listJobs() {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       return dao.selectJobs();
     }
   }
 
-  public List<Job> listSubJobs(String parentJobId) {
+  public List<JobRecord> listSubJobs(String parentJobId) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
+      dao.createSubJobTableIfNotExists(parentJobId);
       return dao.selectSubJobs(parentJobId);
     }
   }
 
-  public List<Job> listJobsByStatus(JobStatus jobStatus) {
+  public List<JobRecord> listJobsByStatus(JobStatus jobStatus) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
       return dao.selectJobsByJobStatus(jobStatus.name());
     }
   }
 
-  public List<Job> listSubJobsByStatus(String parentJobId, JobStatus jobStatus) {
+  public List<JobRecord> listSubJobsByStatus(String parentJobId, JobStatus jobStatus) {
     try (SqlSession session = sqlSessionFactory.openSession(true)) {
       JobDao dao = session.getMapper(JobDao.class);
+      dao.createSubJobTableIfNotExists(parentJobId);
       return dao.selectSubJobsByJobStatus(parentJobId, jobStatus.name());
     }
   }

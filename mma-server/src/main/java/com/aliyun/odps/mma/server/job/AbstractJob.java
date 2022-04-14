@@ -30,7 +30,8 @@ import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.meta.MetaManager;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
-import com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord.JobBuilder;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.Task;
 
 public abstract class AbstractJob implements Job {
@@ -38,7 +39,7 @@ public abstract class AbstractJob implements Job {
 
   Job parentJob;
   JobConfiguration config;
-  com.aliyun.odps.mma.server.meta.generated.Job record;
+  JobRecord record;
 
   JobManager jobManager;
   MetaManager metaManager;
@@ -46,7 +47,7 @@ public abstract class AbstractJob implements Job {
 
   AbstractJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {
@@ -57,6 +58,8 @@ public abstract class AbstractJob implements Job {
     this.metaManager = Objects.requireNonNull(metaManager);
     this.metaSourceFactory = Objects.requireNonNull(metaSourceFactory);
   }
+
+  public boolean plan() { return true; }
 
   @Override
   public List<Task> getTasks() {
@@ -344,12 +347,9 @@ public abstract class AbstractJob implements Job {
   void update(JobBuilder jobBuilder) {
     reload();
     if (parentJob != null) {
-      metaManager.updateSubJobById(
-          parentJob.getId(),
-          com.aliyun.odps.mma.server.meta.generated.Job.from(jobBuilder));
+      metaManager.updateSubJobById(parentJob.getId(), JobRecord.from(jobBuilder));
     } else {
-      metaManager.updateJobById(
-          com.aliyun.odps.mma.server.meta.generated.Job.from(jobBuilder));
+      metaManager.updateJobById(JobRecord.from(jobBuilder));
     }
     reload();
   }

@@ -118,6 +118,11 @@ public class JobScheduler {
 
         synchronized (runningJobs) {
           for (Job job : runningJobs) {
+            if(!job.plan()) {
+              LOG.info("Job plan fail, job id: " + job.getId());
+              continue;
+            }
+
             List<Task> tasks = job.getExecutableTasks();
 
             // TODO: a better way to print to the dw console

@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
-import com.aliyun.odps.mma.server.meta.generated.Job;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 
 public class MetaManagerTest {
 
@@ -87,24 +87,24 @@ public class MetaManagerTest {
   public void testUpdateJob() {
     addJob("testUpdateJob");
 
-    Job job = META_MANAGER.getJobById("testUpdateJob");
-    Assert.assertEquals(JobStatus.PENDING.name(), job.getJobStatus());
-    job = Job.of(
-        job.getJobId(),
+    JobRecord jobRecord = META_MANAGER.getJobById("testUpdateJob");
+    Assert.assertEquals(JobStatus.PENDING.name(), jobRecord.getJobStatus());
+    jobRecord = JobRecord.of(
+        jobRecord.getJobId(),
         0,
         JobStatus.RUNNING.name(),
-        job.getJobConfig(),
-        job.getAttemptTimes(),
-        job.getMaxAttemptTimes(),
-        job.getCTime(),
-        job.getMTime(),
-        job.getSTime(),
-        job.getETime(),
-        job.hasSubJob(),
-        job.getJobInfo());
-    META_MANAGER.updateJobById(job);
-    job = META_MANAGER.getJobById("testUpdateJob");
-    Assert.assertEquals(JobStatus.RUNNING.name(), job.getJobStatus());
+        jobRecord.getJobConfig(),
+        jobRecord.getAttemptTimes(),
+        jobRecord.getMaxAttemptTimes(),
+        jobRecord.getCTime(),
+        jobRecord.getMTime(),
+        jobRecord.getSTime(),
+        jobRecord.getETime(),
+        jobRecord.hasSubJob(),
+        jobRecord.getJobInfo());
+    META_MANAGER.updateJobById(jobRecord);
+    jobRecord = META_MANAGER.getJobById("testUpdateJob");
+    Assert.assertEquals(JobStatus.RUNNING.name(), jobRecord.getJobStatus());
 
     removeJob("testUpdateJob");
   }
@@ -114,26 +114,26 @@ public class MetaManagerTest {
     addSubJob("testUpdateSubJob", "S-testUpdateSubJob");
     addJob("testUpdateSubJob");
 
-    Job job = META_MANAGER.getSubJobById(
+    JobRecord jobRecord = META_MANAGER.getSubJobById(
         "testUpdateSubJob", "S-testUpdateSubJob");
-    Assert.assertEquals(JobStatus.PENDING.name(), job.getJobStatus());
-    job = Job.of(
-        job.getJobId(),
+    Assert.assertEquals(JobStatus.PENDING.name(), jobRecord.getJobStatus());
+    jobRecord = JobRecord.of(
+        jobRecord.getJobId(),
         0,
         JobStatus.RUNNING.name(),
-        job.getJobConfig(),
-        job.getAttemptTimes(),
-        job.getMaxAttemptTimes(),
-        job.getCTime(),
-        job.getMTime(),
-        job.getSTime(),
-        job.getETime(),
-        job.hasSubJob(),
-        job.getJobInfo());
-    META_MANAGER.updateSubJobById("testUpdateSubJob", job);
-    job = META_MANAGER.getSubJobById(
+        jobRecord.getJobConfig(),
+        jobRecord.getAttemptTimes(),
+        jobRecord.getMaxAttemptTimes(),
+        jobRecord.getCTime(),
+        jobRecord.getMTime(),
+        jobRecord.getSTime(),
+        jobRecord.getETime(),
+        jobRecord.hasSubJob(),
+        jobRecord.getJobInfo());
+    META_MANAGER.updateSubJobById("testUpdateSubJob", jobRecord);
+    jobRecord = META_MANAGER.getSubJobById(
         "testUpdateSubJob", "S-testUpdateSubJob");
-    Assert.assertEquals(JobStatus.RUNNING.name(), job.getJobStatus());
+    Assert.assertEquals(JobStatus.RUNNING.name(), jobRecord.getJobStatus());
 
     removeSubJob("testUpdateSubJob", "S-testUpdateSubJob");
     removeJob("testUpdateSubJob");
@@ -147,8 +147,8 @@ public class MetaManagerTest {
     addJob("testListJobByStatus4");
     addJob("testListJobByStatus5");
 
-    List<Job> jobs = META_MANAGER.listJobsByStatus(JobStatus.PENDING);
-    Assert.assertEquals(5, jobs.size());
+    List<JobRecord> jobRecords = META_MANAGER.listJobsByStatus(JobStatus.PENDING);
+    Assert.assertEquals(5, jobRecords.size());
 
     removeJob("testListJobByStatus1");
     removeJob("testListJobByStatus2");
@@ -165,8 +165,8 @@ public class MetaManagerTest {
     addJob("testListJobs4");
     addJob("testListJobs5");
 
-    List<Job> jobs = META_MANAGER.listJobs();
-    Assert.assertEquals(5, jobs.size());
+    List<JobRecord> jobRecords = META_MANAGER.listJobs();
+    Assert.assertEquals(5, jobRecords.size());
 
     removeJob("testListJobs1");
     removeJob("testListJobs2");
@@ -184,8 +184,8 @@ public class MetaManagerTest {
     addSubJob("testListSubJobs", "S-testListSubJobs5");
     addJob("testListSubJobs");
 
-    List<Job> jobs = META_MANAGER.listSubJobs("testListSubJobs");
-    Assert.assertEquals(5, jobs.size());
+    List<JobRecord> jobRecords = META_MANAGER.listSubJobs("testListSubJobs");
+    Assert.assertEquals(5, jobRecords.size());
 
     removeSubJob("testListSubJobs", "S-testListSubJobs1");
     removeSubJob("testListSubJobs", "S-testListSubJobs2");
@@ -204,9 +204,9 @@ public class MetaManagerTest {
     addSubJob("testListSubJobByStatus", "S-testListSubJobByStatus5");
     addJob("testListSubJobByStatus");
 
-    List<Job> jobs = META_MANAGER.listSubJobsByStatus(
+    List<JobRecord> jobRecords = META_MANAGER.listSubJobsByStatus(
         "testListSubJobByStatus", JobStatus.PENDING);
-    Assert.assertEquals(5, jobs.size());
+    Assert.assertEquals(5, jobRecords.size());
 
     removeSubJob("testListSubJobByStatus", "S-testListSubJobByStatus1");
     removeSubJob("testListSubJobByStatus", "S-testListSubJobByStatus2");
@@ -218,8 +218,8 @@ public class MetaManagerTest {
 
   @Test
   public void testSelectNonexistentJob() {
-    Job job = META_MANAGER.getJobById("nonexistent");
-    Assert.assertNull(job);
+    JobRecord jobRecord = META_MANAGER.getJobById("nonexistent");
+    Assert.assertNull(jobRecord);
   }
 
   private void addJob(String jobId) {

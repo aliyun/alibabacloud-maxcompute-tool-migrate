@@ -40,6 +40,7 @@ import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.McToOssTableCleanUpTask;
 import com.aliyun.odps.mma.server.task.McToOssTableDataTransmissionTask;
 import com.aliyun.odps.mma.server.task.McToOssTableMetadataTransmissionTask;
@@ -56,7 +57,7 @@ public class McToOssTableJob extends AbstractTableJob {
 
   public McToOssTableJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {
@@ -139,6 +140,9 @@ public class McToOssTableJob extends AbstractTableJob {
       dag.addEdge(metadataTransmissionTask, setUpTask);
       dataTransmissionTasks.forEach(t -> dag.addEdge(setUpTask, t));
       dataTransmissionTasks.forEach(t -> dag.addEdge(t, cleanUpTask));
+      if (dataTransmissionTasks.isEmpty()) {
+        dag.addEdge(setUpTask, cleanUpTask);
+      }
 
       return dag;
     } catch (Exception e) {
@@ -289,5 +293,11 @@ public class McToOssTableJob extends AbstractTableJob {
     this.dag.addVertex(getCleanUpTask(mcExternalTableMetaModel));
     cleaned = true;
     return false;
+  }
+
+  @Override
+  public synchronized boolean reset(boolean force) throws Exception {
+    cleaned = false;
+    return super.reset(force);
   }
 }

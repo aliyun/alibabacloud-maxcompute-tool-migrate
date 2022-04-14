@@ -20,6 +20,7 @@ import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.MmaConfig.OssConfig;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.meta.MetaManager;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.McToOssFunctionTask;
 import com.aliyun.odps.mma.server.task.Task;
 
@@ -27,7 +28,7 @@ public class McToOssFunctionJob extends AbstractSingleTaskJob {
 
   public McToOssFunctionJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {

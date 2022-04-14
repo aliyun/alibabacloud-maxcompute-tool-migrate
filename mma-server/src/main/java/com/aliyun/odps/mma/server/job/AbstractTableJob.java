@@ -47,7 +47,8 @@ import com.aliyun.odps.mma.meta.MetaSource.PartitionMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel.TableMetaModelBuilder;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
-import com.aliyun.odps.mma.server.meta.generated.Job.JobBuilder;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord.JobBuilder;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.TableDataTransmissionTask;
 import com.aliyun.odps.mma.server.task.Task;
 import com.aliyun.odps.mma.server.task.TaskProgress;
@@ -84,7 +85,7 @@ public abstract class AbstractTableJob extends AbstractJob {
 
   AbstractTableJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {
@@ -234,6 +235,7 @@ public abstract class AbstractTableJob extends AbstractJob {
 
   @Override
   boolean addNewSubJobs() throws Exception {
+    //TODO add to jobmananger
     MetaSource metaSource = metaSourceFactory.getMetaSource(config);
     String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
     String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
@@ -257,18 +259,8 @@ public abstract class AbstractTableJob extends AbstractJob {
           .collect(Collectors.toSet());
       for (Entry<String, Long> entry: partitionIdentifierToLastModificationTime.entrySet()) {
         if (!currentPartitionIdentifierSet.contains(entry.getKey())) {
-          String subJobId = JobUtils.generateJobId(true);
-          Map<String, String> subConfig = new HashMap<>(config);
-          subConfig.put(JobConfiguration.JOB_ID, subJobId);
-          subConfig.put(JobConfiguration.SOURCE_OBJECT_NAME, entry.getKey());
-          subConfig.put(JobConfiguration.DEST_OBJECT_NAME, entry.getKey());
-          subConfig.put(JobConfiguration.OBJECT_TYPE, ObjectType.PARTITION.name());
-          if (entry.getValue() != null) {
-            subConfig.put(
-                JobConfiguration.SOURCE_OBJECT_LAST_MODIFIED_TIME,
-                Long.toString(entry.getValue()));
-          }
-          jobManager.addSubJob(record.getJobId(), new JobConfiguration(subConfig));
+          String subJobId = jobManager.saveSubJobToDb(record.getJobId(), config, entry.getKey(), ObjectType.PARTITION,
+                                    entry.getValue(), null);
           hasNewSubJob = true;
           LOG.info(
               "New sub job, parent job id: {}, sub job id: {}",
@@ -312,16 +304,24 @@ public abstract class AbstractTableJob extends AbstractJob {
       TableMetaModel dest,
       List<Job> pendingSubJobs) throws Exception {
 
-    if (source.getPartitionColumns().isEmpty() || pendingSubJobs.isEmpty()) {
-      // Not a partitioned table or the number of partitions to transfer is zero
-      LOG.info(
-          "Create partition group, database: {}, table: {}, is partitioned: {}, num partitions: {}",
-          source.getDatabase(),
-          source.getTable(),
-          !source.getPartitionColumns().isEmpty(),
-          pendingSubJobs.size());
+    LOG.info(
+        "Create partition group, database: {}, table: {}, is partitioned: {}, num partitions: {}",
+        source.getDatabase(),
+        source.getTable(),
+        !source.getPartitionColumns().isEmpty(),
+        pendingSubJobs.size());
+
+    if (source.getPartitionColumns().isEmpty()) {
+      LOG.info("Create partition group for non-partitioned table: {}.{}",
+               source.getDatabase(),
+               source.getTable());
       return Collections.singletonList(
           new TablePartitionGroup(source, dest, Collections.singletonList(this)));
+    }
+
+    if (pendingSubJobs.isEmpty()) {
+      // the number of partitions to transfer is zero
+      return Collections.emptyList();
     }
 
     List<TablePartitionGroup> groups =
@@ -332,6 +332,19 @@ public abstract class AbstractTableJob extends AbstractJob {
 
     LOG.info("Generate adaptive table partition groups failed, ");
     return getStaticTablePartitionGroups(metaSource, source, dest, pendingSubJobs);
+  }
+
+  static class JobAndPtMeta {
+    PartitionMetaModel partitionMetaModel;
+    Job job;
+
+    JobAndPtMeta(Job job, MetaSource metaSource, TableMetaModel source) throws Exception {
+      this.job = job;
+      List<String> partitionVals = ConfigurationUtils.getPartitionValuesFromPartitionIdentifier(
+          job.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME));
+      partitionMetaModel = metaSource.getPartitionMeta(
+          source.getDatabase(), source.getTable(), partitionVals);
+    }
   }
 
   /**
@@ -359,15 +372,25 @@ public abstract class AbstractTableJob extends AbstractJob {
       return null;
     }
 
-    List<PartitionMetaModel> partitionMetaModels = new LinkedList<>();
-    for (Job job : pendingSubJobs) {
-      List<String> partitionVals = ConfigurationUtils.getPartitionValuesFromPartitionIdentifier(
-          job.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME));
-      // TODO: The source table metadata already contains the partition metadata
-      PartitionMetaModel partitionMetaModel = metaSource.getPartitionMeta(
-          source.getDatabase(), source.getTable(), partitionVals);
-      partitionMetaModels.add(partitionMetaModel);
+    List<JobAndPtMeta> tmpList = new ArrayList<>();
+    for (Job job: pendingSubJobs) {
+      tmpList.add(new JobAndPtMeta(job, metaSource, source));
     }
+
+    // Sort subjobs & ptModel by pt size in descending order
+    tmpList.sort((o1, o2) -> {
+      if (o1.partitionMetaModel.getSize() > o2.partitionMetaModel.getSize()) {
+        return -1;
+      } else if (o1.partitionMetaModel.getSize().equals(o2.partitionMetaModel.getSize())) {
+        return 0;
+      } else {
+        return 1;
+      }
+    });
+
+    List<PartitionMetaModel> partitionMetaModels = tmpList.stream()
+        .map(o->o.partitionMetaModel).collect(Collectors.toList());
+    pendingSubJobs = tmpList.stream().map(o->o.job).collect(Collectors.toList());
 
     // Make sure that the size of each partition is valid.
     for (PartitionMetaModel p : partitionMetaModels) {
@@ -390,17 +413,6 @@ public abstract class AbstractTableJob extends AbstractJob {
     int groupNumOfPartitionLimit = Integer.valueOf(config.getOrDefault(
         JobConfiguration.TABLE_PARTITION_GROUP_SIZE,
         JobConfiguration.TABLE_PARTITION_GROUP_SIZE_DEFAULT_VALUE));
-
-    // Sort by size in descending order
-    partitionMetaModels.sort((o1, o2) -> {
-      if (o1.getSize() > o2.getSize()) {
-        return -1;
-      } else if (o1.getSize().equals(o2.getSize())) {
-        return 0;
-      } else {
-        return 1;
-      }
-    });
 
     int i = 0;
     while (i < partitionMetaModels.size()) {

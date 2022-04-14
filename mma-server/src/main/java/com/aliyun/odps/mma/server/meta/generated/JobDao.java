@@ -28,37 +28,37 @@ public interface JobDao {
       @Param("parentJobId") String parentJobId,
       @Param("subJobId") String subJobId);
 
-  int insertJob(Job record);
+  int insertJob(JobRecord record);
 
   int insertSubJob(
       @Param("parentJobId") String parentJobId,
-      @Param("record") Job record);
+      @Param("record") JobRecord record);
 
 //    int insertSelective(Job record);
 
-  Job selectJobById(String jobId);
+  JobRecord selectJobById(String jobId);
 
-  Job selectSubJobById(
+  JobRecord selectSubJobById(
       @Param("parentJobId") String parentJobId,
       @Param("subJobId") String subJobId);
 
-  List<Job> selectJobs();
+  List<JobRecord> selectJobs();
 
-  List<Job> selectSubJobs(@Param("parentJobId") String parentJobId);
+  List<JobRecord> selectSubJobs(@Param("parentJobId") String parentJobId);
 
-  List<Job> selectJobsByJobStatus(String jobStatus);
+  List<JobRecord> selectJobsByJobStatus(String jobStatus);
 
-  List<Job> selectSubJobsByJobStatus(
+  List<JobRecord> selectSubJobsByJobStatus(
       @Param("parentJobId") String parentJobId,
       @Param("jobStatus") String jobStatus);
 
-  int updateJobByPrimaryKeySelective(Job record);
+  int updateJobByPrimaryKeySelective(JobRecord record);
 
-  int updateJobById(Job record);
+  int updateJobById(JobRecord record);
 
   int updateSubJobById(
       @Param("parentJobId") String parentJobId,
-      @Param("record") Job record);
+      @Param("record") JobRecord record);
 
   void createMmaSchemaIfNotExists();
 

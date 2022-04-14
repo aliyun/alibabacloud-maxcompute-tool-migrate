@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,16 +17,20 @@
 package com.aliyun.odps.mma.server.job;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
 import com.aliyun.odps.mma.server.job.utils.JobUtils;
 import com.aliyun.odps.mma.server.meta.MetaManager;
+import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 import com.aliyun.odps.mma.server.task.Task;
 
 public class CatalogJob extends AbstractJob {
@@ -37,11 +41,47 @@ public class CatalogJob extends AbstractJob {
 
   public CatalogJob(
       Job parentJob,
-      com.aliyun.odps.mma.server.meta.generated.Job record,
+      JobRecord record,
       JobManager jobManager,
       MetaManager metaManager,
       MetaSourceFactory metaSourceFactory) {
     super(parentJob, record, jobManager, metaManager, metaSourceFactory);
+  }
+
+  @Override
+  public boolean plan() {
+    //TODO refactor
+    boolean success = false;
+    try {
+      if ("1".equals(config.get(JobConfiguration.PLAN_INIT))) {
+        LOG.info("PLANed" + config.get(JobConfiguration.PLAN_INIT));
+        return true;
+      }
+      LOG.info("PLAN" + config.get(JobConfiguration.PLAN_INIT));
+      jobManager.addSubJobsInCatalogJob(record);
+
+      Map<String, String> newConfig = new HashMap<>(config);
+      newConfig.put(JobConfiguration.PLAN_INIT, "1");
+      config = new JobConfiguration(newConfig);
+      success = true;
+    } catch (Exception e) {
+      LOG.info(ExceptionUtils.getStackTrace(e));
+      setStatusInternal(JobStatus.FAILED);
+      for (Job job : getSubJobs()) {
+        try {
+          //TODO status => fail
+          job.stop();
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+      }
+    } finally {
+      JobRecord.JobBuilder jobBuilder = new JobRecord.JobBuilder(record);
+      jobBuilder.attemptTimes(record.getAttemptTimes() + 1);
+      update(jobBuilder);
+    }
+
+    return success;
   }
 
   @Override
@@ -83,5 +123,15 @@ public class CatalogJob extends AbstractJob {
   @Override
   boolean updateObjectMetadata() {
     return false;
+  }
+
+  @Override
+  void removeInvalidSubJobs() throws Exception {
+    jobManager.removeInvalidSubJobsInCatalogJob(record);
+  }
+
+  @Override
+  boolean addNewSubJobs() throws Exception {
+    return jobManager.addNewSubJobsInCatalogJob(record);
   }
 }

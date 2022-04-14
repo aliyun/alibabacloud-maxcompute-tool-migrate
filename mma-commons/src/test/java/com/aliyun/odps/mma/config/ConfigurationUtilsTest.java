@@ -45,8 +45,8 @@ public class ConfigurationUtilsTest {
 
     public CmpCase(String caseLine) {
       String[] cases = caseLine.split(";");
-      begin = Arrays.asList(cases[0].split("/"));
-      end = Arrays.asList(cases[1].split("/"));
+      begin = "".equals(cases[0]) ? new ArrayList<>() : Arrays.asList(cases[0].split("/"));
+      end = "".equals(cases[1]) ? new ArrayList<>() : Arrays.asList(cases[1].split("/"));
       equal = "=".equals(cases[2]);
       greater = ">".equals(cases[2]);
     }

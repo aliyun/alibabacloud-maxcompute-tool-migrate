@@ -22,7 +22,7 @@ limitations under the License.
   <groupId>com.aliyun.odps</groupId>
   <artifactId>mma</artifactId>
   <packaging>pom</packaging>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 
   <properties>
     <odps.sdk.version>0.36.4-public</odps.sdk.version>
@@ -320,6 +320,12 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <scm>
+    <connection>scm:git:https://github.com/aliyun/alibabacloud-maxcompute-tool-migrate.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com:aliyun/alibabacloud-maxcompute-tool-migrate.git</developerConnection>
+    <url/>
+  </scm>
 
   <build>
     <plugins>
