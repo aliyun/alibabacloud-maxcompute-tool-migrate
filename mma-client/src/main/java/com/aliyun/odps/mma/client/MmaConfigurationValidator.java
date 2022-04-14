@@ -16,9 +16,13 @@
 
 package com.aliyun.odps.mma.client;
 
+import static com.aliyun.odps.mma.config.AbstractConfiguration.METADATA_SOURCE_CONNECTOR_PATH;
+import static com.aliyun.odps.mma.config.AbstractConfiguration.METADATA_SOURCE_TYPE;
+
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -35,6 +39,7 @@ import com.aliyun.odps.mma.config.DataDestType;
 import com.aliyun.odps.mma.config.DataSourceType;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.MetaDestType;
+import com.aliyun.odps.mma.config.MetaLoaderConfig;
 import com.aliyun.odps.mma.config.MetaSourceType;
 import com.aliyun.odps.mma.util.GsonUtils;
 import com.google.gson.reflect.TypeToken;
@@ -62,9 +67,22 @@ public class MmaConfigurationValidator {
     JobConfiguration config = new JobConfiguration(GsonUtils.GSON.fromJson(
         json, new TypeToken<Map<String, String>>() {}.getType()));
 
-    if (config.containsKey(AbstractConfiguration.METADATA_SOURCE_TYPE)) {
+    Map<String, String> builder = new HashMap<>(config);
+    boolean sourceIsHiveAndConnectorPathNotSet =
+        MetaSourceType.Hive.name().equals(builder.get(METADATA_SOURCE_TYPE)) &&
+        !builder.containsKey(METADATA_SOURCE_CONNECTOR_PATH);
+    LOG.info(sourceIsHiveAndConnectorPathNotSet);
+    if (sourceIsHiveAndConnectorPathNotSet) {
+      String defaultHiveJar = "lib/connector/hive-uber.jar";
+      builder.put(METADATA_SOURCE_CONNECTOR_PATH,
+                  MetaSourceType.Hive.name() + ":" + Paths.get(System.getenv("MMA_HOME"), defaultHiveJar));
+      LOG.info(builder.get(METADATA_SOURCE_CONNECTOR_PATH));
+    }
+    MetaLoaderConfig.setGlobalMetaLoader(new JobConfiguration(builder));
+
+    if (config.containsKey(METADATA_SOURCE_TYPE)) {
       MetaSourceType metaSourceType = MetaSourceType.valueOf(
-          config.get(AbstractConfiguration.METADATA_SOURCE_TYPE));
+          config.get(METADATA_SOURCE_TYPE));
       switch (metaSourceType) {
         case Hive:
           ConfigurationUtils.validateHiveMetaSource(config);
@@ -78,7 +96,7 @@ public class MmaConfigurationValidator {
         default:
           throw new IllegalArgumentException(
               "Unsupported value for "
-                  + AbstractConfiguration.METADATA_SOURCE_TYPE + ": " + metaSourceType.name());
+                  + METADATA_SOURCE_TYPE + ": " + metaSourceType.name());
       }
     }
 
