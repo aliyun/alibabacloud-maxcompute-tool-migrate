@@ -16,9 +16,12 @@
 
 package com.aliyun.odps.mma.server.action;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.aliyun.odps.mma.meta.MetaSource;
 import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.util.McSqlUtils;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
@@ -54,8 +57,20 @@ public class McCreateTableAction extends McSqlAction {
 
   @Override
   public Map<String, String> getSettings() {
-    // TODO:
-    return new HashMap<>();
+    /**
+     * 如果create table的schema里包含TINYINT, SMALLINT, INT, CHAR, VARCHAR等2.0数据类型
+     * 而dest project暂未开启2.0模式，便会导致create table失败
+     * solution: set odps.sql.type.system.odps2=true
+    */
+    Map<String, String> hints = new HashMap<>();
+    List<String> columnTypes = Arrays.asList("TINYINT", "SMALLINT", "INT", "CHAR", "VARCHAR");
+    for (MetaSource.ColumnMetaModel columnMetaModel : tableMetaModel.getColumns()) {
+      if (columnTypes.contains(columnMetaModel.getType().toUpperCase())) {
+        hints.put("odps.sql.type.system.odps2", "true");
+        break;
+      }
+    }
+    return hints;
   }
 
   @Override
