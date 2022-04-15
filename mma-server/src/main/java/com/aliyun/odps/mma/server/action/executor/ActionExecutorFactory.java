@@ -21,6 +21,7 @@ public class ActionExecutorFactory {
   private static HiveSqlExecutor hiveSqlExecutor = null;
   private static McSqlExecutor mcSqlExecutor = null;
   private static DefaultExecutor defaultExecutor = null;
+  private static CopyTaskExecutor copyTaskExecutor = null;
 
   public static HiveSqlExecutor getHiveSqlExecutor() {
     if (hiveSqlExecutor == null) {
@@ -44,6 +45,14 @@ public class ActionExecutorFactory {
     }
 
     return defaultExecutor;
+  }
+
+  public static CopyTaskExecutor getCopyTaskExecutor() {
+    if (copyTaskExecutor == null) {
+      copyTaskExecutor = new CopyTaskExecutor();
+    }
+
+    return copyTaskExecutor;
   }
 
   public static void shutdown() {

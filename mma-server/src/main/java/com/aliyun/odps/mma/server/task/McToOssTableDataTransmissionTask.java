@@ -20,9 +20,9 @@ import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
-import com.aliyun.odps.mma.server.action.McToMcTableDataTransmissionAction;
 import com.aliyun.odps.mma.server.action.McVerificationAction;
 import com.aliyun.odps.mma.server.action.VerificationAction;
+import com.aliyun.odps.mma.server.action.McInsertOverwriteAction;
 import com.aliyun.odps.mma.server.job.Job;
 import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 
@@ -45,7 +45,7 @@ public class McToOssTableDataTransmissionTask extends TableDataTransmissionTask 
     String executionProject = config.getOrDefault(
         JobConfiguration.JOB_EXECUTION_MC_PROJECT,
         config.get(JobConfiguration.SOURCE_CATALOG_NAME));
-    McToMcTableDataTransmissionAction action = new McToMcTableDataTransmissionAction(
+    McInsertOverwriteAction action = new McInsertOverwriteAction(
         id + ".DataTransmission",
         config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_ID),
         config.get(JobConfiguration.DATA_SOURCE_MC_ACCESS_KEY_SECRET),

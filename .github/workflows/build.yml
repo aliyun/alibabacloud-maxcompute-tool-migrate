@@ -41,5 +41,7 @@ jobs:
         maven-version: 3.5.4
     - name: Install DingTalk SDK
       run: mvn --quiet install:install-file -Dfile=mma-server/src/main/resources/taobao-sdk-java-auto_1479188381469-20200701.jar -DgroupId=com.dingtalk -DartifactId=dingtalk-sdk -Dversion=1.0 -Dpackaging=jar
+    - name: Install ODPS SDK
+      run: mvn --quiet install:install-file -Dfile=mma-server/src/main/resources/odps-sdk-core-0.39.3.jar
     - name: Build with Maven
       run: mvn -U -B clean package -DskipTests

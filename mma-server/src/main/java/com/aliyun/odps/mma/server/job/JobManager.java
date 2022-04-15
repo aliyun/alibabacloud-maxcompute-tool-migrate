@@ -16,13 +16,13 @@
 
 package com.aliyun.odps.mma.server.job;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -381,7 +381,7 @@ public class JobManager {
   }
 
   public synchronized void removeSubJob(String parentJobId, String jobId) {
-    LOG.info("Remove sub job, parent job id: {}, sub job id: {}");
+    LOG.info("Remove sub job, parent job id: {}, sub job id: {}", parentJobId, jobId);
     removeJobInternal(parentJobId, jobId);
   }
 
@@ -467,13 +467,20 @@ public class JobManager {
           && metaDestType.equals(MetaDestType.MaxCompute) && dataDestType.equals(DataDestType.MaxCompute);
     }
 
+    boolean isMcToMcJob() {
+      return metaSourceType.equals(MetaSourceType.MaxCompute) && dataSourceType.equals(DataSourceType.MaxCompute)
+              && metaDestType.equals(MetaDestType.MaxCompute) && dataDestType.equals(DataDestType.MaxCompute);
+    }
+
     void check() {
       Set<ObjectType> mcOSSValidType = new HashSet<>(Arrays.asList(CATALOG, TABLE, FUNCTION, RESOURCE));
       Set<ObjectType> hiveMcValidType = new HashSet<>(Arrays.asList(CATALOG, TABLE));
+      Set<ObjectType> mcToMcValidType = new HashSet<>(Arrays.asList(CATALOG, TABLE, FUNCTION, RESOURCE));
       boolean isValidMcToOSSJob = isMcToOSSJob() && mcOSSValidType.contains(objectType);
       boolean isValidOSSToMcJob = isOSSToMcJob() && mcOSSValidType.contains(objectType);
       boolean isValidHiveToMcJob = isHiveToMcJob() && hiveMcValidType.contains(objectType);
-      if (!isValidMcToOSSJob && !isValidOSSToMcJob && !isValidHiveToMcJob) {
+      boolean isValidMcToMcJob = isMcToMcJob() && mcToMcValidType.contains(objectType);
+      if (!isValidMcToOSSJob && !isValidOSSToMcJob && !isValidHiveToMcJob && !isValidMcToMcJob) {
         throw new IllegalArgumentException("Unsupported source and dest combination");
       }
     }
@@ -536,12 +543,70 @@ public class JobManager {
       } else {
           throw new IllegalArgumentException("Unsupported object type " + jobDescribe.objectType);
       }
+    } else if (jobDescribe.isMcToMcJob()) {
+      job = getMcToMcJob(parentJob, config, record);
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
 
     jobs.put(job.getId(), job);
     return job;
+  }
+
+  private Job getMcToMcJob(
+          Job parentJob,
+          JobConfiguration config,
+          JobRecord record) {
+    ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
+    switch (objectType) {
+      case CATALOG: {
+        return getMcToMcCatalogJob(parentJob, record);
+      }
+      case TABLE: {
+        return getMcToMcTableJob(parentJob, record);
+      }
+      case PARTITION: {
+        return getPartitionJob(parentJob, record);
+      }
+      case RESOURCE: {
+        return getMcToMcResourceJob(parentJob, record);
+      }
+      case FUNCTION: {
+        return getMcToMcFunctionJob(parentJob, record);
+      }
+      default:
+        throw new IllegalArgumentException("Unsupported object type " + objectType);
+    }
+  }
+
+  private Job getMcToMcCatalogJob(
+          Job parentJob,
+          JobRecord record) {
+    return new McToMcCatalogJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getMcToMcTableJob(
+          Job parentJob,
+          JobRecord record) {
+    return new McToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getPartitionJob(
+          Job parentJob,
+          JobRecord record) {
+    return new PartitionJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getMcToMcResourceJob(
+          Job parentJob,
+          JobRecord record) {
+    return new McToMcResourceJob(parentJob, record, this, metaManager, metaSourceFactory);
+  }
+
+  private Job getMcToMcFunctionJob(
+          Job parentJob,
+          JobRecord record) {
+    return new McToMcFunctionJob(parentJob, record, this, metaManager, metaSourceFactory);
   }
 
   public Job getSubJobById(Job parentJob, String subJobId) {

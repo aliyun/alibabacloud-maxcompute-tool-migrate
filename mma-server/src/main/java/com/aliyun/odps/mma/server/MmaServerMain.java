@@ -122,7 +122,7 @@ public class MmaServerMain {
     Map<String, String> map = GsonUtils.GSON.fromJson(
         json, new TypeToken<Map<String, String>>() {}.getType());
     MmaServerConfiguration.setInstance(map);
-    MetaLoaderConfig.setGlobalMetaLoader(MmaServerConfiguration.getInstance());
+    // MetaLoaderConfig.setGlobalMetaLoader(MmaServerConfiguration.getInstance());
   }
 
   private static void initMmaEventManagerSingleton() {

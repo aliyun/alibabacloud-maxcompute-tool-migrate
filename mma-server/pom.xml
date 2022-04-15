@@ -35,7 +35,6 @@ limitations under the License.
     <dependency>
       <groupId>com.aliyun.odps</groupId>
       <artifactId>odps-sdk-core</artifactId>
-      <classifier>shaded</classifier>
     </dependency>
     <dependency>
       <groupId>com.aliyun.oss</groupId>
