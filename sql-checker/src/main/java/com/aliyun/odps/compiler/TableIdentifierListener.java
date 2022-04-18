@@ -43,6 +43,13 @@ public class TableIdentifierListener extends OdpsParserBaseListener {
     this.hiveMetaCache = Objects.requireNonNull(hiveMetaCache);
   }
 
+
+  @Override
+  public void exitSwitchDatabaseStatement(odpsParser.SwitchDatabaseStatementContext ctx) {
+    super.exitSwitchDatabaseStatement(ctx);
+    this.defaultProjectName = ctx.identifier().getText();
+  }
+
   @Override
   public void exitCteStatement(CteStatementContext ctx) {
     super.exitCteStatement(ctx);
