@@ -68,6 +68,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   // Hive
   public static final String METADATA_SOURCE_HIVE_IMPL = "mma.metadata.source.hive.impl";
   public static final String METADATA_SOURCE_HIVE_IMPL_DEFAULT_VALUE = "HMS";
+  public static final String MMA_HIVE_ONLY_SCHEMA = "mma.hive.only.schema";
   // Hive Meta store
   public static final String METADATA_SOURCE_HIVE_METASTORE_URIS = "mma.metadata.source.hive.metastore.uris";
   public static final String METADATA_SOURCE_HIVE_METASTORE_SASL_ENABLED = "mma.metadata.source.hive.metastore.sasl.enabled";

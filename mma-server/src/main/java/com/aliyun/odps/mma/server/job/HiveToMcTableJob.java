@@ -62,6 +62,7 @@ public class HiveToMcTableJob extends AbstractTableJob {
       MetaSource metaSource = metaSourceFactory.getMetaSource(config);
       String catalogName = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
       String tableName = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
+      boolean onlySchema = config.getOrDefault(JobConfiguration.MMA_HIVE_ONLY_SCHEMA, "false").equals("true");
 
       TableMetaModel hiveTableMetaModel = metaSource.getTableMeta(catalogName, tableName);
       SchemaTransformResult schemaTransformResult = SchemaTransformerFactory
@@ -80,15 +81,20 @@ public class HiveToMcTableJob extends AbstractTableJob {
           hiveTableMetaModel,
           mcTableMetaModel,
           pendingSubJobs);
-      List<Task> dataTransmissionTasks = getDataTransmissionTasks(
-          metaSource,
-          hiveTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
 
       dag.addVertex(setUpTask);
-      dataTransmissionTasks.forEach(dag::addVertex);
-      dataTransmissionTasks.forEach(t -> dag.addEdge(setUpTask, t));
+
+      if (!onlySchema) {
+        List<Task> dataTransmissionTasks = getDataTransmissionTasks(
+                metaSource,
+                hiveTableMetaModel,
+                mcTableMetaModel,
+                pendingSubJobs);
+
+        dataTransmissionTasks.forEach(dag::addVertex);
+        dataTransmissionTasks.forEach(t -> dag.addEdge(setUpTask, t));
+      }
+
       return dag;
     } catch (Exception e) {
       String stackTrace = ExceptionUtils.getStackTrace(e);
