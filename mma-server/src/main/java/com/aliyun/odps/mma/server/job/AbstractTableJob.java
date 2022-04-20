@@ -377,6 +377,21 @@ public abstract class AbstractTableJob extends AbstractJob {
       tmpList.add(new JobAndPtMeta(job, metaSource, source));
     }
 
+    List<PartitionMetaModel> partitionMetaModels = tmpList.stream()
+            .map(o->o.partitionMetaModel).collect(Collectors.toList());
+
+    // Make sure that the size of each partition is valid.
+    for (PartitionMetaModel p : partitionMetaModels) {
+      if (p.getSize() == null) {
+        LOG.info(
+                "Database: {}, table: {}, partition: {}, size is not valid",
+                source.getDatabase(),
+                source.getTable(),
+                p.getPartitionValues());
+        return null;
+      }
+    }
+
     // Sort subjobs & ptModel by pt size in descending order
     tmpList.sort((o1, o2) -> {
       if (o1.partitionMetaModel.getSize() > o2.partitionMetaModel.getSize()) {
@@ -388,21 +403,7 @@ public abstract class AbstractTableJob extends AbstractJob {
       }
     });
 
-    List<PartitionMetaModel> partitionMetaModels = tmpList.stream()
-        .map(o->o.partitionMetaModel).collect(Collectors.toList());
     pendingSubJobs = tmpList.stream().map(o->o.job).collect(Collectors.toList());
-
-    // Make sure that the size of each partition is valid.
-    for (PartitionMetaModel p : partitionMetaModels) {
-      if (p.getSize() == null) {
-        LOG.info(
-            "Database: {}, table: {}, partition: {}, size is not valid",
-            source.getDatabase(),
-            source.getTable(),
-            p.getPartitionValues());
-        return null;
-      }
-    }
 
     List<TablePartitionGroup> ret = new LinkedList<>();
 
