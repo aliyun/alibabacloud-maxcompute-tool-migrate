@@ -105,20 +105,11 @@ public class JobManager {
     // add sub jobs first time
     removeSubJobTable(record.getJobId());
     Job job = getJobById(record.getJobId());
-    String blacklistStr = job.getJobConfiguration().get(JobConfiguration.SOURCE_BLACKLIST);
-    HashMap<ObjectType, Set<String>> blackList = new HashMap<>();
-    if (StringUtils.isNotBlank(blacklistStr)) {
-      // TABLE:t1,t2,t3...;RESOURCE:r1,r2,r3;...
-      blacklistStr = blacklistStr.replaceAll("\\s+", "");
-      List<String> blacklist = Arrays.asList(blacklistStr.split(";"));
-      for (String item : blacklist) {
-        String[] parts = item.split(":");
-        ObjectType objectType = ObjectType.valueOf(parts[0]);
-        Set<String> set = new HashSet<>(Arrays.asList(parts[1].split(",")));
-        blackList.put(objectType, set);
-      }
-    }
-    addCatalogJob(record, blackList);
+    HashMap<ObjectType, Set<String>> blackList =
+        JobUtils.getObjectFilterList(job.getJobConfiguration().get(JobConfiguration.SOURCE_BLACKLIST));
+    HashMap<ObjectType, Set<String>> whiteList=
+        JobUtils.getObjectFilterList(job.getJobConfiguration().get(JobConfiguration.SOURCE_WHITELIST));
+    addCatalogJob(record, blackList, whiteList);
   }
 
   public boolean addNewSubJobsInCatalogJob(JobRecord record) throws Exception {
@@ -139,7 +130,7 @@ public class JobManager {
       String objectName = subjob.getJobConfiguration().get(JobConfiguration.SOURCE_OBJECT_NAME);
       objectExistsJobs.get(objectType).add(objectName);
     }
-    return addCatalogJob(record, objectExistsJobs);
+    return addCatalogJob(record, objectExistsJobs, null);
   }
 
   public void removeInvalidSubJobsInCatalogJob(JobRecord record) throws Exception {
@@ -182,7 +173,21 @@ public class JobManager {
     return objectTypes;
   }
 
-  public boolean addCatalogJob(JobRecord record, Map<ObjectType, Set<String>> blackList) throws Exception {
+  public boolean addCatalogJob(JobRecord record,
+                               Map<ObjectType, Set<String>> blackList,
+                               Map<ObjectType, Set<String>> whiteList) throws Exception {
+    // blackList ∩ whiteList = ∅
+    // priority: blackList > whiteList
+    // full set     |   blackList   |   whiteList    |  result
+    // [1,2,3,4]    |   null        |   null         |  [1,2,3,4]
+    // [1,2,3,4]    |   null        |   [1,2,3]      |  [1,2,3]
+    // [1,2,3,4]    |   [1,2,3]     |   null         |  [4]
+    // [1,2,3,4]    |   [1,2,3]     |   [1]          |  throw Exception
+    // [1,2,3,4]    |   [1,2,3]     |   [4]          |  [4]
+    if (JobUtils.intersectionIsNotNull(blackList, whiteList)) {
+      throw new IllegalArgumentException("ERROR: black list and white list intersection should be EMPTY");
+    }
+
     // only use in update mode
     boolean addNew = false;
 
@@ -201,13 +206,20 @@ public class JobManager {
         ObjectType objectType = entry.getKey();
         Set<String> objectNames = entry.getValue();
         Set<String> blackListNames = new HashSet<String>();
+        Set<String> whiteListNames = new HashSet<>();
         if (blackList != null && blackList.containsKey(objectType)) {
           blackListNames = blackList.get(objectType);
+        }
+        if (whiteList != null && whiteList.containsKey(objectType)) {
+          whiteListNames = whiteList.get(objectType);
         }
 
         LOG.info(objectNames);
         for (String objName : objectNames) {
           if (blackListNames.contains(objName)) {
+            continue;
+          }
+          if (!whiteListNames.contains(objName)) {
             continue;
           }
           addNew = true;

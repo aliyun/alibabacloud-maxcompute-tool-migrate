@@ -45,6 +45,7 @@ public class JobConfiguration extends AbstractConfiguration {
   public static final String SOURCE_CATALOG_NAME = "mma.object.source.catalog.name";
   public static final String SOURCE_OBJECT_TYPES = "mma.object.source.types";
   public static final String SOURCE_BLACKLIST = "mma.object.source.blacklist";
+  public static final String SOURCE_WHITELIST = "mma.object.source.whitelist";
   //  public static final String SOURCE_SCHEMA_NAME = "mma.object.source.schema.name";
   public static final String SOURCE_OBJECT_NAME = "mma.object.source.name";
   public static final String PARTITION_BEGIN = "mma.filter.partition.begin";

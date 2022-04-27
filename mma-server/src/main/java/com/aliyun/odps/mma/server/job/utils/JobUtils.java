@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,14 +16,20 @@
 
 package com.aliyun.odps.mma.server.job.utils;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.config.PartitionOrderType;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.server.meta.MetaManager;
@@ -32,6 +38,37 @@ import com.aliyun.odps.mma.server.meta.generated.JobRecord;
 
 public class JobUtils
 {
+  public static HashMap<ObjectType, Set<String>> getObjectFilterList(String blacklistStr) {
+    HashMap<ObjectType, Set<String>> blackList = new HashMap<>();
+    if (StringUtils.isNotBlank(blacklistStr)) {
+      // TABLE:t1,t2,t3...;RESOURCE:r1,r2,r3;...
+      blacklistStr = blacklistStr.replaceAll("\\s+", "");
+      List<String> blacklist = Arrays.asList(blacklistStr.split(";"));
+      for (String item : blacklist) {
+        String[] parts = item.split(":");
+        ObjectType objectType = ObjectType.valueOf(parts[0]);
+        Set<String> set = new HashSet<>(Arrays.asList(parts[1].split(",")));
+        blackList.put(objectType, set);
+      }
+    }
+    return blackList;
+  }
+
+  public static boolean intersectionIsNotNull(Map<ObjectType, Set<String>> blackList,
+                                              Map<ObjectType, Set<String>> whiteList) {
+    if (null == blackList || null == whiteList || blackList.isEmpty() || whiteList.isEmpty()) {
+      return false;
+    }
+    for (Map.Entry<ObjectType, Set<String>> entry : blackList.entrySet()) {
+      Set<String> intersection = new HashSet<>(entry.getValue());
+      intersection.retainAll(whiteList.get(entry.getKey()));
+      if (!intersection.isEmpty()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static String generateJobId(boolean isSubJob) {
     StringBuilder jobIdBuilder = new StringBuilder();
     if (isSubJob) {
