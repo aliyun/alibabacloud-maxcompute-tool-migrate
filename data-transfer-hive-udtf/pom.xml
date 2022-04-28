@@ -36,8 +36,8 @@ limitations under the License.
       <groupId>com.aliyun.odps</groupId>
       <artifactId>odps-sdk-core</artifactId>
       <!-- Different from the version used by MMA server to support java 7 -->
-      <version>0.31.6-public</version>
-      <classifier>shaded</classifier>
+      <!--<version>0.31.6-public</version>-->
+      <!--<classifier>shaded</classifier>-->
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

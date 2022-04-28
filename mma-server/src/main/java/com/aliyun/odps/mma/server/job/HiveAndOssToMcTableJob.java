@@ -82,6 +82,7 @@ public class HiveAndOssToMcTableJob extends AbstractTableJob {
           config.get(JobConfiguration.SOURCE_OBJECT_NAME));
       String metadataLocation = locations[0];
       String dataLocation = locations[1];
+      String schemaName = config.get(JobConfiguration.DEST_SCHEMA_NAME);
 
       MetaSource metaSource = metaSourceFactory.getMetaSource(config);
 
@@ -103,6 +104,9 @@ public class HiveAndOssToMcTableJob extends AbstractTableJob {
           builder.database(config.get(JobConfiguration.DEST_CATALOG_NAME))
               .table(config.get(JobConfiguration.DEST_OBJECT_NAME))
               .build();
+
+      mcTableMetaModel = new TableMetaModel.TableMetaModelBuilder(mcTableMetaModel)
+          .schema(schemaName).build();
 
       TableMetaModel externalTableMetaModel =
           McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation,
@@ -247,6 +251,7 @@ public class HiveAndOssToMcTableJob extends AbstractTableJob {
       TableMetaModel source = group.getSource();
       TableMetaModelBuilder builder = new TableMetaModelBuilder(source);
       builder.database(mcExternalMetaModel.getDatabase())
+          .schema(mcExternalMetaModel.getSchema())
           .table(mcExternalMetaModel.getTable())
           .location(mcExternalMetaModel.getLocation());
       newGroups.add(new TablePartitionGroup(builder.build(), group.getDest(), group.getJobs()));

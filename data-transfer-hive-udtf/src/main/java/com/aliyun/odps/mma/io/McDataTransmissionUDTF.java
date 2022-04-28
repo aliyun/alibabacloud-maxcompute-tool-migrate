@@ -60,6 +60,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   TableTunnel tunnel;
   ObjectInspector[] objectInspectors;
   private String odpsProjectName;
+  private String odpsSchemaName;
   private String odpsTableName;
   private List<String> odpsColumnNames;
   private List<String> odpsPartitionColumnNames;
@@ -169,8 +170,17 @@ public class McDataTransmissionUDTF extends GenericUDTF {
       if (odpsTableName == null) {
         // setup project, table, schema, value array
         odpsProjectName = readString(args, IDX_PROJECT);
-        odps.setDefaultProject(odpsProjectName);
-        print("project: " + odpsProjectName);
+        if (odpsProjectName.contains(".")) {
+          String[] projectSchema = odpsProjectName.split("\\.");
+          odps.setDefaultProject(projectSchema[0]);
+          print("project: " + projectSchema[0]);
+          odpsSchemaName = projectSchema[1];
+          print("schema: " + projectSchema[1]);
+        } else {
+          odps.setDefaultProject(odpsProjectName);
+          print("project: " + odpsProjectName);
+        }
+        odps.setCurrentSchema(odpsSchemaName);
 
         odpsTableName = readString(args, IDX_TABLE);
         print("table: " + odpsTableName);
@@ -282,13 +292,17 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           if (partitionSpec.isEmpty()) {
             print("creating record worker");
             uploadSession = tunnel.createUploadSession(odps.getDefaultProject(),
-                                                       odpsTableName);
+                                                       odpsSchemaName,
+                                                       odpsTableName,
+                                                       false);
             print("creating record worker done");
           } else {
             print("creating record worker for " + partitionSpec);
             uploadSession = tunnel.createUploadSession(odps.getDefaultProject(),
+                                                       odpsSchemaName,
                                                        odpsTableName,
-                                                       new PartitionSpec(partitionSpec));
+                                                       new PartitionSpec(partitionSpec),
+                                                       false);
             print("creating record worker for " + partitionSpec + " done");
           }
           break;

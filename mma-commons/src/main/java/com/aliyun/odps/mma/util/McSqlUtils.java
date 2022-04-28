@@ -213,9 +213,7 @@ public class McSqlUtils {
       TableMetaModel source,
       TableMetaModel dest) {
     StringBuilder sb = new StringBuilder();
-    sb.append("INSERT OVERWRITE TABLE ")
-      .append(dest.getDatabase())
-      .append(".`").append(dest.getTable()).append("`\n");
+    sb.append("INSERT OVERWRITE TABLE ").append(getCoordinate(dest)).append("\n");
     if (!dest.getPartitionColumns().isEmpty()) {
       sb.append("PARTITION (");
       for (int i = 0; i < dest.getPartitionColumns().size(); i++) {
@@ -227,9 +225,7 @@ public class McSqlUtils {
       }
       sb.append(")\n");
     }
-    sb.append("SELECT * FROM ")
-      .append(source.getDatabase())
-      .append(".`").append(source.getTable()).append("`").append("\n");
+    sb.append("SELECT * FROM ").append(getCoordinate(source)).append("\n");
     sb.append(getWhereCondition(source));
     sb.append(";\n");
     return sb.toString();

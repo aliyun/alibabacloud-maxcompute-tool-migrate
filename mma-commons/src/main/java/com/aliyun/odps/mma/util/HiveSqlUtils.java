@@ -19,6 +19,8 @@ package com.aliyun.odps.mma.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.aliyun.odps.mma.config.McAuthType;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.meta.MetaSource.ColumnMetaModel;
@@ -63,6 +65,11 @@ public class HiveSqlUtils {
     } else {
       throw new MmaException("Unsupported MC authType: " + authType.name());
     }
+
+    String projectSchema = mcTableMetaModel.getDatabase();
+    if (!StringUtils.isBlank(mcTableMetaModel.getSchema())) {
+      projectSchema = projectSchema + "." + mcTableMetaModel.getSchema();
+    }
     // args:          0           1         2           3         4       5         6     other
     // ak             AK          ini path  endpoint    project   table   columns   pts   col1... pt1...
     // bearer token   BearerToken token     endpoint    project   table
@@ -71,7 +78,7 @@ public class HiveSqlUtils {
         .append("'").append(secondArg).append("',\n")
         .append("'").append(mcEndpoint).append("',\n")
         .append("'").append(tunnelEndpoint).append("',\n")
-        .append("'").append(mcTableMetaModel.getDatabase()).append("',\n")
+        .append("'").append(projectSchema).append("',\n")
         .append("'").append(mcTableMetaModel.getTable()).append("',\n")
         .append("'").append(String.join(",", mcColumnNames)).append("',\n")
         .append("'").append(String.join(",", mcPartitionColumnNames)).append("',\n");
