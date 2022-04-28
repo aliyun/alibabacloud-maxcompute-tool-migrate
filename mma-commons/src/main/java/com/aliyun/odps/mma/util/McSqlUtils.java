@@ -118,7 +118,11 @@ public class McSqlUtils {
     StringBuilder sb = new StringBuilder();
 
     // TODO: support other formats & compression methods
-    sb.append("\nSTORED AS ORC")
+    String fileType = "ORC";
+    if (!StringUtils.isNullOrEmpty(tableMetaModel.getSerDe())) {
+      fileType = tableMetaModel.getSerDe();
+    }
+    sb.append("\nSTORED AS " + fileType)
         .append("\nLOCATION '").append(tableMetaModel.getLocation()).append("'");
     return sb.toString();
   }

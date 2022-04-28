@@ -96,6 +96,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_SOURCE_OSS_ACCESS_KEY_ID = "mma.data.source.oss.access.key.id";
   public static final String DATA_SOURCE_OSS_ACCESS_KEY_SECRET = "mma.data.source.oss.access.key.secret";
   public static final String DATA_SOURCE_OSS_ROLE_ARN = "mma.data.source.oss.role.arn";
+  public static final String DATA_SOURCE_OSS_FILE_TYPE = "mma.data.source.oss.file.type";
   // MaxCompute
   public static final String DATA_SOURCE_MC_ENDPOINT = "mma.data.source.mc.endpoint";
   public static final String DATA_SOURCE_MC_ACCESS_KEY_ID = "mma.data.source.mc.access.key.id";
@@ -145,6 +146,7 @@ public abstract class AbstractConfiguration implements Map<String, String>, Conf
   public static final String DATA_DEST_OSS_ACCESS_KEY_SECRET = "mma.data.dest.oss.access.key.secret";
   public static final String DATA_DEST_OSS_ROLE_ARN = "mma.data.dest.oss.role.arn";
   public static final String DATA_DEST_OSS_PATH = "mma.data.dest.oss.path";
+  public static final String DATA_DEST_OSS_FILE_TYPE = "mma.data.dest.oss.file.type";
   // MaxCompute
   public static final String DATA_DEST_MC_ENDPOINT = "mma.data.dest.mc.endpoint";
   public static final String DATA_DEST_MC_TUNNEL_ENDPOINT = "mma.data.dest.mc.tunnel.endpoint";

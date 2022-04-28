@@ -18,6 +18,7 @@ package com.aliyun.odps.mma.server.task;
 
 import java.util.List;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.server.action.ActionExecutionContext;
 import com.aliyun.odps.mma.server.action.McAddPartitionsAction;
@@ -49,6 +50,8 @@ public class McToOssTableSetUpTask extends DagTask {
     String executionProject = config.getOrDefault(
         JobConfiguration.JOB_EXECUTION_MC_PROJECT,
         config.get(JobConfiguration.SOURCE_CATALOG_NAME));
+    mcExternalMetaModel = new TableMetaModel.TableMetaModelBuilder(mcExternalMetaModel)
+        .serDe(config.get(AbstractConfiguration.DATA_DEST_OSS_FILE_TYPE)).build();
     McCreateOssExternalTableAction mcCreateOssExternalTableAction =
         new McCreateOssExternalTableAction(
             this.getId() + ".CreateExternalTable",

@@ -119,6 +119,12 @@ public class JobConfiguration extends AbstractConfiguration {
                && dataDestType.equals(DataDestType.MaxCompute)) {
       validateHiveToMcCredentials();
       validMcAuthType();
+    } else if (metaSourceType.equals(MetaSourceType.Hive)
+               && dataSourceType.equals(DataSourceType.OSS)
+               && metaDestType.equals(MetaDestType.MaxCompute)
+               && dataDestType.equals(DataDestType.MaxCompute)) {
+      validHiveOSSToMcCredentials();
+      validMcAuthType();
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
@@ -165,6 +171,13 @@ public class JobConfiguration extends AbstractConfiguration {
   private void validateHiveToMcCredentials() throws MmaException {
     ConfigurationUtils.validateHiveMetaSource(this);
     ConfigurationUtils.validateHiveDataSource(this);
+    ConfigurationUtils.validateMcMetaDest(this);
+    ConfigurationUtils.validateMcDataDest(this);
+  }
+
+  private void validHiveOSSToMcCredentials() throws MmaException {
+    ConfigurationUtils.validateHiveMetaSource(this);
+    ConfigurationUtils.validateOssDataSource(this);
     ConfigurationUtils.validateMcMetaDest(this);
     ConfigurationUtils.validateMcDataDest(this);
   }

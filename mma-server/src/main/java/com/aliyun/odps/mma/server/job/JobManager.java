@@ -464,6 +464,11 @@ public class JobManager {
       objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
     }
 
+    boolean isDataTransportJob() {
+      return metaSourceType.equals(MetaSourceType.Hive) && dataSourceType.equals(DataSourceType.OSS)
+          && metaDestType.equals(MetaDestType.MaxCompute) && dataDestType.equals(DataDestType.MaxCompute);
+    }
+
     boolean isMcToOSSJob() {
       return metaSourceType.equals(MetaSourceType.MaxCompute) && dataSourceType.equals(DataSourceType.MaxCompute)
           && metaDestType.equals(MetaDestType.OSS) && dataDestType.equals(DataDestType.OSS);
@@ -485,7 +490,8 @@ public class JobManager {
       boolean isValidMcToOSSJob = isMcToOSSJob() && mcOSSValidType.contains(objectType);
       boolean isValidOSSToMcJob = isOSSToMcJob() && mcOSSValidType.contains(objectType);
       boolean isValidHiveToMcJob = isHiveToMcJob() && hiveMcValidType.contains(objectType);
-      if (!isValidMcToOSSJob && !isValidOSSToMcJob && !isValidHiveToMcJob) {
+      boolean isDataTransportJob = isDataTransportJob();
+      if (!isValidMcToOSSJob && !isValidOSSToMcJob && !isValidHiveToMcJob && !isDataTransportJob) {
         throw new IllegalArgumentException("Unsupported source and dest combination");
       }
     }
@@ -548,6 +554,8 @@ public class JobManager {
       } else {
           throw new IllegalArgumentException("Unsupported object type " + jobDescribe.objectType);
       }
+    } else if (jobDescribe.isDataTransportJob()) {
+      job = new HiveAndOssToMcTableJob(parentJob, record, this, metaManager, metaSourceFactory);
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
