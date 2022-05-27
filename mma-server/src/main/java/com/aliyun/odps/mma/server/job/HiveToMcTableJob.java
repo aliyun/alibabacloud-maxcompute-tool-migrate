@@ -75,12 +75,23 @@ public class HiveToMcTableJob extends AbstractTableJob {
         pendingSubJobs = jobManager.listSubJobsByStatus(this, JobStatus.PENDING);
       }
 
+
+      List<TablePartitionGroup> groups = null;
+      if (!hiveTableMetaModel.getPartitionColumns().isEmpty()) {
+        groups = getStaticTablePartitionGroups(
+            metaSource,
+            hiveTableMetaModel,
+            mcTableMetaModel,
+            pendingSubJobs);
+      }
+
       DirectedAcyclicGraph<Task, DefaultEdge> dag = new DirectedAcyclicGraph<>(DefaultEdge.class);
       Task setUpTask = getSetUpTask(
           metaSource,
           hiveTableMetaModel,
           mcTableMetaModel,
-          pendingSubJobs);
+          pendingSubJobs,
+      groups);
 
       dag.addVertex(setUpTask);
 
@@ -89,7 +100,7 @@ public class HiveToMcTableJob extends AbstractTableJob {
                 metaSource,
                 hiveTableMetaModel,
                 mcTableMetaModel,
-                pendingSubJobs);
+                pendingSubJobs,groups);
 
         dataTransmissionTasks.forEach(dag::addVertex);
         dataTransmissionTasks.forEach(t -> dag.addEdge(setUpTask, t));
@@ -107,18 +118,24 @@ public class HiveToMcTableJob extends AbstractTableJob {
       MetaSource metaSource,
       TableMetaModel hiveTableMetaModel,
       TableMetaModel mcTableMetaModel,
-      List<Job> pendingSubJobs) throws Exception {
+      List<Job> pendingSubJobs,
+      List<TablePartitionGroup> pgroups) throws Exception {
     List<TableMetaModel> groups = null;
     if (!hiveTableMetaModel.getPartitionColumns().isEmpty()) {
-      groups = getStaticTablePartitionGroups(
-          metaSource,
-          hiveTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs)
-          .stream()
-          .map(TablePartitionGroup::getDest)
-          .collect(Collectors.toList());
+      groups = pgroups
+            .stream()
+            .map(TablePartitionGroup::getDest)
+            .collect(Collectors.toList());
     }
+    //   groups = getStaticTablePartitionGroups(
+    //       metaSource,
+    //       hiveTableMetaModel,
+    //       mcTableMetaModel,
+    //       pendingSubJobs)
+    //       .stream()
+    //       .map(TablePartitionGroup::getDest)
+    //       .collect(Collectors.toList());
+    // }
     String taskIdPrefix = generateTaskIdPrefix();
     return new HiveToMcTableSetUpTask(
         taskIdPrefix + ".SetUp",
@@ -133,18 +150,19 @@ public class HiveToMcTableJob extends AbstractTableJob {
       MetaSource metaSource,
       TableMetaModel hiveTableMetaModel,
       TableMetaModel mcTableMetaModel,
-      List<Job> pendingSubJobs) throws Exception {
+      List<Job> pendingSubJobs,
+      List<TablePartitionGroup> groups) throws Exception {
     List<Task> ret = new LinkedList<>();
 
     boolean isPartitioned = !hiveTableMetaModel.getPartitionColumns().isEmpty();
     String taskIdPrefix = generateTaskIdPrefix();
     String rootJobId = getRootJobId();
     if (isPartitioned) {
-      List<TablePartitionGroup> groups = getTablePartitionGroups(
-          metaSource,
-          hiveTableMetaModel,
-          mcTableMetaModel,
-          pendingSubJobs);
+      // List<TablePartitionGroup> groups = getTablePartitionGroups(
+      //     metaSource,
+      //     hiveTableMetaModel,
+      //     mcTableMetaModel,
+      //     pendingSubJobs);
 
       for (int i = 0; i < groups.size(); i++) {
         String taskId = taskIdPrefix + ".DataTransmission" + ".part." + i;

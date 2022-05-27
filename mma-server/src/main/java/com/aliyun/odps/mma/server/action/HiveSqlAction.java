@@ -65,7 +65,7 @@ public abstract class HiveSqlAction extends AbstractAction<List<List<Object>>> {
         (HiveSqlActionInfo) actionInfo);
   }
 
-  abstract String getSql() throws Exception;
+  abstract public  String getSql() throws Exception;
 
   Map<String, String> getSettings() throws MmaException {
     return userHiveSettings;

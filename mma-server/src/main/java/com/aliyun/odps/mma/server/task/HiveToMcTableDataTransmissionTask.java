@@ -16,8 +16,12 @@
 
 package com.aliyun.odps.mma.server.task;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.ConfigurationUtils;
 import com.aliyun.odps.mma.config.JobConfiguration;
@@ -53,6 +57,12 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
     String transmissionSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_TRANSMISSION_SETTINGS);
     String verificationSettings = config.get(AbstractConfiguration.DATA_SOURCE_HIVE_VERIFICATION_SETTINGS);
 
+    String appendix = "";
+    if (getId().contains("part")) {
+      appendix = "." + getId().charAt(getId().length() - 1);
+    }
+
+    List<String> sqls = new ArrayList<>(10);
     HiveToMcTableDataTransmissionAction dataTransmissionAction =
         new HiveToMcTableDataTransmissionAction(
             id + ".DataTransmission",
@@ -69,6 +79,12 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
             this,
             context);
     dag.addVertex(dataTransmissionAction);
+    try {
+      save(dataTransmissionAction.getSql()+";", getPath(config) + File.separator + "transmission"
+                                            + appendix + ".sql", true);
+    } catch (OdpsException e) {
+      throw new RuntimeException(e);
+    }
 
     HiveVerificationAction hiveVerificationAction = new HiveVerificationAction(
         id + ".HiveDataVerification",
@@ -81,6 +97,8 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         this,
         context);
     dag.addVertex(hiveVerificationAction);
+    save(hiveVerificationAction.getSql()+";", getPath(config) + File.separator + "transmission"
+                                          + appendix + ".sql", true);
 
     McVerificationAction mcVerificationAction = new McVerificationAction(
         id + ".McDataVerification",
@@ -93,6 +111,8 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         this,
         context);
     dag.addVertex(mcVerificationAction);
+    save(mcVerificationAction.getSql(), getPath(config) + File.separator + "transmission"
+                                          + appendix + ".sql", true);
 
     VerificationAction verificationAction = new VerificationAction(
         id + ".FinalVerification",

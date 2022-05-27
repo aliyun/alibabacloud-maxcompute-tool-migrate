@@ -16,6 +16,9 @@
 
 package com.aliyun.odps.mma.server.task;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.aliyun.odps.mma.config.JobConfiguration;
@@ -75,7 +78,10 @@ public class HiveToMcTableSetUpTask extends DagTask {
           context);
       dag.addVertex(mcDropTableAction);
       dag.addEdge(mcDropTableAction, mcCreateTableAction);
+      save(mcDropTableAction.getSql(), getPath(config) + File.separator + "schema.sql", false);
+      save(mcCreateTableAction.getSql(), getPath(config) + File.separator + "schema.sql", true);
     } else {
+      save(mcCreateTableAction.getSql(), getPath(config) + File.separator + "schema.sql", false);
       int idx = 0;
       for (TableMetaModel managedPartitionGroup : partitionGroups) {
         McDropPartitionAction mcDropPartitionAction = new McDropPartitionAction(
@@ -89,6 +95,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcDropPartitionAction);
         dag.addEdge(mcCreateTableAction, mcDropPartitionAction);
+        save(mcDropPartitionAction.getSql(), getPath(config) + File.separator + "transmission." + idx + ".sql", false);
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddPartitions.part." + idx,
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
@@ -100,9 +107,11 @@ public class HiveToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcAddPartitionsAction);
         dag.addEdge(mcDropPartitionAction, mcAddPartitionsAction);
+        save(mcAddPartitionsAction.getSql(), getPath(config) + File.separator + "transmission." + idx + ".sql", true);
         idx += 1;
       }
     }
+
   }
 
   @Override

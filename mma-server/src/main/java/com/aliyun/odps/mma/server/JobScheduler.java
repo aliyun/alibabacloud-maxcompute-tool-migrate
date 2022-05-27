@@ -125,13 +125,13 @@ public class JobScheduler {
 
             List<Task> tasks = job.getExecutableTasks();
 
-            // TODO: a better way to print to the dw console
-            if (ephemeral) {
-              for (Task task : tasks) {
-                System.err.println(
-                    "Schedule task, job id: " + job.getId() + ", task id: " + task.getId());
-              }
-            }
+            // // TODO: a better way to print to the dw console
+            // if (ephemeral) {
+            //   for (Task task : tasks) {
+            //     System.err.println(
+            //         "Schedule task, job id: " + job.getId() + ", task id: " + task.getId());
+            //   }
+            // }
 
             runningTasks.addAll(tasks);
           }
@@ -140,20 +140,21 @@ public class JobScheduler {
         synchronized (runningTasks) {
           for (Task task : runningTasks) {
 
-            List<Action> executableActions = task.getExecutableActions();
-            for (Action action : executableActions) {
-              if (action.tryAllocateResource()) {
-                action.execute();
-
-                // TODO: a better way to print to the dw console
-                if (ephemeral) {
-                  System.err.println(
-                      "Schedule action, task id" + task.getId() + ", action id: " + action.getId());
-                }
-
-                runningActions.add(action);
-              }
-            }
+            continue;
+            // List<Action> executableActions = task.getExecutableActions();
+            // for (Action action : executableActions) {
+            //   if (action.tryAllocateResource()) {
+            //     action.execute();
+            //
+            //     // TODO: a better way to print to the dw console
+            //     if (ephemeral) {
+            //       System.err.println(
+            //           "Schedule action, task id" + task.getId() + ", action id: " + action.getId());
+            //     }
+            //
+            //     runningActions.add(action);
+            //   }
+            // }
           }
         }
         Thread.sleep(DEFAULT_SCHEDULING_INTERVAL_MS);

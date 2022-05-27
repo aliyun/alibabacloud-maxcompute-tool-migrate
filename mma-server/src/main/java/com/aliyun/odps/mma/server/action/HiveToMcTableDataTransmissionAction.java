@@ -112,7 +112,7 @@ public class HiveToMcTableDataTransmissionAction extends HiveSqlAction {
   }
 
   @Override
-  String getSql() throws OdpsException, MmaException {
+  public String getSql() throws OdpsException, MmaException {
     AbstractConfiguration config = actionExecutionContext.getConfig();
     McAuthType authType = McAuthType.valueOf(
         config.getOrDefault(AbstractConfiguration.DATA_DEST_MC_AUTH_TYPE,

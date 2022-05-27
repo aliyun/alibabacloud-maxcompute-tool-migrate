@@ -45,7 +45,7 @@ public class HiveVerificationAction extends HiveSqlAction {
   }
 
   @Override
-  String getSql() {
+  public String getSql() {
     return HiveSqlUtils.getVerifySql(tableMetaModel);
   }
 

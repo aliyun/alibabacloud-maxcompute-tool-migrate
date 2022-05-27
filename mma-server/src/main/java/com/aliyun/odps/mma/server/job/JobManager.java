@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -341,7 +342,7 @@ public class JobManager {
     boolean isPartitioned = !tableMetaModel.getPartitionColumns().isEmpty();
 
     if (isPartitioned) {
-      try (SqlSession session = metaManager.getSqlSessionFactory().openSession(true)) {
+      try (SqlSession session = metaManager.getSqlSessionFactory().openSession(ExecutorType.BATCH)) {
         // Add each partition as a sub job
         JobUtils.PartitionFilter partitionFilter = new JobUtils.PartitionFilter(config);
         for (PartitionMetaModel partitionMetaModel : tableMetaModel.getPartitions()) {
@@ -356,6 +357,7 @@ public class JobManager {
           saveSubJobToDb(jobId, config, partitionIdentifier, PARTITION,
                          partitionMetaModel.getLastModificationTime(), session);
         }
+        session.commit();
       }
     } else {
       if (tableMetaModel.getLastModificationTime() != null) {

@@ -111,11 +111,11 @@ public class CatalogJob extends AbstractJob {
     List<Task> ret = new ArrayList<>(EXECUTABLE_TASK_BATCH_SIZE);
     for (Job subJob : subJobs) {
       ret.addAll(subJob.getExecutableTasks());
-      if (ret.size() > EXECUTABLE_TASK_BATCH_SIZE) {
-        // Make this method call return once a few executable tasks are generated, so that this
-        // method call won't block the execution.
-        break;
-      }
+      // if (ret.size() > EXECUTABLE_TASK_BATCH_SIZE) {
+      //   // Make this method call return once a few executable tasks are generated, so that this
+      //   // method call won't block the execution.
+      //   break;
+      // }
     }
     return ret;
   }

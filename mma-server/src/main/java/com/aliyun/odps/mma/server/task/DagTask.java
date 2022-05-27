@@ -16,6 +16,10 @@
 
 package com.aliyun.odps.mma.server.task;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +31,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.exception.MmaException;
 import com.aliyun.odps.mma.server.action.Action;
@@ -163,4 +168,48 @@ public abstract class DagTask implements Task {
   }
 
   abstract void updateMetadata();
+
+
+  public void save(String sql, String path, boolean append) {
+    try {
+      File file = new File(path);
+      if (!file.exists()) {
+        file.createNewFile();
+      }
+      FileWriter fw = new FileWriter(file.getAbsoluteFile(), append);
+      BufferedWriter bw = new BufferedWriter(fw);
+      bw.write(sql);
+      bw.close();
+    } catch (IOException e) {
+      try {
+        savesqlfail(config);
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void save(List<String> sql, String path, boolean append) {
+    save(String.join(";\n", sql), path, append);
+  }
+
+  public String getPath(JobConfiguration config) {
+    String prefix = config.get(AbstractConfiguration.SQL_SAVE_PATH);
+    String db = config.get(JobConfiguration.SOURCE_CATALOG_NAME);
+    String table = config.get(JobConfiguration.SOURCE_OBJECT_NAME);
+    String[] parts = {prefix, db, table};
+    String path = String.join(File.separator, parts);
+    File dir = new File(path);
+    if (!dir.exists()) {
+      dir.mkdirs();
+    }
+    return path;
+  }
+
+  public void savesqlfail(JobConfiguration config) throws IOException {
+    String fail = getPath(config) + File.separator + "fail.txt";
+    new File(fail).createNewFile();
+  }
+
 }
