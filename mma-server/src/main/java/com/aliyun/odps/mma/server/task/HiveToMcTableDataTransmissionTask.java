@@ -59,7 +59,8 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
 
     String appendix = "";
     if (getId().contains("part")) {
-      appendix = "." + getId().charAt(getId().length() - 1);
+      String id = getId().substring(getId().lastIndexOf(".")+1);
+      appendix = "." + id;
     }
 
     List<String> sqls = new ArrayList<>(10);
@@ -80,7 +81,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
             context);
     dag.addVertex(dataTransmissionAction);
     try {
-      save(dataTransmissionAction.getSql()+";", getPath(config) + File.separator + "transmission"
+      save(dataTransmissionAction.getSql()+";", getPath(config) + File.separator + "data"
                                             + appendix + ".sql", true);
     } catch (OdpsException e) {
       throw new RuntimeException(e);
@@ -97,7 +98,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         this,
         context);
     dag.addVertex(hiveVerificationAction);
-    save(hiveVerificationAction.getSql()+";", getPath(config) + File.separator + "transmission"
+    save(hiveVerificationAction.getSql()+";", getPath(config) + File.separator + "data"
                                           + appendix + ".sql", true);
 
     McVerificationAction mcVerificationAction = new McVerificationAction(
@@ -111,7 +112,7 @@ public class HiveToMcTableDataTransmissionTask extends TableDataTransmissionTask
         this,
         context);
     dag.addVertex(mcVerificationAction);
-    save(mcVerificationAction.getSql(), getPath(config) + File.separator + "transmission"
+    save(mcVerificationAction.getSql(), getPath(config) + File.separator + "data"
                                           + appendix + ".sql", true);
 
     VerificationAction verificationAction = new VerificationAction(

@@ -16,7 +16,11 @@
 
 package com.aliyun.odps.mma.server.job;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +29,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.aliyun.odps.mma.config.AbstractConfiguration;
 import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.job.JobStatus;
 import com.aliyun.odps.mma.meta.MetaSourceFactory;
@@ -88,7 +93,7 @@ public class CatalogJob extends AbstractJob {
   public synchronized JobStatus getStatus() {
     JobStatus jobStatus = JobStatus.valueOf(record.getJobStatus());
 
-    if (JobStatus.FAILED.equals(jobStatus) || JobStatus.CANCELED.equals(jobStatus)) {
+    if (JobStatus.FAILED.equals(jobStatus) || JobStatus.CANCELED.equals(jobStatus) || JobStatus.SUCCEEDED.equals(jobStatus)) {
       return jobStatus;
     }
 
@@ -107,6 +112,15 @@ public class CatalogJob extends AbstractJob {
   @Override
   public List<Task> getExecutableTasks() {
     // Iterate over sub jobs and pick up executable tasks
+    String prefix = config.get(AbstractConfiguration.SQL_SAVE_PATH);
+    String finishFlag = prefix + File.separator + config.get(JobConfiguration.SOURCE_CATALOG_NAME) + File.separator + "finish.txt";
+    File finishFile = new File(finishFlag);
+    if (finishFile.exists()) {
+      LOG.info(JobConfiguration.SOURCE_CATALOG_NAME + " finish file exists");
+      return Collections.emptyList();
+    }
+    LOG.info(JobConfiguration.SOURCE_CATALOG_NAME + " finish file not exists");
+
     List<Job> subJobs = getSubJobs();
     List<Task> ret = new ArrayList<>(EXECUTABLE_TASK_BATCH_SIZE);
     for (Job subJob : subJobs) {
@@ -116,6 +130,11 @@ public class CatalogJob extends AbstractJob {
       //   // method call won't block the execution.
       //   break;
       // }
+    }
+    try {
+      finishFile.createNewFile();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     return ret;
   }

@@ -78,11 +78,12 @@ public class HiveToMcTableSetUpTask extends DagTask {
           context);
       dag.addVertex(mcDropTableAction);
       dag.addEdge(mcDropTableAction, mcCreateTableAction);
-      save(mcDropTableAction.getSql(), getPath(config) + File.separator + "schema.sql", false);
-      save(mcCreateTableAction.getSql(), getPath(config) + File.separator + "schema.sql", true);
+      save(mcDropTableAction.getSql(), getPath(config) + File.separator + "data.sql", false);
+      save(mcCreateTableAction.getSql(), getPath(config) + File.separator + "data.sql", true);
     } else {
       save(mcCreateTableAction.getSql(), getPath(config) + File.separator + "schema.sql", false);
       int idx = 0;
+      // save("", getPath(config) + File.separator + "data." + idx + ".sql", false);
       for (TableMetaModel managedPartitionGroup : partitionGroups) {
         McDropPartitionAction mcDropPartitionAction = new McDropPartitionAction(
             this.getId() + ".DropPartitions.part." + idx,
@@ -95,7 +96,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcDropPartitionAction);
         dag.addEdge(mcCreateTableAction, mcDropPartitionAction);
-        save(mcDropPartitionAction.getSql(), getPath(config) + File.separator + "transmission." + idx + ".sql", false);
+        save(mcDropPartitionAction.getSql(), getPath(config) + File.separator + "data." + idx + ".sql", false);
         McAddPartitionsAction mcAddPartitionsAction = new McAddPartitionsAction(
             this.getId() + ".AddPartitions.part." + idx,
             config.get(JobConfiguration.DATA_DEST_MC_ACCESS_KEY_ID),
@@ -107,7 +108,7 @@ public class HiveToMcTableSetUpTask extends DagTask {
             context);
         dag.addVertex(mcAddPartitionsAction);
         dag.addEdge(mcDropPartitionAction, mcAddPartitionsAction);
-        save(mcAddPartitionsAction.getSql(), getPath(config) + File.separator + "transmission." + idx + ".sql", true);
+        save(mcAddPartitionsAction.getSql(), getPath(config) + File.separator + "data." + idx + ".sql", true);
         idx += 1;
       }
     }

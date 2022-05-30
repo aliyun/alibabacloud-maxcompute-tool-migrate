@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jgrapht.Graphs;
@@ -182,7 +183,7 @@ public abstract class DagTask implements Task {
       bw.close();
     } catch (IOException e) {
       try {
-        savesqlfail(config);
+        savesqlfail(config, e);
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
@@ -207,9 +208,21 @@ public abstract class DagTask implements Task {
     return path;
   }
 
-  public void savesqlfail(JobConfiguration config) throws IOException {
+  public void savesqlfail(JobConfiguration config, Exception e) throws IOException {
     String fail = getPath(config) + File.separator + "fail.txt";
-    new File(fail).createNewFile();
+    File failFile = new File(fail);
+    if (!failFile.exists()) {
+      failFile.createNewFile();
+    }
+    FileWriter fw = new FileWriter(fail, true);
+    fw.write(ExceptionUtils.getStackTrace(e));
+    fw.write("\n");
+    fw.close();
+
+    String prefix = config.get(AbstractConfiguration.SQL_SAVE_PATH);
+    String failedLog = prefix + File.separator + "failed.log";
+    FileWriter fw2 = new FileWriter(failedLog, true);
+    fw2.write(config.get(JobConfiguration.SOURCE_CATALOG_NAME + "." + JobConfiguration.SOURCE_OBJECT_NAME) + "\n");
   }
 
 }
