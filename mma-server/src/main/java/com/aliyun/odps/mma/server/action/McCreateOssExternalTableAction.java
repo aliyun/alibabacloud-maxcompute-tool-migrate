@@ -55,8 +55,9 @@ public class McCreateOssExternalTableAction extends McSqlAction {
 
   @Override
   public Map<String, String> getSettings() {
-    // TODO:
-    return new HashMap<>();
+    HashMap<String, String> settings = new HashMap<>();
+    settings.put("odps.sql.hive.compatible", "true");
+    return settings;
   }
 
   @Override

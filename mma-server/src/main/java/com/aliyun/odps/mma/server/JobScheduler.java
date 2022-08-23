@@ -164,7 +164,6 @@ public class JobScheduler {
   }
 
   void handleTerminatedJobs() {
-    LOG.info("Enter handleTerminatedJobs");
     List<Job> terminatedJobs = new LinkedList<>();
     for (Job job : runningJobs) {
       // TODO: remove later
@@ -203,7 +202,6 @@ public class JobScheduler {
   }
 
   void handleTerminatedTasks() {
-    LOG.info("Enter handleTerminatedTasks");
     List<Task> terminatedTasks = new LinkedList<>();
     for (Task task : runningTasks) {
       if (TaskProgress.SUCCEEDED.equals(task.getProgress())
@@ -240,7 +238,6 @@ public class JobScheduler {
   }
 
   void handleTerminatedActions() {
-    LOG.info("Enter handleTerminatedActions");
     List<Action> terminatedActions = new LinkedList<>();
     for (Action action : runningActions) {
       if (action.executionFinished()) {

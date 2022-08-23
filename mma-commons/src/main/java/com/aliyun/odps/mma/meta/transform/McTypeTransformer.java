@@ -39,6 +39,9 @@ public class McTypeTransformer implements TypeTransformer {
     if (this.toExternalTable && OdpsType.DATETIME.name().equals(transformedType)) {
       transformedType = OdpsType.TIMESTAMP.name();
     }
+    if (!this.toExternalTable && OdpsType.TIMESTAMP.name().equals(transformedType)) {
+      transformedType = OdpsType.DATETIME.name();
+    }
     return new TypeTransformResult(
         columnName,
         type,

@@ -102,13 +102,17 @@ public class McToOssTableJob extends AbstractTableJob {
           .transform(mcTableMetaModel, config);
       TableMetaModelBuilder ossTableMetaModelBuilder =
           new TableMetaModelBuilder(schemaTransformResult.getTableMetaModel());
+
+      mcExternalTableMetaModel = McSqlUtils.getMcExternalTableMetaModel(
+          ossTableMetaModelBuilder.build(), ossConfig, dataLocation, getRootJobId());
+
       ossTableMetaModelBuilder.database(config.get(JobConfiguration.DEST_CATALOG_NAME))
                               .table(config.get(JobConfiguration.DEST_OBJECT_NAME))
                               .location(metadataLocation);
       TableMetaModel ossTableMetaModel = ossTableMetaModelBuilder.build();
 
-      mcExternalTableMetaModel =
-          McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
+      // mcExternalTableMetaModel =
+      //     McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
 
       List<Job> pendingSubJobs = null;
       if (!mcTableMetaModel.getPartitionColumns().isEmpty()) {

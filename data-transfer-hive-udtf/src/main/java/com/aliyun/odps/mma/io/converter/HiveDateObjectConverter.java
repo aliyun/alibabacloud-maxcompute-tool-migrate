@@ -57,6 +57,8 @@ public class HiveDateObjectConverter extends AbstractHiveObjectConverter {
       return value.toString();
     } else if (OdpsType.DATETIME.equals(odpsTypeInfo.getOdpsType())) {
       return new java.sql.Date(value.getTime());
+    } else if (OdpsType.DATE.equals(odpsTypeInfo.getOdpsType())) {
+      return new java.sql.Date(value.getTime());
     } else {
       String msg = String.format("Unsupported implicit type conversion: from %s to %s",
                                  "Hive.Date",

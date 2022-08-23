@@ -101,13 +101,17 @@ public class OssToMcTableJob extends AbstractTableJob {
           .transform(ossTableMetaModel, config);
       TableMetaModelBuilder builder =
           new TableMetaModelBuilder(schemaTransformResult.getTableMetaModel());
+
+      externalTableMetaModel = McSqlUtils.getMcExternalTableMetaModel(
+          ossTableMetaModel, ossConfig, dataLocation, getRootJobId());
+
       TableMetaModel mcTableMetaModel =
           builder.database(config.get(JobConfiguration.DEST_CATALOG_NAME))
               .table(config.get(JobConfiguration.DEST_OBJECT_NAME))
               .build();
 
-      externalTableMetaModel =
-          McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
+      // externalTableMetaModel =
+      //     McSqlUtils.getMcExternalTableMetaModel(mcTableMetaModel, ossConfig, dataLocation, getRootJobId());
 
       // for local debug
       // OssUtils.getTableModelLogInfo(mcTableMetaModel, ossTableMetaModel, externalTableMetaModel);
