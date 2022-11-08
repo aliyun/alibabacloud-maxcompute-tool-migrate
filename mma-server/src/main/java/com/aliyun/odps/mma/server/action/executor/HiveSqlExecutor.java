@@ -76,7 +76,7 @@ public class HiveSqlExecutor extends AbstractActionExecutor {
 
     @Override
     public List<List<Object>> call() throws SQLException {
-      LOG.info("ActionId: {}, executing sql: {}", actionId, sql);
+      LOG.info("ActionId: {}, executing sql: {}, settings: {}", actionId, sql, settings);
 
       try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
         try (Statement stmt = conn.createStatement()) {
