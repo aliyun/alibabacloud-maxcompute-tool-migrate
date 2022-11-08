@@ -37,6 +37,8 @@ public abstract class AbstractAction<T> implements Action {
   private ActionProgress progress;
   private Long startTime;
   private Long endTime;
+  // The exception.Message from failed action for users(UI).
+  private String reason;
 
   Map<Resource, Long> resourceMap;
   Future<T> future;
@@ -135,6 +137,7 @@ public abstract class AbstractAction<T> implements Action {
       LOG.error("Action failed, actionId: {}, stack trace: {}",
                 id,
                 ExceptionUtils.getStackTrace(e));
+      this.reason = e.getMessage();
       setProgress(ActionProgress.FAILED);
     }
   }
@@ -189,5 +192,9 @@ public abstract class AbstractAction<T> implements Action {
     if (this.future != null) {
       this.future.cancel(true);
     }
+  }
+
+  public String getReason() {
+    return this.reason;
   }
 }

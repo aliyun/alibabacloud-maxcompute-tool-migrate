@@ -21,11 +21,21 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultActionInfo extends AbstractActionInfo {
 
+  private String result = "";
+
   private Map<String, String> kvs = new ConcurrentHashMap();
 
   public String get(String key) { return this.kvs.get(key); }
 
   public void put(String key, String value) { this.kvs.put(key, value); }
+
+  public synchronized String getResult() {
+    return result;
+  }
+
+  public void setResult(String result) {
+    this.result = result;
+  }
 
   @Override
   public String toString() { return null; }

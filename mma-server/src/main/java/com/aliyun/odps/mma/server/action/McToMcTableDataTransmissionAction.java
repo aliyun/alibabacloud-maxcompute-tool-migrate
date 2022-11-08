@@ -1,69 +1,61 @@
-/*
- * Copyright 1999-2021 Alibaba Group Holding Ltd.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.aliyun.odps.mma.server.action;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.aliyun.odps.mma.util.McSqlUtils;
-import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
-import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
+import com.aliyun.odps.Odps;
+import com.aliyun.odps.mma.config.AbstractConfiguration;
+import com.aliyun.odps.mma.config.JobConfiguration;
+import com.aliyun.odps.mma.server.OdpsUtils;
+import com.aliyun.odps.mma.server.config.MmaServerConfiguration;
+import com.aliyun.odps.mma.server.resource.Resource;
 import com.aliyun.odps.mma.server.task.Task;
+import com.aliyun.odps.mma.meta.MetaSource.TableMetaModel;
 
-public class McToMcTableDataTransmissionAction extends McSqlAction {
+public class McToMcTableDataTransmissionAction extends CopyTaskAction {
+  private final String srcProject;
+  private final String srcOdpsAccessId;
+  private final String srcOdpsAccessKey;
+  private final String srcOdpsEndpoint;
+  private final String destProject;
+  private final String destOdpsAccessId;
+  private final String destOdpsAccessKey;
+  private final String destOdpsEndpoint;
 
-  private TableMetaModel source;
-  private TableMetaModel dest;
 
   public McToMcTableDataTransmissionAction(
-      String id,
-      String mcAccessKeyId,
-      String mcAccessKeySecret,
-      String mcProject,
-      String mcEndpoint,
-      TableMetaModel source,
-      TableMetaModel dest,
-      Task task,
-      ActionExecutionContext context) {
-    super(id, mcAccessKeyId, mcAccessKeySecret, mcProject, mcEndpoint, task, context);
-    this.source = source;
-    this.dest = dest;
-  }
+          String id,
+          TableMetaModel source,
+          TableMetaModel dest,
+          String srcProject,
+          String srcOdpsAccessId,
+          String srcOdpsAccessKey,
+          String srcOdpsEndpoint,
+          String destProject,
+          String destOdpsAccessId,
+          String destOdpsAccessKey,
+          String destOdpsEndpoint,
+          Task task, ActionExecutionContext context) {
+    super(id, source, dest, task, context);
+    this.srcProject = srcProject;
+    this.srcOdpsAccessId = srcOdpsAccessId;
+    this.srcOdpsAccessKey = srcOdpsAccessKey;
+    this.srcOdpsEndpoint = srcOdpsEndpoint;
+    this.destProject = destProject;
+    this.destOdpsAccessId = destOdpsAccessId;
+    this.destOdpsAccessKey = destOdpsAccessKey;
+    this.destOdpsEndpoint = destOdpsEndpoint;
 
-  @Override
-  void handleResult(List<List<Object>> result) {
-    ((McSqlActionInfo) actionInfo).setResult(result);
-  }
+    JobConfiguration config = actionExecutionContext.getConfig();
+    MmaServerConfiguration mmaServerConfiguration = MmaServerConfiguration.getInstance();
+    long numDataWorkerResource = Long.parseLong(
+            config.getOrDefault(
+                    JobConfiguration.JOB_NUM_DATA_WORKER,
+                    mmaServerConfiguration.getOrDefault(
+                            AbstractConfiguration.JOB_NUM_DATA_WORKER,
+                            AbstractConfiguration.JOB_NUM_DATA_WORKER_DEFAULT_VALUE)
+            )
+    );
 
-  @Override
-  public String getSql() {
-    return McSqlUtils.getInsertOverwriteTableStatement(source, dest);
-  }
+    resourceMap.put(Resource.DATA_WORKER, numDataWorkerResource);
 
-  @Override
-  public boolean hasResults() {
-    return false;
-  }
-
-  @Override
-  public Map<String, String> getSettings() {
-    // TODO:
-    return new HashMap<>();
   }
 
   @Override
@@ -72,7 +64,21 @@ public class McToMcTableDataTransmissionAction extends McSqlAction {
   }
 
   @Override
-  public List<List<Object>> getResult() {
-    return ((McSqlActionInfo) actionInfo).getResult();
+  public Odps getSrcOdps() {
+    return OdpsUtils.getOdps(
+            this.srcOdpsAccessId,
+            this.srcOdpsAccessKey,
+            this.srcOdpsEndpoint,
+            this.srcProject);
   }
+
+  @Override
+  public Odps getDestOdps() {
+    return OdpsUtils.getOdps(
+            this.destOdpsAccessId,
+            this.destOdpsAccessKey,
+            this.destOdpsEndpoint,
+            this.destProject);
+  }
+
 }

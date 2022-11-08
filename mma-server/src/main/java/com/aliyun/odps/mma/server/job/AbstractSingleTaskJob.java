@@ -16,7 +16,7 @@ import com.aliyun.odps.mma.server.task.TaskProgress;
 /**
  * @author yida
  */
-public abstract class AbstractSingleTaskJob extends AbstractJob{
+public abstract class AbstractSingleTaskJob extends AbstractJob {
 
   private static final Logger LOG = LogManager.getLogger(AbstractSingleTaskJob.class);
   private Task task;

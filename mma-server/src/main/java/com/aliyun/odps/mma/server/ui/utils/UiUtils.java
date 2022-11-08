@@ -59,6 +59,7 @@ import com.aliyun.odps.mma.config.JobConfiguration;
 import com.aliyun.odps.mma.config.ObjectType;
 import com.aliyun.odps.mma.server.action.Action;
 import com.aliyun.odps.mma.server.action.info.AbstractActionInfo;
+import com.aliyun.odps.mma.server.action.info.CopyTaskActionInfo;
 import com.aliyun.odps.mma.server.action.info.HiveSqlActionInfo;
 import com.aliyun.odps.mma.server.action.info.McSqlActionInfo;
 import com.aliyun.odps.mma.server.action.info.VerificationActionInfo;
@@ -201,6 +202,27 @@ public class UiUtils {
 
       return ul(
           listEntries.toArray(new DomContent[0])
+      );
+    } else if (action instanceof CopyTaskActionInfo) {
+      CopyTaskActionInfo mcSqlActionInfo = (CopyTaskActionInfo) actionInfo;
+      List<DomContent> listEntries = new LinkedList<>();
+      listEntries.add(
+              actionInfoEntry("MC instance ID", mcSqlActionInfo.getInstanceId())
+      );
+      if (mcSqlActionInfo.getLogView() != null) {
+        listEntries.add(
+                actionInfoEntry("MC instance tracking URL",
+                        a(mcSqlActionInfo.getLogView()).withStyle("word-break: break-all;"))
+        );
+      } else {
+        listEntries.add(
+                actionInfoEntry("MC instance tracking URL", "N/A")
+        );
+      }
+      // TODO: progress
+
+      return ul(
+              listEntries.toArray(new DomContent[0])
       );
     } else if (actionInfo instanceof VerificationActionInfo) {
       VerificationActionInfo verificationActionInfo = (VerificationActionInfo) actionInfo;
@@ -691,9 +713,10 @@ public class UiUtils {
     JobConfiguration config = job.getJobConfiguration();
     ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
     switch (objectType) {
-      case CATALOG: {
+      case CATALOG:
+      case RESOURCE:
+      case FUNCTION:
         return config.get(JobConfiguration.SOURCE_CATALOG_NAME);
-      }
       case PARTITION: {
         String catalogName = StringUtils.defaultString(
             config.get(JobConfiguration.SOURCE_CATALOG_NAME),
@@ -725,9 +748,10 @@ public class UiUtils {
     JobConfiguration config = job.getJobConfiguration();
     ObjectType objectType = ObjectType.valueOf(config.get(JobConfiguration.OBJECT_TYPE));
     switch (objectType) {
-      case CATALOG: {
+      case CATALOG:
+      case RESOURCE:
+      case FUNCTION:
         return config.get(JobConfiguration.DEST_CATALOG_NAME);
-      }
       case PARTITION: {
         String catalogName = StringUtils.defaultString(
             config.get(JobConfiguration.DEST_CATALOG_NAME),
@@ -741,7 +765,8 @@ public class UiUtils {
             "%s.%s partition %s",
             catalogName,
             tableName,
-            GsonUtils.GSON.toJson(partitionValues));      }
+            GsonUtils.GSON.toJson(partitionValues));
+      }
       default: {
         String catalogName = StringUtils.defaultString(
             config.get(JobConfiguration.DEST_CATALOG_NAME),

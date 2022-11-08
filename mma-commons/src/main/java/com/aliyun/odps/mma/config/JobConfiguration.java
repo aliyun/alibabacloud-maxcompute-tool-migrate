@@ -96,6 +96,7 @@ public class JobConfiguration extends AbstractConfiguration {
     // 1. Hive(metadata), Hive(data) -> MC(metadata), MC(data)
     // 2. MC(metadata), MC(metadata) -> OSS(metadata), OSS(data)
     // 3. OSS(metadata), OSS(data) -> MC(metadata), MC(data)
+    // 4. MC(metadata), MC(data) -> MC(metadata), MC(data)
     validateJobId();
     validPartitionFilter();
     MetaSourceType metaSourceType = MetaSourceType.valueOf(configuration.get(METADATA_SOURCE_TYPE));
@@ -118,6 +119,11 @@ public class JobConfiguration extends AbstractConfiguration {
                && dataDestType.equals(DataDestType.MaxCompute)) {
       validateHiveToMcCredentials();
       validMcAuthType();
+    } else if (metaSourceType.equals(MetaSourceType.MaxCompute)
+            && dataSourceType.equals(DataSourceType.MaxCompute)
+            && metaDestType.equals(MetaDestType.MaxCompute)
+            && dataDestType.equals(DataDestType.MaxCompute)) {
+      validateMcToMcCredentials();
     } else {
       throw new IllegalArgumentException("Unsupported source and dest combination.");
     }
@@ -164,6 +170,13 @@ public class JobConfiguration extends AbstractConfiguration {
   private void validateHiveToMcCredentials() throws MmaException {
     ConfigurationUtils.validateHiveMetaSource(this);
     ConfigurationUtils.validateHiveDataSource(this);
+    ConfigurationUtils.validateMcMetaDest(this);
+    ConfigurationUtils.validateMcDataDest(this);
+  }
+
+  private void validateMcToMcCredentials() throws  MmaException {
+    ConfigurationUtils.validateMcMetaSource(this);
+    ConfigurationUtils.validateMcDataSource(this);
     ConfigurationUtils.validateMcMetaDest(this);
     ConfigurationUtils.validateMcDataDest(this);
   }
