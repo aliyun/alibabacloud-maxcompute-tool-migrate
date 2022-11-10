@@ -1,4 +1,0 @@
-BuildTime: ${timestamp}
-Revision: ${buildNumber}
-MavenVersion: ${version}
-Branch: ${scmBranch}
