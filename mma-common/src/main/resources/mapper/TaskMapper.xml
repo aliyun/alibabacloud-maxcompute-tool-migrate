@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aliyun.odps.mma.mapper.TaskMapper">
+    <resultMap id="taskMap" type="com.aliyun.odps.mma.model.TaskModel">
+        <result column="job_id" property="jobId"/>
+        <result column="source_id" property="sourceId"/>
+        <result column="db_id" property="dbId"/>
+        <result column="table_id" property="tableId"/>
+        <result column="db_name" property="dbName"/>
+        <result column="table_name" property="tableName"/>
+        <result column="odps_project" property="odpsProject"/>
+        <result column="odps_table" property="odpsTable"/>
+        <result column="retried_times" property="retriedTimes"/>
+        <result column="start_time"  property="startTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="end_time"  property="endTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="update_time"  property="updateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+    </resultMap>
+
+    <select id="getTasks" resultMap="taskMap" parameterType="com.aliyun.odps.mma.query.TaskFilter">
+        select task.*, data_source.name as sourceName from task join data_source on task.source_id=data_source.id
+        <where>
+            task.deleted = 0
+
+            <if test="sourceId > 0">
+                and data_source.id=#{sourceId}
+            </if>
+
+            <if test="jobId > 0">
+                and task.job_id=#{jobId}
+            </if>
+
+            <if test="jobIds != null and jobIds.size() > 0">
+                and
+                <foreach item="jid" index="index" collection="jobIds" open="task.job_id in (" separator="," close=")">
+                    #{jid}
+                </foreach>
+            </if>
+
+            <if test="taskIds != null and taskIds.size() > 0">
+                and
+                <foreach item="tid" index="index" collection="taskIds" open="task.id in (" separator="," close=")">
+                    #{tid}
+                </foreach>
+            </if>
+
+            <if test="dbName != null">
+                and task.db_name=#{dbName}
+            </if>
+
+            <if test="tableName != null">
+                and task.table_name=#{tableName}
+            </if>
+
+            <if test="odpsProject != null">
+                and task.odps_project=#{odpsProject}
+            </if>
+
+            <if test="odpsTable != null">
+                and task.odps_table=#{odpsTable}
+            </if>
+
+            <if test="status != null">
+                and task.status = #{status} and task.stopped = 0
+            </if>
+
+            <if test="allFailedStatus == true">
+                and task.status in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED') and task.stopped = 0
+            </if>
+
+            <if test="stopped > 0">
+                and task.stopped = 1
+            </if>
+
+            <if test="running > 0">
+                and task.stopped = 0 and task.status in ('SCHEMA_DOING', 'DATA_DOING', 'VERIFICATION_DOING', 'SCHEMA_DONE', 'DATA_DONE')
+            </if>
+        </where>
+
+        <choose>
+            <when test="orders.size() > 0">
+                <foreach item="o" index="index" collection="orders" open="order by" separator="," close="">
+                    task.${o.name} ${o.order}
+                </foreach>
+            </when>
+            <otherwise>
+                order by task.id desc
+            </otherwise>
+        </choose>
+
+        <if test="offset >= 0 and pageSize > 0">
+            limit #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="getTasksCount" resultType="java.lang.Integer" parameterType="com.aliyun.odps.mma.query.TaskFilter">
+        select count(*) from task
+        <where>
+            task.deleted = 0
+
+            <if test="sourceId > 0">
+               and source_id=#{sourceId}
+            </if>
+
+            <if test="jobId > 0">
+                and job_id=#{jobId}
+            </if>
+
+            <if test="jobIds != null and jobIds.size() > 0">
+                and
+                <foreach item="jid" index="index" collection="jobIds" open="job_id in (" separator="," close=")">
+                    #{jid}
+                </foreach>
+            </if>
+
+            <if test="taskIds != null and taskIds.size() > 0">
+                and
+                <foreach item="tid" index="index" collection="taskIds" open="id in (" separator="," close=")">
+                    #{tid}
+                </foreach>
+            </if>
+
+            <if test="dbName != null">
+                and db_name=#{dbName}
+            </if>
+
+            <if test="tableName != null">
+                and table_name=#{tableName}
+            </if>
+
+            <if test="odpsProject != null">
+                and odps_project=#{odpsProject}
+            </if>
+
+            <if test="odpsTable != null">
+                and odps_table=#{odpsTable}
+            </if>
+
+            <if test="status != null">
+                and status = #{status} and stopped = 0
+            </if>
+
+            <if test="allFailedStatus == true">
+                and status in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED') and task.stopped = 0
+            </if>
+
+            <if test="stopped > 0">
+                and stopped = 1
+            </if>
+
+            <if test="running > 0">
+                and stopped = 0 and status in ('SCHEMA_DOING', 'DATA_DOING', 'VERIFICATION_DOING', 'SCHEMA_DONE', 'DATA_DONE')
+            </if>
+        </where>
+    </select>
+
+    <update id="addTaskLog" parameterType="com.aliyun.odps.mma.model.TaskLog">
+        insert into task_log (task_id, status, action, msg)
+        values (#{taskId}, #{status}, #{action}, #{msg})
+    </update>
+
+    <update id="updateTaskStatus" parameterType="com.aliyun.odps.mma.model.TaskModel">
+        update
+            task
+        set
+            status=#{status}
+        where id=#{id};
+    </update>
+
+    <update id="setTaskStart">
+        update task set start_time=current_timestamp() where id=#{id}
+    </update>
+
+    <update id="setTaskEnd">
+        update
+            task
+        set
+            status='DONE',
+            end_time=current_timestamp()
+        where id=#{id};
+    </update>
+
+    <update id="setTaskStop">
+        update task set stopped=1 where id=#{id}
+    </update>
+
+    <update id="batchSetTaskStop">
+        update task set stopped=1
+
+        <where>
+            <foreach item="id" index="index" collection="ids" open="id in (" separator="," close=")">
+                #{id}
+            </foreach>
+         </where>
+    </update>
+
+    <update id="resetRestart">
+        update task set restart=0 where id=#{id}
+    </update>
+
+    <update id="restart">
+        update task set restart=1, start_time=null  where id=#{id}
+    </update>
+
+    <update id="restartAllTerminated">
+        update
+            task
+        set restart=true, start_time=null
+--         where status not in ('INIT', 'DONE', 'SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED')
+        where status != 'INIT' and status != 'DONE' and status != 'SCHEMA_FAILED' and status != 'DATA_FAILED' and status != 'VERIFICATION_FAILED'
+         and stopped=0
+         and deleted=0;
+    </update>
+
+    <select id="getTaskById" resultMap="taskMap">
+        select * from task where id=#{id};
+    </select>
+
+    <select id="getTaskDetailById" resultMap="taskMap">
+        select
+               a.id as id,
+               a.job_id as job_id,
+               a.db_id as db_id,
+               a.table_id as table_id,
+               a.db_name as db_name,
+               a.table_name as table_name,
+               a.type as type,
+               a.status as status,
+               b.partition_id as partition_id
+        from task as a left outer join task_partition as b on a.id = b.task_id
+        where a.id=#{id}
+    </select>
+
+    <select id="getTaskLogs" resultType="com.aliyun.odps.mma.model.TaskLog">
+        select `id`, `status`, `action`, `msg`, `create_time` as createTime, `update_time` as updateTime from task_log where task_id=#{taskId} order by id desc
+    </select>
+
+    <insert id="insertTask" parameterType="com.aliyun.odps.mma.model.TaskModel">
+        insert into task (id, job_id, source_id, db_id, table_id, db_name, table_name, odps_project, odps_table, type, status)
+        values (#{id}, #{jobId}, #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{tableName}, #{odpsProject}, #{odpsTable}, #{type},
+                #{status}
+                )
+    </insert>
+
+    <insert id="insertTaskPartition">
+        insert into task_partition (job_id, task_id, partition_id)
+        values (#{jobId}, #{taskId}, #{partitionId})
+    </insert>
+
+    <select id="maxTaskId" resultType="Integer">
+        select id from task order by id desc limit 1
+    </select>
+
+    <select id="getTasksAvailable" resultMap="taskMap">
+        select task.* from task join job on task.job_id=job.id
+        where (task.status='INIT' or task.restart=1) and task.stopped=0 and task.deleted=0 and job.stopped=0 and job.deleted=0
+        order by task.restart desc, task.job_id limit #{limit}
+    </select>
+
+    <select id="getRunningTasksByTableIds" resultMap="taskMap">
+        select id, job_id, db_id, db_name, table_id, table_name from task
+
+        <where>
+            <foreach item="tableId" index="index" collection="tableIds" open="table_id in (" separator="," close=")">
+                #{tableId}
+            </foreach>
+
+            <if test="true">
+                and status not in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED', 'DONE')
+                and deleted = 0
+            </if>
+        </where>
+    </select>
+
+    <select id="getRunningTasksByPtIds" resultMap="taskMap">
+        select a.id, a.job_id, a.db_id, a.db_name, a.table_id, a.table_name
+        from task a join task_partition b
+        on a.id = b.task_id
+        <where>
+            <foreach item="ptId" index="index" collection="partitionIds" open="b.partition_id in (" separator="," close=")">
+                #{ptId}
+            </foreach>
+
+            <if test="true">
+                and a.status not in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED', 'DONE')
+                and deleted = 0
+            </if>
+        </where>
+    </select>
+
+    <select id="getRunningTasksByJobId" resultMap="taskMap">
+        select id, job_id, db_id, db_name, table_id, table_name
+        from task
+        where job_id=#{jobId} and status not in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED', 'DONE');
+    </select>
+
+    <select id="getTaskStatusByJobIds" resultMap="taskMap">
+        select
+               id, job_id, table_id, db_id, status
+        from task
+        <where>
+            <foreach item="jobId" index="index" collection="jobIds" open="job_id in (" separator=","
+                     close=")">
+                #{jobId}
+            </foreach>
+        </where>
+    </select>
+
+    <update id="setTasksStopByJobId">
+        update task set stopped=1 where job_id=#{jobId} and status != 'INIT' and status != 'DONE';
+    </update>
+
+    <select id="getPartitionNumOfTask"  resultType="java.lang.Integer">
+        select count(*) from task_partition where task_id=#{taskId}
+    </select>
+
+    <update id="setTasksDeletedByJobId">
+        update task set deleted=1 where job_id=#{jobId}
+    </update>
+
+    <select id="getJobIdsByJobFilter" resultType="java.lang.Integer" parameterType="com.aliyun.odps.mma.query.JobFilter">
+        select distinct(job_id) from task
+        <where>
+            <if test="dbName != null">
+                db_name=#{dbName}
+            </if>
+
+            <if test="tableName != null">
+                and table_name=#{tableName}
+            </if>
+
+            <if test="dstOdpsProject != null">
+                and odps_project=#{dstOdpsProject}
+            </if>
+
+            <if test="dstOdpsTable != null">
+                and odps_table=#{dstOdpsTable}
+            </if>
+
+            <if test="ptValue != null">
+                and id in (
+                  select task_id from task_partition where partition_id in (select id from partition_model where `value` like CONCAT('%', #{ptValue}, '%'))
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="getTaskIdsByPt" resultType="java.lang.Integer">
+        select a.task_id from task_partition as a join partition_model as b on a.partition_id = b.id
+        where b.table_name = #{tableName} and b.value like CONCAT('%', #{ptValue}, '%')
+    </select>
+</mapper>

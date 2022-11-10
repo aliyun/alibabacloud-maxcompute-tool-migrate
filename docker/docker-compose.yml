@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  mma:
+    image: mma:v3
+    container_name: mma-v3
+    restart: always
+    ports:
+      - "127.0.0.1:6060:6060"
+    depends_on:
+      - mma-mysql
+    networks:
+      - mma-bridge
+  mma-mysql:
+    image: mysql
+    container_name: mma-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "127.0.0.1:2207:3306"
+    environment:
+      TZ: "Asia/Shanghai"
+      MYSQL_ROOT_PASSWORD: xxxx
+    volumes:
+      - mma-mysql:/var/lib/mysql/
+      - ./init:/docker-entrypoint-initdb.d/
+    networks:
+      - mma-bridge
+
+volumes:
+  mma-mysql:
+
+networks:
+  mma-bridge:

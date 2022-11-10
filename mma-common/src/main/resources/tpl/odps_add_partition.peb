@@ -1,0 +1,6 @@
+ALTER TABLE {{table}} ADD IF NOT EXISTS
+{% for spec in partitionSpecs %}
+PARTITION ({{spec}})
+{% if not loop.last %}
+{% endif %}
+{% endfor %};

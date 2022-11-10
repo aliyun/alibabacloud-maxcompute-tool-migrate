@@ -1,0 +1,8 @@
+SELECT COUNT(*) from {{project}}.{{table}}
+{# WHERE format: p1='ZhpSC' AND p2='7730' OR #}
+{% if isPartitioned %}
+
+WHERE
+{{ partitionSpecs | join(' OR
+') }}
+{% endif %};

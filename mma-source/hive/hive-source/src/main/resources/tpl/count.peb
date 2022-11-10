@@ -1,0 +1,10 @@
+{% macro pt_columns(ptColumns) %}
+{% for column in ptColumns %}
+`{{column.name}}`{% if loop.index < ptColumns.size-1 %}, {% endif %}
+{% endfor %}
+{% endmacro %}
+SELECT COUNT(*) FROM {{hiveDb}}.`{{hiveTable}}`
+{# partition table #}
+{% include "tpl/pt_where_condition.peb" %}
+
+

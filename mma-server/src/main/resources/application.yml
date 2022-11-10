@@ -1,0 +1,59 @@
+server:
+  port: ${APP_PORT:6060}
+
+spring:
+  application:
+    name: mma
+
+  profiles:
+    active: ${PROFILE:prod}
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:mma}?useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=false&rewriteBatchedStatements=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASS:example}
+    driver-class-name: com.mysql.jdbc.Driver
+    hikari:
+      auto-commit: true
+      connection-timeout: 30000
+#      validation-timeout: 33000
+#      max-lifetime: 600000
+      maximum-pool-size: ${DB_POOL_SIZE:100}
+#      minimum-idle:  20
+
+  flyway:
+    enabled: false
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:/db/migration
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+    time-zone: "Asia/Shanghai"
+
+  devtools:
+    add-properties: ${MMA_DEBUG:false}
+
+  task:
+    scheduling:
+      pool:
+        size: 8
+  mvc:
+    view:
+      suffix: .html
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+
+#  configuration:
+#    database-id: sqlite
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+springdoc:
+  api-docs:
+    enabled: ${ENABLE_OPENAPI:false}
+
+logging:
+  file:
+    name: ./logs/com.aliyun.odps.mma.log

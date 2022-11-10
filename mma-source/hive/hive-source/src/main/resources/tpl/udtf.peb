@@ -1,0 +1,16 @@
+SELECT default.odps_data_dump_multi(
+'{{authType}}',
+'{{authInfo}}',
+'{{mcEndpoint}}',
+'{{ tunnelEndpoint ? tunnelEndpoint : '' }}',
+'{{odpsProject}}',
+'{{odpsTable}}',
+'{{ odpsColumnNames | join(',') }}',
+'{{ odpsPartitionColumns | join(',') }}',
+{% for hiveColumn in hiveColumnNames %}
+`{{hiveColumn}}`{% if loop.index < hiveColumnNames.size-1 %},
+{% endif %}
+{% endfor %}
+) FROM {{hiveDb}}.{{hiveTable}}
+
+{% include "tpl/pt_where_condition.peb" %}

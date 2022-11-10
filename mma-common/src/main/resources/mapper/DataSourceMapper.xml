@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aliyun.odps.mma.mapper.DataSourceMapper">
+    <resultMap id="dsMap" type="com.aliyun.odps.mma.model.DataSourceModel">
+        <result column="last_update_time"  property="lastUpdateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="db_num"  property="dbNum"/>
+        <result column="table_num"  property="tableNum"/>
+        <result column="partition_num"  property="partitionNum"/>
+        <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="update_time"  property="updateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+    </resultMap>
+
+    <insert id="insertDataSource" parameterType="com.aliyun.odps.mma.model.DataSourceModel" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into data_source (name, type) values (#{name}, #{type})
+    </insert>
+
+    <select id="getDataSourceByName" resultMap="dsMap">
+        select * from data_source where name=#{name}
+    </select>
+
+    <select id="getDataSourceById" resultMap="dsMap">
+        select * from data_source where id=#{id}
+    </select>
+
+    <select id="getSourceType">
+        select `type` from data_source where name=#{name}
+    </select>
+
+    <select id="getDataSources" resultMap="dsMap" parameterType="com.aliyun.odps.mma.query.SourceFilter">
+        select * from data_source
+        order by id desc
+       <if test="offset >= 0 and pageSize > 0" >
+            limit #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <update id="updateLastUpdateTime">
+        update data_source set last_update_time=now() where id=#{id}
+    </update>
+
+    <update id="updateDSName">
+        update data_source set name=#{name} where id=#{id}
+    </update>
+
+    <update id="updateDataSource">
+        update data_source set db_num=#{dbNum}, table_num=#{tableNum}, partition_num=#{partitionNum} where id=#{id}
+    </update>
+</mapper>

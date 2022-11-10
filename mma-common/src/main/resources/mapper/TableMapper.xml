@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aliyun.odps.mma.mapper.TableMapper">
+    <resultMap id="tableMap" type="com.aliyun.odps.mma.model.TableModel">
+        <result column="source_id" property="sourceId"/>
+        <result column="db_id" property="dbId"/>
+        <result column="db_name" property="dbName"/>
+        <result column="has_partitions" property="hasPartitions"/>
+        <result column="num_rows" property="numRows"/>
+        <result column="input_format" property="inputFormat"/>
+        <result column="output_format" property="outputFormat"/>
+        <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler"/>
+        <result column="update_time"  property="updateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler"/>
+        <result column="last_ddl_time"  property="lastDdlTime" typeHandler="org.apache.ibatis.type.DateTypeHandler"/>
+        <result column="table_schema" property="schema" typeHandler="com.aliyun.odps.mma.util.TableSchemaHandler"/>
+    </resultMap>
+
+    <select id="getTablesOfDb" resultMap="tableMap">
+        select *
+        from table_model
+        where db_id = #{dbId}
+    </select>
+
+    <select id="getTablesOfDataSource" resultMap="tableMap">
+        select *
+        from table_model
+        where source_id in (select id from data_source where name = #{sourceName})
+    </select>
+
+    <select id="getTablesStatusOfDb" resultType="com.aliyun.odps.mma.constant.MigrationStatus">
+        select status
+        from table_model
+        where db_id = #{dbId}
+    </select>
+
+    <select id="getTablesOfDbWithWhiteList" resultMap="tableMap">
+        select * from table_model
+        <where>
+            <foreach item="item" index="index" collection="whiteList" open="name in (" separator="," close=")">
+                #{item}
+            </foreach>
+
+            <if test="dbId != null">
+                and db_id=#{dbId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getTablesOfDbWithBlackList" resultMap="tableMap">
+        select * from table_model
+        <where>
+            <foreach item="item" index="index" collection="blackList" open="name not in (" separator="," close=")">
+                #{item}
+            </foreach>
+
+            <if test="dbId != null">
+                and db_id=#{dbId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getTableById" resultMap="tableMap">
+        select *
+        from table_model
+        where id = #{id}
+    </select>
+
+    <insert id="insertTable" parameterType="com.aliyun.odps.mma.model.TableModel" useGeneratedKeys="true"
+            keyProperty="id" keyColumn="id">
+        insert into table_model (source_id, db_id, db_name, name, type, has_partitions,
+                                 status,
+                                 size, num_rows,
+                                 table_schema,
+                                 last_ddl_time, owner, location, input_format, output_format, serde, extra)
+        values (#{sourceId}, #{dbId}, #{dbName}, #{name}, #{type}, #{hasPartitions},
+                #{status},
+                #{size}, #{numRows},
+                #{schema, typeHandler=com.aliyun.odps.mma.util.TableSchemaHandler},
+                #{lastDdlTime}, #{owner}, #{location}, #{inputFormat}, #{outputFormat}, #{serde}, #{extra})
+    </insert>
+
+    <update id="updateTable" parameterType="com.aliyun.odps.mma.model.TableModel">
+        update
+            table_model
+        set size=#{size},
+            num_rows=#{numRows},
+            last_ddl_time=#{lastDdlTime},
+            table_schema=#{schema, typeHandler=com.aliyun.odps.mma.util.TableSchemaHandler},
+            updated= true
+        where id = #{id}
+    </update>
+
+    <select id="getAllTableHasher" resultType="com.aliyun.odps.mma.util.TableHasher">
+        select source_id as sourceId, name as tableName, id as tableId, db_name as dbName, db_id as DbId
+        from table_model;
+    </select>
+
+    <select id="getTablesOfDbByNames" resultMap="tableMap">
+        select * from table_model
+        <where>
+            <foreach item="item" index="index" collection="tables" open="name in (" separator="," close=")">
+                #{item}
+            </foreach>
+
+            <if test="dbName != null">
+                and db_name=#{dbName}
+            </if>
+
+            <if test="dsName != null">
+                and source_id in (select id from data_source where name=#{dsName})
+            </if>
+        </where>
+    </select>
+
+    <select id="getAllTables" resultMap="tableMap">
+        select *
+        from table_model;
+    </select>
+
+    <update id="updateTablesStatus">
+        update table_model set status=#{status}
+        <where>
+            <foreach item="tableId" index="index" collection="ids" open="id in (" separator=","
+                     close=")">
+                #{tableId}
+            </foreach>
+        </where>
+    </update>
+
+    <select id="getTables" resultMap="tableMap" parameterType="com.aliyun.odps.mma.query.TableFilter">
+        select table_model.*, data_source.name as sourceName from table_model join data_source on
+        table_model.source_id = data_source.id
+
+        <where>
+            <if test="sourceId > 0">
+                data_source.id=#{sourceId}
+            </if>
+
+            <if test="dbId > 0">
+                and table_model.db_id=#{dbId}
+            </if>
+
+            <if test="dbName != null">
+                and table_model.db_name like CONCAT('%', #{dbName}, '%')
+            </if>
+
+            <if test="name != null">
+                and table_model.name like CONCAT('%', #{name}, '%')
+            </if>
+
+            <if test="type != null">
+                and table_model.type = #{type}
+            </if>
+
+            <if test="hasPartitions >= 0">
+                and table_model.has_partitions=#{hasPartitions}
+            </if>
+
+            <if test="lastDdlTime != null and lastDdlTime.size() == 2" >
+                and table_model.last_ddl_time >= #{lastDdlTimeStart} and table_model.last_ddl_time &lt;= #{lastDdlTimeEnd}
+            </if>
+
+            <if test="status != null and status.size() > 0">
+                and
+                <foreach item="st" index="index" collection="status" open="table_model.status in ("
+                         separator="," close=")">
+                    #{st}
+                </foreach>
+            </if>
+        </where>
+
+        <if test="orders.size() > 0">
+            <foreach item="p" index="index" collection="orders" open="order by" separator="," close="">
+                table_model.${p.name} ${p.order}
+            </foreach>
+        </if>
+
+        <if test="offset >= 0 and pageSize > 0">
+            limit #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="getTablesCount" resultType="java.lang.Integer" parameterType="com.aliyun.odps.mma.query.TableFilter">
+        select count(*) from table_model
+
+        <where>
+            <if test="sourceId > 0">
+                source_id=#{sourceId}
+            </if>
+
+            <if test="dbId > 0">
+                and db_id=#{dbId}
+            </if>
+
+            <if test="dbName != null">
+                and db_name like CONCAT('%', #{dbName}, '%')
+            </if>
+
+            <if test="name != null">
+                and `name` like CONCAT('%', #{name}, '%')
+            </if>
+
+            <if test="type != null">
+                and `type` = #{type}
+            </if>
+
+            <if test="hasPartitions >= 0">
+                and has_partitions=#{hasPartitions}
+            </if>
+
+            <if test="lastDdlTime != null and lastDdlTime.size() == 2" >
+                and last_ddl_time >= #{lastDdlTimeStart} and last_ddl_time &lt;= #{lastDdlTimeEnd}
+            </if>
+
+            <if test="status != null and status.size() > 0">
+                and
+                <foreach item="st" index="index" collection="status" open="status in ("
+                         separator="," close=")">
+                    #{st}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getTablesOfDbs" resultMap="tableMap">
+        select * from table_model
+        <where>
+            <foreach item="item" index="index" collection="dbIds" open="db_id in (" separator="," close=")">
+                #{item}
+            </foreach>
+        </where>
+    </select>
+
+    <update id="updateTableStatus">
+        update table_model
+        <set>
+            <if test="status.toString() == 'DONE'">status=#{status}, updated=0</if>
+            <if test="status.toString() != 'DONE'">status=#{status}</if>
+        </set>
+
+        where id=#{tableId}
+    </update>
+
+    <update id="setNonPartitionedTableStatusInitByJobId">
+        update table_model a, task b
+        set a.status = 'INIT'
+        where a.id = b.table_id
+          and a.has_partitions = 0
+          and a.status = 'DOING'
+          and b.job_id=#{jobId}
+    </update>
+
+    <update id="batchUpdateTableStatus">
+        update table_model set status=#{status}
+        <where>
+            <foreach item="item" index="index" collection="tableIds" open="id in (" separator="," close=")">
+                #{item}
+            </foreach>
+        </where>
+    </update>
+
+    <select id="tableStatOfDbs" resultType="Map">
+        select count(*) as count, status, db_id as dbId from table_model
+        <where>
+            <foreach item="item" index="index" collection="dbIds" open="db_id in (" separator="," close=")">
+                #{item}
+            </foreach>
+        </where>
+        group by db_id, status
+    </select>
+
+    <select id="tableStat" resultType="Map">
+        select db_id as objId, status
+        from table_model
+        group by db_id, status
+    </select>
+
+    <select id="getTableNamesByDbId" resultType="java.lang.String">
+        select name from table_model where db_id=#{dbId};
+    </select>
+</mapper>

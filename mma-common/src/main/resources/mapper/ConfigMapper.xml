@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aliyun.odps.mma.mapper.ConfigMapper">
+    <select id="getAllConfig" resultType="com.aliyun.odps.mma.model.ConfigItem">
+        select * from config;
+    </select>
+
+    <select id="getCategoryConfig" resultType="com.aliyun.odps.mma.model.ConfigItem">
+        select * from config where category = #{category};
+    </select>
+
+    <select id="getConfig" resultType="String">
+        select value from config where category = #{category} and name=#{name};
+    </select>
+
+    <insert id="insertConfig">
+        insert into config (category, name, value) values (#{category}, #{name}, #{value})
+    </insert>
+
+    <update id="updateConfig">
+        update config set value=#{value} where category=#{category} and name=#{name}
+    </update>
+
+    <update id="updateCategory">
+        update config set category=#{newCategory} where category=#{category}
+    </update>
+
+    <delete id="deleteConfig">
+        delete from config where category=#{category} and name=#{name}
+    </delete>
+</mapper>

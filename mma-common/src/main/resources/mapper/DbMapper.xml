@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aliyun.odps.mma.mapper.DbMapper">
+    <resultMap id="dbMap" type="com.aliyun.odps.mma.model.DataBaseModel">
+        <result column="source_id" property="sourceId"/>
+        <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="update_time"  property="updateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
+        <result column="last_ddl_time"  property="lastDdlTime" typeHandler="org.apache.ibatis.type.DateTypeHandler"/>
+        <result column="num_rows" property="numRows"/>
+    </resultMap>
+
+    <select id="getAllDbs" resultMap="dbMap">
+        select * from db_model
+    </select>
+
+    <select id="getDbsOfDataSource" resultMap="dbMap">
+        select * from db_model where source_id in (select id from data_source where name=#{sourceName})
+    </select>
+
+    <select id="getDbById"  resultMap="dbMap">
+        select * from db_model where id=#{id}
+    </select>
+
+    <select id="getDbByName"  resultMap="dbMap">
+        select * from db_model where name=#{dbName} and source_id in (select id from data_source where name=#{dsName})
+    </select>
+
+    <insert id="insertDb" parameterType="com.aliyun.odps.mma.model.DataBaseModel" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into db_model (source_id, name, description, owner, size, num_rows, location, status, last_ddl_time, extra)
+        values (#{sourceId}, #{name}, #{description}, #{owner}, #{size}, #{numRows}, #{location}, 'INIT', #{lastDdlTime}, #{extra})
+    </insert>
+
+    <update id="updateDb" parameterType="com.aliyun.odps.mma.model.DataBaseModel">
+        update db_model set size=#{size}, num_rows=#{numRows}, updated=true where id=#{id}
+    </update>
+
+    <update id="batchUpdateDbsStatus">
+        update db_model set status=#{status}
+        <where>
+            <foreach item="dbId" index="index" collection="ids" open="id in (" separator=","
+                     close=")">
+                #{dbId}
+            </foreach>
+        </where>
+    </update>
+
+    <select id="getDbs" resultMap="dbMap" parameterType="com.aliyun.odps.mma.query.DbFilter">
+        select db_model.*, data_source.name as sourceName from db_model join data_source on db_model.source_id =  data_source.id
+
+        <where>
+            <if test="sourceId > 0">
+                data_source.id=#{sourceId}
+            </if>
+
+            <if test="id > 0">
+                and db_model.id = #{id}
+            </if>
+
+            <if test="name != null">
+                and db_model.name like CONCAT('%', #{name}, '%')
+            </if>
+
+            <if test="status != null">
+                and db_model.status = #{status}
+            </if>
+        </where>
+
+        <if test="orders.size() > 0">
+            <foreach item="p" index="index" collection="orders" open="order by" separator="," close="">
+                db_model.${p.name} ${p.order}
+            </foreach>
+        </if>
+
+        <if test="offset >= 0 and pageSize > 0" >
+            limit #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="getDbsCount" resultType="java.lang.Integer" parameterType="com.aliyun.odps.mma.query.DbFilter">
+        select count(*) from db_model
+
+        <where>
+            <if test="sourceId > 0">
+                source_id =#{sourceId}
+            </if>
+
+            <if test="id > 0">
+                and id = #{id}
+            </if>
+
+            <if test="name != null">
+                and `name` like CONCAT('%', #{name}, '%')
+            </if>
+
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+</mapper>

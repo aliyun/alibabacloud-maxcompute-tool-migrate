@@ -1,0 +1,6 @@
+{# WHERE format: p1=cast('ZhpSC' AS string) AND p2=cast('7730' AS bigint) OR #}
+{% if partitionSpecs.size > 0 %}
+WHERE
+{{ partitionSpecs | join(' OR
+') }}
+{% endif %}
