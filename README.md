@@ -6,7 +6,6 @@ Currently, the following scenario are supported:
 .Hive to MaxCompute
 .MaxCompute to MaxCompute
 
-
 # 代码目录
 ## mma-server
 mma的主程序
@@ -42,7 +41,7 @@ mvn package -Dhive=x # x可以为1，2，3中的一个
 
 # 运行
 1. cd mma-server/target
-2. java -jar mma-server.jar -c  /xx/xx/config.ini
+2. java -jar MMAv3.jar -c  /xx/xx/config.ini
 3. config.ini 内容示例如下
 
 ```INIT
@@ -64,6 +63,8 @@ listening_port: 6060
 4. docker build -t mma:v3 .
 5. docker-compose up
 
+# 旧版本MMA代码
+https://github.com/aliyun/alibabacloud-maxcompute-tool-migrate/tree/v0.1.1
 
 # 使用文档
 [使用文档](mma-ui/public/MMAv3-manual.pdf)
