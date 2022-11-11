@@ -37,7 +37,7 @@
 
             <properties>
                 <hive.version>1.1.0</hive.version>
-                <hadoop.version>2.6.0</hadoop.version>
+                <hadoop.version>3.2.4</hadoop.version>
             </properties>
 
             <dependencyManagement>
