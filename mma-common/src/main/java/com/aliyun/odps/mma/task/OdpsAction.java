@@ -2,15 +2,14 @@ package com.aliyun.odps.mma.task;
 
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.OdpsException;
-import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.data.Record;
-import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
 import com.aliyun.odps.mma.orm.TableProxy;
 import com.aliyun.odps.mma.orm.TaskProxy;
 import com.aliyun.odps.mma.sql.OdpsSql;
+import com.aliyun.odps.mma.util.MMAFlag;
 import com.aliyun.odps.mma.util.MutexFileLock;
 import com.aliyun.odps.mma.util.OdpsUtils;
 import com.aliyun.odps.task.SQLTask;
@@ -162,7 +161,8 @@ public class OdpsAction {
                         insGetter.accept(instance);
                     }
 
-                    List<Record> records = SQLTask.getResult(instance);
+                    String mmaTaskName = MMAFlag.getSQLTaskName(odpsUtils.getOdps());
+                    List<Record> records = SQLTask.getResult(instance, mmaTaskName);
 
                     for (Record record : records) {
                         recordCount.addAndGet(Long.parseLong(record.getString(record.getColumnCount() - 1)));

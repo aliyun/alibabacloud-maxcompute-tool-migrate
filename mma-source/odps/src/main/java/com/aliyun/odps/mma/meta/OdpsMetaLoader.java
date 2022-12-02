@@ -11,6 +11,7 @@ import com.aliyun.odps.mma.meta.schema.MMATableSchema;
 import com.aliyun.odps.mma.model.DataBaseModel;
 import com.aliyun.odps.mma.model.PartitionModel;
 import com.aliyun.odps.mma.model.TableModel;
+import com.aliyun.odps.mma.util.MMAFlag;
 import com.aliyun.odps.rest.RestClient;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -18,7 +19,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 public class OdpsMetaLoader implements MetaLoader {
     private OdpsConfig config;
     private Odps odps;
-    private ExecutorService threadPool;
     private Gson gson = new Gson();
 
     @Override
@@ -45,6 +44,9 @@ public class OdpsMetaLoader implements MetaLoader {
         this.odps = new Odps(account);
         this.odps.setEndpoint(endpoint);
         this.odps.setDefaultProject(defaultProject);
+        String mmaFlag = MMAFlag.getMMAFlag(this.odps);
+        this.odps.setUserAgent(mmaFlag);
+
         RestClient restClient = this.odps.getRestClient();
         restClient.setConnectTimeout(this.config.getInteger(OdpsConfig.MC_REST_CONN_TIMEOUT));
         restClient.setReadTimeout(this.config.getInteger(OdpsConfig.MC_REST_READ_TIMEOUT));

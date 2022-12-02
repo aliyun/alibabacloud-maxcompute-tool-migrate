@@ -1,10 +1,6 @@
 package com.aliyun.odps.mma.util;
 
-import com.aliyun.odps.Instance;
-import com.aliyun.odps.LogView;
-import com.aliyun.odps.Odps;
-import com.aliyun.odps.OdpsException;
-import com.aliyun.odps.Task;
+import com.aliyun.odps.*;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.Config;
 import com.aliyun.odps.mma.config.OdpsConfig;
@@ -24,6 +20,8 @@ public class OdpsUtils {
         this.odps = new Odps(account);
         this.odps.setEndpoint(endpoint);
         this.odps.setDefaultProject(defaultProject);
+        String mmaFlag = MMAFlag.getMMAFlag(odps);
+        this.odps.setUserAgent(mmaFlag);
     }
 
     public static OdpsUtils fromConfig(Config config) {
@@ -69,16 +67,17 @@ public class OdpsUtils {
     }
 
     public Instance executeSql(String sql, Map<String, String> hints) throws OdpsException {
-        return SQLTask.run(odps, odps.getDefaultProject(), sql, hints, null);
+        String mmaTaskName = MMAFlag.getSQLTaskName(odps);
+        return SQLTask.run(odps, odps.getDefaultProject(), sql, mmaTaskName, hints, null);
     }
 
     public Instance executeTask(Task task) throws OdpsException {
         return odps.instances().create(odps.getDefaultProject(), task);
     }
 
-
     public void executeSql(String sql, Function<Instance, Void> func) throws OdpsException {
-        Instance instance = SQLTask.run(odps, sql);
+        String mmaTaskName = MMAFlag.getSQLTaskName(odps);
+        Instance instance = SQLTask.run(odps, odps.getDefaultProject(), sql, mmaTaskName, null, null);
         func.apply(instance);
     }
 
