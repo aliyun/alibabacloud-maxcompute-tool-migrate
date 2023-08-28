@@ -252,10 +252,17 @@
         select id from task order by id desc limit 1
     </select>
 
+    <!--    <select id="getTasksAvailable" resultMap="taskMap">-->
+    <!--        select task.* from task join job on task.job_id=job.id-->
+    <!--        where (task.status='INIT' or task.restart=1) and task.stopped=0 and task.deleted=0 and job.stopped=0 and job.deleted=0-->
+    <!--        order by rand() limit #{limit}-->
+    <!--    </select>-->
+
     <select id="getTasksAvailable" resultMap="taskMap">
-        select task.* from task join job on task.job_id=job.id
-        where (task.status='INIT' or task.restart=1) and task.stopped=0 and task.deleted=0 and job.stopped=0 and job.deleted=0
-        order by task.restart desc, task.job_id limit #{limit}
+        select *
+        from task
+        where id in
+        (select task_id from task_id_group_by_table) limit #{limit}
     </select>
 
     <select id="getRunningTasksByTableIds" resultMap="taskMap">

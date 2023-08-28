@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.orm;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -177,6 +178,40 @@ public class TaskProxy {
                 .collect(Collectors.toList());
     }
 
+    public List<PartitionValue> getMergedOdpsPartitionValues(Integer maxPartitionLevel) {
+        List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
+
+        if (maxPartitionLevel == 0 || partitionColumns.size() < maxPartitionLevel) {
+            return getOdpsPartitionValues();
+        }
+
+        List<MMAColumnSchema> mmaColumns = partitionColumns
+                .subList(0, maxPartitionLevel)
+                .stream()
+                .map(MMAColumnSchema::fromOdpsColumn)
+                .collect(Collectors.toList());
+
+        List<PartitionModel> partitionModels = this.getPartitions();
+
+        return partitionModels
+                .stream()
+                .map(pm -> {
+                    String[] keyValues = pm.getValue().split("/");
+                    String value = "";
+
+                    for (int i = 0; i < maxPartitionLevel; i ++) {
+                        value += keyValues[i];
+
+                        if (i < maxPartitionLevel - 1) {
+                            value += "/";
+                        }
+                    }
+
+                    return new PartitionValue(mmaColumns, value);
+                })
+                .collect(Collectors.toList());
+    }
+
     /**
      * 获取 原始partition value
      */
@@ -190,53 +225,4 @@ public class TaskProxy {
                 .collect(Collectors.toList());
     }
 
-    public String getCreateTableSql() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("CREATE TABLE ");
-        sb.append(" IF NOT EXISTS ");
-
-        sb.append(taskModel.getOdpsProject()).append(".").append(taskModel.getOdpsTable());
-        sb.append(" (");
-        TableSchema schema = getOdpsTableSchema();
-        List<Column> columns = schema.getColumns();
-        for (int i = 0; i < columns.size(); i++) {
-            Column c = columns.get(i);
-            sb.append("\n`").append(c.getName()).append("` ")
-                    .append(c.getTypeInfo().getTypeName());
-            if (c.getComment() != null) {
-                sb.append(" COMMENT '").append(c.getComment()).append("'");
-            }
-            if (i + 1 < columns.size()) {
-                sb.append(',');
-            }
-        }
-
-        sb.append("\n)");
-
-        String comment = table.getTableSchema().getComment();
-        if (comment != null) {
-            sb.append("\n COMMENT '").append(comment).append("' ");
-        }
-
-        List<Column> pcolumns = schema.getPartitionColumns();
-        if (pcolumns.size() > 0) {
-            sb.append("\n PARTITIONED BY (");
-            for (int i = 0; i < pcolumns.size(); i++) {
-                Column c = pcolumns.get(i);
-                sb.append("\n").append(c.getName()).append(" ")
-                        .append(c.getTypeInfo().getTypeName());
-                if (c.getComment() != null) {
-                    sb.append(" COMMENT '").append(c.getComment()).append("'");
-                }
-                if (i + 1 < pcolumns.size()) {
-                    sb.append(',');
-                }
-            }
-            sb.append("\n)");
-        }
-
-        sb.append(';');
-
-        return sb.toString();
-    }
 }

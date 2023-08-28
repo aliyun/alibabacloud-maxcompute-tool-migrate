@@ -14,9 +14,6 @@ public class PartitionModel extends ModelBase {
     private String dbName;
     private String tableName;
     private String value;
-    private String inputFormat;
-    private String outputFormat;
-    private String serde;
 
     public TableHasher tableTableHasher() {
         return new TableHasher(sourceId, dbName, tableName, DbId, tableId);

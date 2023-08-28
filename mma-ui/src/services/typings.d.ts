@@ -1,5 +1,5 @@
 declare namespace API {
-    type ConfigValue = string | number | string[] | number[] | Map<String, any>;
+    type ConfigValue = string | number | string[] | number[] | Map<String, any> | null;
 
     interface ConfigItem {
         type: string,

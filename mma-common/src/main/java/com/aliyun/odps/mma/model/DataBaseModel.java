@@ -11,6 +11,7 @@ public class DataBaseModel extends ModelBase  {
     private String name;
     private String description;
     private String owner;
+    private String location;
 
     // 非数据库字段
     private int tables;

@@ -135,6 +135,12 @@ public class DataSourceMetaLoader {
             String dbName = tm.getDbName();
             String tbName = tm.getName();
             Map<String, TableModel> tables = dbNameToTables.get(dbName);
+
+            // 重新加载数据源，db被加到黑名单时，db不会被重新从数据源中加载，这时候tables会为空
+            if (Objects.isNull(tables)) {
+                return;
+            }
+
             tables.put(tbName, tm);
         });
 
@@ -189,7 +195,7 @@ public class DataSourceMetaLoader {
         logger.info("start load partitions");
         this.loadAllPartitions();
         this.dataSource.setPartitionNum(this.partitions.size());
-        logger.info("success to load partitions");
+        logger.info("success to load partitions, total: {}", this.partitions.size());
         logger.info("load meta data ok");
 
         this.dbNameToDb = new HashMap<>(this.dataBases.size());

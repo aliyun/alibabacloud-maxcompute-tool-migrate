@@ -20,7 +20,6 @@ public class ModelBase {
     protected Date lastDdlTime;
     protected Date createTime;
     protected Date updateTime;
-    protected String location;
     protected String extra;
     protected MigrationStatus status = MigrationStatus.INIT;
 

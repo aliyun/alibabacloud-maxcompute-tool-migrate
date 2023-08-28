@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import com.aliyun.odps.Instance;
+import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.meta.HiveUtils;
 import com.aliyun.odps.mma.util.ListUtils;
@@ -142,12 +143,27 @@ public class HiveTaskExecutor extends TaskExecutor {
     public String getUDTFSql() throws MMATaskInterruptException {
         // get hive & odps column name list
         MMATableSchema hiveTableSchema = task.getTable().getTableSchema();
-        List<String> hiveColumnNames = ListUtils.map(hiveTableSchema.getColumns(), MMAColumnSchema::getName);
-        hiveColumnNames.addAll(ListUtils.map(hiveTableSchema.getPartitions(), MMAColumnSchema::getName));
+
+        List<MMAColumnSchema> columns = hiveTableSchema.getColumns();
+        List<MMAColumnSchema> ptColumns = hiveTableSchema.getPartitions();
 
         TableSchema odpsTableSchema = task.getOdpsTableSchema();
         List<String> odpsColumnNames = ListUtils.map(odpsTableSchema.getColumns(), Column::getName);
         List<String> odpsPartitionColumns = ListUtils.map(odpsTableSchema.getPartitionColumns(), Column::getName);
+
+        JobConfig jobConfig = task.getJobConfig();
+        int maxPartitionLevel = jobConfig.getMaxPartitionLevel();
+
+        if (maxPartitionLevel > 0 && ptColumns.size() > maxPartitionLevel) {
+            columns.addAll(ptColumns.subList(maxPartitionLevel, ptColumns.size()));
+            ptColumns = ptColumns.subList(0, maxPartitionLevel);
+
+            odpsColumnNames.addAll(odpsPartitionColumns.subList(maxPartitionLevel, odpsPartitionColumns.size()));
+            odpsPartitionColumns = odpsPartitionColumns.subList(0, maxPartitionLevel);
+        }
+
+        List<String> hiveColumnNames = ListUtils.map(columns, (c) -> String.format("`%s`", c.getName()));
+        hiveColumnNames.addAll(ListUtils.map(ptColumns, (c) -> String.format("`%s`", c.getName())));
 
         Map<String, Object> ctx = new HashMap<>(20);
         ctx.put("authType", OdpsAuthType.BearerToken);
@@ -174,7 +190,6 @@ public class HiveTaskExecutor extends TaskExecutor {
         Map<String, Object> ctx = new HashMap<>(10);
         ctx.put("hiveDb", table.getDbName());
         ctx.put("hiveTable", table.getName());
-        ctx.put("ptColumns", table.getTableSchema().getPartitions());
         ctx.put("partitionSpecs", getWhereConditionWithPartitions());
         return renderTpl(COUNT_TPL_FILE, ctx);
     }
@@ -183,7 +198,7 @@ public class HiveTaskExecutor extends TaskExecutor {
         return task.getOriginPartitionValues()
                 .stream()
                 .map(pv -> pv.transfer(
-                        (name, type, value) -> String.format("%s=cast('%s' AS %s)", name, value, type),
+                        (name, type, value) -> String.format("`%s`=cast('%s' AS %s)", name, value, type),
                         " AND "
                 ))
                 .collect(Collectors.toList());

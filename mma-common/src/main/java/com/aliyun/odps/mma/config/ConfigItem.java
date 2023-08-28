@@ -9,5 +9,6 @@ public @interface ConfigItem {
     String desc();
     String type() default "string";
     String defaultValue() default "";
+    String[] enums() default {};
     boolean required() default false;
 }

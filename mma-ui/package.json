@@ -1,6 +1,6 @@
 {
   "private": true,
-  "author":"舍然 <liukaizeng.lkz@alibaba-inc.com>",
+  "author": "舍然 <liukaizeng.lkz@alibaba-inc.com>",
   "scripts": {
     "dev": "max dev",
     "build": "max build",

@@ -48,13 +48,20 @@ public class HiveUtils {
         String user = config.getConfig(HiveConfig.HIVE_JDBC_USERNAME);
         String password = config.getConfig(HiveConfig.HIVE_JDBC_PASSWORD);
 
+        DriverManager.setLoginTimeout(600);
+
         try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
             if (Objects.nonNull(connGetterFunc)) {
                 connGetterFunc.call(conn);
             }
 
+            String notSetMrNameStr = System.getProperty("NOT_SET_MR_JOB_NAME");
+            boolean notSetMrName = Objects.equals(notSetMrNameStr, "true");
+
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("SET mapreduce.job.name=" + taskName);
+                if(! notSetMrName) {
+                    stmt.execute("SET mapreduce.job.name=" + taskName);
+                }
 
                 for (Map.Entry<String, String> entry : sqlSettings.entrySet()) {
                     stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());

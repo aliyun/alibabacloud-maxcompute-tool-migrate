@@ -20,6 +20,7 @@ public class TableModel extends ModelBase {
     private boolean hasPartitions;
     private MMATableSchema schema;
     private String owner;
+    private String location;
     private String inputFormat;
     private String outputFormat;
     private String serde;

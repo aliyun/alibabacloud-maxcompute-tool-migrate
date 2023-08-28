@@ -42,7 +42,7 @@ public class CmdArgParser {
         String[] sections = new String[] {"mysql", "mma"};
         String[][] optionsOfSection = new String[][]{
                 {"host", "port", "db", "username", "password"},
-                {"listening_port", "sch_rate", "task_max_num", "debug"}
+                {"listening_port", "sch_rate", "task_max_num", "debug", "not_set_mr_job_name"}
         };
 
         Map<String, String> optionToProperty = new HashMap<String, String>() {{
@@ -54,6 +54,7 @@ public class CmdArgParser {
             put("listening_port", "APP_PORT");
             put("sch_rate", "SCH_RATE");
             put("debug", "MMA_DEBUG");
+            put("not_set_mr_name", "NOT_SET_MR_JOB_NAME");
         }};
 
         try {

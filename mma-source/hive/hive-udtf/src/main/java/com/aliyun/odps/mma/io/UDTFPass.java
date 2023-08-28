@@ -9,6 +9,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class UDTFPass extends GenericUDTF {
@@ -31,9 +32,13 @@ public class UDTFPass extends GenericUDTF {
     public void process(Object[] objects) throws HiveException {
         count += 1;
 
-        if (count % 10000 == 0) {
-            System.out.printf("has get %d records, %s\n", count, System.currentTimeMillis());
+        StringBuilder sb = new StringBuilder("");
+
+        for (Object o: objects) {
+            sb.append(String.format("%s", o)).append(", ");
         }
+
+        System.out.println(sb);
     }
 
     @Override

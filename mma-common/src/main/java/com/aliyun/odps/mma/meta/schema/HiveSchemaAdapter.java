@@ -27,6 +27,8 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
             "BIGINT"
     };
 
+    String[] specialChars = new String[] {"#", "$"};
+
     @Override
     public TableSchema toOdpsSchema(MMATableSchema mmaTableSchema) {
         TableSchema tableSchema = new TableSchema();
@@ -56,7 +58,8 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
             comment = comment.replace("'", "\\'");
         }
 
-        return new Column(columnSchema.getName(), typeInfo, comment);
+        String columnName = trimSpecialChar(columnSchema.getName());
+        return new Column(columnName, typeInfo, comment);
     }
 
     private Column convertToOdpsPartitionColumn(MMAColumnSchema columnSchema) {
@@ -66,7 +69,8 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
             odpsType = convertToOdpsType(type);
         }
 
-        return new Column(columnSchema.getName(), odpsType, columnSchema.getComment());
+        String columnName = trimSpecialChar(columnSchema.getName());
+        return new Column(columnName, odpsType, columnSchema.getComment());
     }
 
     private TypeInfo convertToOdpsType(String type) {
@@ -79,5 +83,17 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
         hiveType = hiveType.replaceAll("(?<!VAR)CHAR.*\\)", "STRING");
 
         return TypeInfoParser.getTypeInfoFromTypeString(hiveType);
+    }
+
+    private String trimSpecialChar(String columnName) {
+        // 这里假设列名只会以一个特殊字符开头
+        for (String specialChar: specialChars) {
+            if (columnName.startsWith(specialChar) && columnName.length() > 1) {
+                columnName = "alias_" + columnName.substring(1);
+                break;
+            }
+        }
+
+        return columnName;
     }
 }

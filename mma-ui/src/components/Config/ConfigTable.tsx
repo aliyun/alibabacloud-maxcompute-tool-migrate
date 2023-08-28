@@ -109,7 +109,13 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                     item.value = (item.value as string).trim();
 
                     if (item.type === "list" && item.value != undefined) {
-                        item.value = (item.value as string).split(/\s*,\s*/);
+                        let value = (item.value as string);
+
+                        if (value === "") {
+                            item.value = null;
+                        } else {
+                            item.value = (item.value as string).split(/\s*,\s*/);
+                        }
                     }
                 }
 

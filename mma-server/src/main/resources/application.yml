@@ -9,7 +9,7 @@ spring:
     active: ${PROFILE:prod}
 
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:mma}?useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=false&rewriteBatchedStatements=true
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:mma}?useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=false&rewriteBatchedStatements=true&useUnicode=true&characterEncoding=UTF-8
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASS:example}
     driver-class-name: com.mysql.jdbc.Driver

@@ -24,8 +24,9 @@
             <scope>provided</scope>
         </dependency>
       <dependency>
-        <groupId>com.aliyun.odps</groupId>
-        <artifactId>odps-sdk-commons</artifactId>
+          <groupId>com.aliyun.odps</groupId>
+          <artifactId>odps-sdk-commons</artifactId>
+          <version>0.31.7-MMA-SNAPSHOT</version>
       </dependency>
     </dependencies>
 
@@ -42,10 +43,15 @@
             <dependencies>
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
+                    <artifactId>odps-sdk-commons</artifactId>
+                    <version>0.31.7-MMA-SNAPSHOT</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-core</artifactId>
                     <!-- Different from the version used by MMA server to support java 7 -->
-                    <version>0.31.6-public</version>
-                    <classifier>shaded</classifier>
+                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <!-- <classifier>shaded</classifier> -->
                     <exclusions>
                         <exclusion>
                             <artifactId>jackson-core-asl</artifactId>
@@ -140,10 +146,15 @@
             <dependencies>
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
+                    <artifactId>odps-sdk-commons</artifactId>
+                    <version>0.31.7-MMA-SNAPSHOT</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-core</artifactId>
                     <!-- Different from the version used by MMA server to support java 7 -->
-                    <version>0.31.6-public</version>
-                    <classifier>shaded</classifier>
+                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <!-- <classifier>shaded</classifier> -->
                     <exclusions>
                         <exclusion>
                             <artifactId>jackson-core-asl</artifactId>
@@ -238,10 +249,15 @@
             <dependencies>
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
+                    <artifactId>odps-sdk-commons</artifactId>
+                    <version>0.31.7-MMA-SNAPSHOT</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-core</artifactId>
                     <!-- Different from the version used by MMA server to support java 7 -->
-                    <version>0.31.6-public</version>
-                    <classifier>shaded</classifier>
+                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <!-- <classifier>shaded</classifier> -->
                     <exclusions>
                         <exclusion>
                             <artifactId>jackson-mapper-asl</artifactId>

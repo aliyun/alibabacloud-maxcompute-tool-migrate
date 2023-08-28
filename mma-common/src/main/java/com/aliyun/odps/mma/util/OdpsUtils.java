@@ -1,6 +1,10 @@
 package com.aliyun.odps.mma.util;
 
-import com.aliyun.odps.*;
+import com.aliyun.odps.Instance;
+import com.aliyun.odps.LogView;
+import com.aliyun.odps.Odps;
+import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.Task;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.Config;
 import com.aliyun.odps.mma.config.OdpsConfig;
@@ -67,8 +71,7 @@ public class OdpsUtils {
     }
 
     public Instance executeSql(String sql, Map<String, String> hints) throws OdpsException {
-        String mmaTaskName = MMAFlag.getSQLTaskName(odps);
-        return SQLTask.run(odps, odps.getDefaultProject(), sql, mmaTaskName, hints, null);
+        return SQLTask.run(odps, odps.getDefaultProject(), sql, "MMAv3", hints, null);
     }
 
     public Instance executeTask(Task task) throws OdpsException {
@@ -76,8 +79,7 @@ public class OdpsUtils {
     }
 
     public void executeSql(String sql, Function<Instance, Void> func) throws OdpsException {
-        String mmaTaskName = MMAFlag.getSQLTaskName(odps);
-        Instance instance = SQLTask.run(odps, odps.getDefaultProject(), sql, mmaTaskName, null, null);
+        Instance instance = SQLTask.run(odps, odps.getDefaultProject(), sql, "MMAv3", null, null);
         func.apply(instance);
     }
 

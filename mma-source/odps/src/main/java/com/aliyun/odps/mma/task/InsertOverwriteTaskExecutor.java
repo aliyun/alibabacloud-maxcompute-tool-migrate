@@ -52,7 +52,7 @@ public class InsertOverwriteTaskExecutor extends TaskExecutor {
     @Override
     protected void _setUpSchema() throws Exception {
         odpsAction.createTableIfNotExists();
-        //odpsAction.addPartitions();
+        odpsAction.addPartitions();
     }
 
     @Override

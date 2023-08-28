@@ -2,13 +2,18 @@ package com.aliyun.odps.mma.task;
 
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.data.Record;
+import com.aliyun.odps.mma.config.JobConfig;
+import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
 import com.aliyun.odps.mma.orm.TableProxy;
 import com.aliyun.odps.mma.orm.TaskProxy;
 import com.aliyun.odps.mma.sql.OdpsSql;
+import com.aliyun.odps.mma.sql.PartitionValue;
+import com.aliyun.odps.mma.util.KeyLock;
 import com.aliyun.odps.mma.util.MMAFlag;
 import com.aliyun.odps.mma.util.MutexFileLock;
 import com.aliyun.odps.mma.util.OdpsUtils;
@@ -53,7 +58,18 @@ public class OdpsAction {
         this.tableName = tableName;
         this.tableFullName = tableFullName;
         this.hasPartition = task.getPartitions().size() > 0;
-        this.odpsSql = new OdpsSql(task.getOdpsPartitionValues(), task.getTable().isPartitionedTable(),  hasPartition);
+        List<PartitionValue> mergedPtValues = null;
+        int maxPtLevel = task.getJobConfig().getMaxPartitionLevel();
+        if (maxPtLevel > 0) {
+            mergedPtValues = task.getMergedOdpsPartitionValues(maxPtLevel);
+        }
+
+        this.odpsSql = new OdpsSql(
+                task.getOdpsPartitionValues(),
+                mergedPtValues,
+                task.getTable().isPartitionedTable(),
+                hasPartition
+        );
     }
 
     public static OdpsAction getSourceOdpsAction(OdpsConfig config, TaskProxy task) {
@@ -86,21 +102,12 @@ public class OdpsAction {
     }
 
     public void createTableIfNotExists(Map<String, String> hints) throws MMATaskInterruptException {
-        task.log(task.getCreateTableSql(), "try to create table: " + task.getOdpsTableFullName());
+        JobConfig jobConfig = task.getJobConfig();
+        String sql = odpsSql.createTableSql(task.getOdpsTableFullName(), task.getOdpsTableSchema(), jobConfig.getMaxPartitionLevel());
+        task.log(sql, "try to create table: " + task.getOdpsTableFullName());
 
-        wrapWithTryCatch(String.format("create odps table %s", tableFullName), () -> {
-            odpsUtils.getOdps()
-                    .tables()
-                    .create(
-                            projectName,
-                            tableName,
-                            task.getOdpsTableSchema(),
-                            null,
-                            true,
-                            null,
-                            hints,
-                            null
-                    );
+        wrapWithTryCatch(sql, ()-> {
+            executeSql(sql, hints);
         });
     }
 
@@ -111,8 +118,8 @@ public class OdpsAction {
         String sql = odpsSql.addPartitionsSql(tableFullName);
 
         wrapWithTryCatch(sql, () -> {
-            try (MutexFileLock fileLock = new MutexFileLock(tableFullName)) {
-                fileLock.lock();
+            try (KeyLock keyLock = new KeyLock(tableFullName)) {
+                keyLock.lock();
                 executeSql(sql);
             }
         });
@@ -122,8 +129,8 @@ public class OdpsAction {
         String sql = odpsSql.truncateSql(tableFullName);
 
         wrapWithTryCatch(sql, () -> {
-            try (MutexFileLock fileLock = new MutexFileLock(tableFullName)) {
-                fileLock.lock();
+            try (KeyLock keyLock = new KeyLock(tableFullName)) {
+                keyLock.lock();
                 executeSql(sql);
             }
         });
@@ -161,8 +168,7 @@ public class OdpsAction {
                         insGetter.accept(instance);
                     }
 
-                    String mmaTaskName = MMAFlag.getSQLTaskName(odpsUtils.getOdps());
-                    List<Record> records = SQLTask.getResult(instance, mmaTaskName);
+                    List<Record> records = SQLTask.getResult(instance, "MMAv3");
 
                     for (Record record : records) {
                         recordCount.addAndGet(Long.parseLong(record.getString(record.getColumnCount() - 1)));

@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.task;
 
+import java.security.Key;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -14,7 +15,7 @@ import com.aliyun.odps.mma.execption.MMATaskInterruptException;
 import com.aliyun.odps.mma.model.TableModel;
 import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.orm.TaskProxy;
-import com.aliyun.odps.mma.util.MutexFileLock;
+import com.aliyun.odps.mma.util.KeyLock;
 import com.aliyun.odps.mma.util.OdpsUtils;
 
 /**
@@ -77,8 +78,8 @@ public class OdpsOssAction extends OdpsAction {
         }
         String sql = odpsSql.addPartitionsSql(odpsTempOssTableFullName);
         wrapWithTryCatch(sql, () -> {
-            try (MutexFileLock fileLock = new MutexFileLock(odpsTempOssTableFullName)) {
-                fileLock.lock();
+            try (KeyLock keyLock = new KeyLock(odpsTempOssTableFullName)) {
+                keyLock.lock();
                 executeSql(sql);
             }
         });

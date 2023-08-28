@@ -82,7 +82,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         this.taskModel = taskModel;
     }
 
-    private void _initTask() {
+    public void _initTask() {
         this.task = proxyFactory.newTaskProxy(taskModel);
         jobModel = task.getJobModel();
         jobConfig = task.getJobConfig();
@@ -111,6 +111,8 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                     TableProxy table = task.getTable();
                     // 分区表无分区的情况建完table后直接结束任务
                     if (table.isPartitionedTable() && partitionNumOfTask == 0) {
+                        publishTaskEvent();
+                        updateMigrationTargetStatus(MigrationStatus.DONE);
                         task.setTaskEnd();
                         return;
                     }
@@ -126,6 +128,8 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                         }
                         if (jobConfig.getSchemaOnly()) {
                             logger.info("{} is wanted to create schema only", task.getTaskName());
+                            publishTaskEvent();
+                            updateMigrationTargetStatus(MigrationStatus.DONE);
                             task.setTaskEnd();
                         }
                         break;

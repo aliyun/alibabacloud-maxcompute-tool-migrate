@@ -2,6 +2,7 @@ package com.aliyun.odps.mma.config;
 
 import com.aliyun.odps.mma.config.exception.ConfigMissingException;
 import com.aliyun.odps.mma.service.ConfigService;
+import com.aliyun.odps.utils.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -269,7 +270,6 @@ public abstract class Config {
             }
 
             configStrVal = configStrVal.trim();
-            clearItems.put(configKey, configStrVal);
 
             switch (configItem.type()) {
                 case "int":
@@ -291,7 +291,14 @@ public abstract class Config {
                     if (! (configValue instanceof List)) {
                         errors.put(configKey, "is not a valid json of string list");
                     } else {
-                        for (Object i: (List<?>) configValue) {
+                        List<?> listValue = (List<?>) configValue;
+//
+//                        if (listValue.size() == 0) {
+//                            itemsDeleted.add(configKey);
+//                            continue;
+//                        }
+
+                        for (Object i: listValue) {
                             if (! (i instanceof String)) {
                                 errors.put(configKey, "is not a valid json of string list");
                                 break;
@@ -310,9 +317,21 @@ public abstract class Config {
                         errors.put(configKey, "should be true or false");
                     }
                     break;
+                case "string":
+                    String[] enums = configItem.enums();
+                    if (enums.length > 0) {
+                        List<String> enumList = Arrays.asList(enums);
+
+                        if (! enumList.contains(configStrVal)) {
+                            errors.put(configKey, "should be one of [" + String.join(", ", enumList) + "]");
+                        }
+                    }
+                    break;
                 default:
                     break;
             }
+
+            clearItems.put(configKey, configStrVal);
         }
 
         if (errors.size() > 0) {

@@ -39,6 +39,8 @@ public class CopyTaskExecutor extends TaskExecutor {
     Instance srcCountInstance;
     Instance destCountInstance;
     DbService dbService;
+    Datasource.Direction copyTaskDirection;
+    OdpsUtils odpsUtils;
 
     @Autowired
     public CopyTaskExecutor(DbService dbService) {
@@ -56,6 +58,9 @@ public class CopyTaskExecutor extends TaskExecutor {
                 task.getTableName(),
                 task.getTableFullName()
         );
+        String directionStr = sourceConfig.getConfig(OdpsConfig.COPYTASK_DIRECTION);
+        copyTaskDirection = Datasource.Direction.valueOf(directionStr);
+        odpsUtils = OdpsUtils.fromConfig(mmaConfig);
     }
 
     @Override
@@ -66,18 +71,34 @@ public class CopyTaskExecutor extends TaskExecutor {
     @Override
     protected void _setUpSchema() throws Exception {
         odpsAction.createTableIfNotExists();
+
+        if (copyTaskDirection == Datasource.Direction.IMPORT) {
+            odpsAction.addPartitions();
+        }
     }
 
     @Override
-    protected void _dataTruncate() {}
+    protected void _dataTruncate() throws Exception {
+        if (copyTaskDirection == Datasource.Direction.IMPORT) {
+            odpsAction.truncate();
+        }
+    }
 
     @Override
     protected void _dataTrans() throws Exception {
         CopyTask copyTask = createCopyTask();
 
         try {
-            dataTransInstance = sourceOdpsUtils.executeTask(copyTask);
-            task.log("execute copytask", sourceOdpsUtils.getLogView(dataTransInstance));
+            OdpsUtils odpsUtils;
+
+            if (Datasource.Direction.EXPORT.equals(copyTaskDirection)) {
+                odpsUtils = sourceOdpsUtils;
+            } else {
+                odpsUtils = this.odpsUtils;
+            }
+
+            dataTransInstance = odpsUtils.executeTask(copyTask);
+            task.log("execute copytask", odpsUtils.getLogView(dataTransInstance));
             dataTransInstance.waitForSuccess();
         } catch (OdpsException e) {
             if (!this.stopped) {
@@ -119,8 +140,6 @@ public class CopyTaskExecutor extends TaskExecutor {
         String sourceTable = task.getTableName();
         String destProject = task.getOdpsProjectName();
         String destTable = task.getOdpsTableName();
-        String destDataEndpoint = mmaConfig.getMcDataEndpoint();
-        String destTunnelEndpoint = mmaConfig.getConfig(MMAConfig.MC_TUNNEL_ENDPOINT);
 
         List<PartitionValue> ptValues = task.getOdpsPartitionValues();
         String partitions = "";
@@ -131,20 +150,44 @@ public class CopyTaskExecutor extends TaskExecutor {
                     ",");
         }
 
-        Datasource.Direction direction = Datasource.Direction.EXPORT;
+        LocalDatasource local;
+        TunnelDatasource tunnel;
 
-        // DEST
-        TunnelDatasource tunnel = new TunnelDatasource(direction, destProject, destTable, partitions);
-        String token = createToken(direction, destProject, destTable);
-        tunnel.setAccountType("token");
-        tunnel.setSignature(token);
-        tunnel.setOdpsEndPoint(destDataEndpoint);
-        if (Objects.nonNull(destTunnelEndpoint)) {
-            tunnel.setEndPoint(destTunnelEndpoint);
+        if (copyTaskDirection == Datasource.Direction.EXPORT) {
+            // LOCAL, 运行copy task的地方，export模式下为源端
+            local = new LocalDatasource(copyTaskDirection, sourceProject, sourceTable, partitions);
+
+            // 使用目的端的tunnel
+            tunnel = new TunnelDatasource(copyTaskDirection, destProject, destTable, partitions);
+            String token = createToken(copyTaskDirection, destProject, destTable);
+            tunnel.setAccountType("token");
+            tunnel.setSignature(token);
+
+            String destDataEndpoint = mmaConfig.getMcDataEndpoint();
+            String destTunnelEndpoint = mmaConfig.getConfig(MMAConfig.MC_TUNNEL_ENDPOINT);
+
+            tunnel.setOdpsEndPoint(destDataEndpoint);
+            if (Objects.nonNull(destTunnelEndpoint)) {
+                tunnel.setEndPoint(destTunnelEndpoint);
+            }
+        } else {
+            // LOCAL, 运行copy task的地方，import模式下为目的端
+            local = new LocalDatasource(copyTaskDirection, destProject, destTable, partitions);
+
+            // 使用源端的tunnel
+            tunnel = new TunnelDatasource(copyTaskDirection, sourceProject, sourceTable, partitions);
+            String token = createToken(copyTaskDirection, sourceProject, sourceTable);
+            tunnel.setAccountType("token");
+            tunnel.setSignature(token);
+
+            String srcOdpsEndpoint = sourceConfig.getConfig(OdpsConfig.MC_DATA_ENDPOINT);
+            String srcTunnelEndpoint = sourceConfig.getConfig(OdpsConfig.MC_TUNNEL_ENDPOINT);
+            tunnel.setOdpsEndPoint(srcOdpsEndpoint);
+
+            if (Objects.nonNull(srcTunnelEndpoint)) {
+                tunnel.setEndPoint(srcTunnelEndpoint);
+            }
         }
-
-        // SOURCE
-        LocalDatasource local = new LocalDatasource(direction, sourceProject, sourceTable, partitions);
 
         // SETUP Task
         CopyTask copyTask = new CopyTask("copy_task_" + Calendar.getInstance().getTimeInMillis());
@@ -197,18 +240,27 @@ public class CopyTaskExecutor extends TaskExecutor {
 
         // 2. create token
         String grantee = "";
-        String destAccessId = mmaConfig.getConfig(MMAConfig.MC_AUTH_ACCESS_ID);
-        String destAccessKey = mmaConfig.getConfig(MMAConfig.MC_AUTH_ACCESS_KEY);
+        String accessId;
+        String accessKey;
+
+        if (direction == Datasource.Direction.EXPORT) {
+            accessId = mmaConfig.getConfig(MMAConfig.MC_AUTH_ACCESS_ID);
+            accessKey = mmaConfig.getConfig(MMAConfig.MC_AUTH_ACCESS_KEY);
+        } else {
+            accessId = sourceConfig.getConfig(OdpsConfig.MC_AUTH_ACCESS_ID);
+            accessKey = sourceConfig.getConfig(OdpsConfig.MC_AUTH_ACCESS_KEY);
+        }
+
         int day = 60 * 60 * 24;
         long expires = System.currentTimeMillis() / 1000 + day;
         final String TOKEN_ALGORITHM_ID = "1";
         final String TOKEN_TYPE = "1";
         final String TOKEN_VERSION = "v1";
 
-        String data = TOKEN_ALGORITHM_ID + TOKEN_TYPE + destAccessId + grantee + expires + policy;
+        String data = TOKEN_ALGORITHM_ID + TOKEN_TYPE + accessId + grantee + expires + policy;
         HmacSHA1Signature signer = new HmacSHA1Signature();
-        String signature = signer.computeSignature(destAccessKey, data) + "#" + TOKEN_ALGORITHM_ID + "#" + TOKEN_TYPE
-                           + "#" + destAccessId + "#" + grantee + "#" + expires + "#" + policy;
+        String signature = signer.computeSignature(accessKey, data) + "#" + TOKEN_ALGORITHM_ID + "#" + TOKEN_TYPE
+                           + "#" + accessId + "#" + grantee + "#" + expires + "#" + policy;
         String base64Signature = new String(Base64.encodeBase64(signature.getBytes()));
 
         return TOKEN_VERSION + "." + base64Signature;

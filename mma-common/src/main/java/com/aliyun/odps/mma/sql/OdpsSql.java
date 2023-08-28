@@ -2,24 +2,65 @@ package com.aliyun.odps.mma.sql;
 
 import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
-import com.aliyun.odps.mma.orm.TaskProxy;
+import com.aliyun.odps.mma.config.JobConfig;
+import com.aliyun.odps.mma.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OdpsSql {
-
     private final List<PartitionValue> partitionValues;
+    private final List<PartitionValue> mergedPartitionValues;
     private final boolean partitionedTable;
     private final boolean hasPartitions;
 
-    public OdpsSql(List<PartitionValue> partitionValues, boolean partitionedTable, boolean hasPartitions) {
+    public OdpsSql(
+            List<PartitionValue> partitionValues,
+            List<PartitionValue> mergedPartitionValues,
+            boolean partitionedTable,
+            boolean hasPartitions
+    ) {
         this.partitionValues = partitionValues;
+        this.mergedPartitionValues = mergedPartitionValues;
         this.partitionedTable = partitionedTable;
         this.hasPartitions = hasPartitions;
     }
+
+    public String createTableSql(String tableFullName, TableSchema tableSchema) {
+        return  createTableSql(tableFullName, tableSchema, 0);
+    }
+
+    public String createTableSql(String tableFullName, TableSchema tableSchema, Integer maxPartitionLevel) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(String.format("CREATE TABLE IF NOT EXISTS %s", tableFullName));
+
+        if (! partitionedTable) {
+            appendColumns(sb, tableSchema.getColumns());
+            return sb.append(";").toString();
+        }
+
+        List<Column> columns = new ArrayList<>(tableSchema.getColumns().size());
+        columns.addAll(tableSchema.getColumns());
+
+        List<Column> ptColumns = tableSchema.getPartitionColumns();
+
+        if (maxPartitionLevel > 0 && ptColumns.size() > maxPartitionLevel) {
+            columns.addAll(ptColumns.subList(maxPartitionLevel, ptColumns.size()));
+            ptColumns = ptColumns.subList(0, maxPartitionLevel);
+        }
+
+        appendColumns(sb, columns);
+        sb.append("\nPARTITIONED BY ");
+        appendColumns(sb,  ptColumns);
+
+        return sb.append(";").toString();
+    }
+
 
     public String createExternalTableSql(String tempTableName,
                                          TableSchema tableSchema,
@@ -45,16 +86,9 @@ public class OdpsSql {
          STORED AS RCFILE
          LOCATION 'oss://ak:sk@endpoint/bucket/mma_test/test_rcfile_partitioned_10x1k';
         */
-        StringBuilder sb = new StringBuilder(
-          String.format("CREATE EXTERNAL TABLE IF NOT EXISTS %s(", tempTableName));
+        StringBuilder sb = new StringBuilder();
 
-        appendColumns(sb, tableSchema.getColumns());
-        sb.append("\n)");
-        if (hasPartitions) {
-            sb.append("\nPARTITIONED BY (");
-            appendColumns(sb, tableSchema.getPartitionColumns());
-            sb.append("\n)");
-        }
+        createTableCommon(sb, tempTableName, tableSchema, true);
 
         if (null != serde) {
             sb.append("\nROW FORMAT SERDE '").append(serde).append("'");
@@ -67,6 +101,17 @@ public class OdpsSql {
             for (String key: serdeProperties.keySet()) {
                 i += 1;
                 String value = serdeProperties.get(key);
+
+                // 目前只处理单个控制字符
+                if (value.length() == 1) {
+                    char v = value.charAt(0);
+
+                    // 目前仅支持SOH控制字符
+                    if ((int)v == 1) {
+                        value = String.format("\\0%02o", (int)v);
+                    }
+                }
+
                 sb.append(String.format("\n'%s'='%s'", key, value));
 
                 if (i < propertiesNum) {
@@ -82,17 +127,38 @@ public class OdpsSql {
         return sb.append(";").toString();
     }
 
+    private void createTableCommon(StringBuilder sb, String tableFullName, TableSchema tableSchema, boolean external) {
+        String externalStr = external ? "EXTERNAL" : "";
+        sb.append(String.format("CREATE %s TABLE IF NOT EXISTS %s", externalStr, tableFullName));
+        appendColumns(sb, tableSchema.getColumns());
+
+        if (partitionedTable) {
+            sb.append("\nPARTITIONED BY ");
+            appendColumns(sb, tableSchema.getPartitionColumns());
+        }
+    }
+
     private void appendColumns(StringBuilder sb, List<Column> columns) {
         /*
+        (
           `c1` TYPE1,
           `c2` TYPE2,
           ...
           `cn` TYPEN
+          )
          */
-        for (Column c : columns) {
-            sb.append(String.format("\n`%s` %s,", c.getName(), c.getTypeInfo().getTypeName()));
+        sb.append('(');
+        for (int i = 0; i < columns.size(); i++) {
+            Column c = columns.get(i);
+            sb.append(String.format("%n`%s` %s", c.getName(), c.getTypeInfo().getTypeName()));
+            if (!StringUtils.isBlank(c.getComment())) {
+                sb.append(" COMMENT '").append(c.getComment()).append("'");
+            }
+            if (i + 1 < columns.size()) {
+                sb.append(',');
+            }
         }
-        sb.deleteCharAt(sb.length() - 1);
+        sb.append("\n)");
     }
 
     public String addPartitionsSql(String tableName) {
@@ -191,7 +257,13 @@ public class OdpsSql {
         }
 
         sb.append("\n");
-        Stream<String> partitionSpecs = partitionValues.stream().map(pv -> pv.transfer(
+
+        List<PartitionValue> ptValues = mergedPartitionValues;
+        if (Objects.isNull(ptValues)) {
+            ptValues = partitionValues;
+        }
+
+        Stream<String> partitionSpecs = ptValues.stream().map(pv -> pv.transfer(
           (name, type, value) -> String.format("%s=%s", name, adaptOdpsPartitionValue(type, value)),
           ","
         ));

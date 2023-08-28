@@ -192,19 +192,6 @@ public class HiveMetaLoader implements MetaLoader {
         model.setTableName(partition.getTableName());
         model.setValue(String.join("/", partition.getValues()));
 
-        StorageDescriptor sd = partition.getSd();
-        if (Objects.nonNull(sd)) {
-            model.setLocation(sd.getLocation());
-            model.setInputFormat(sd.getInputFormat());
-            model.setOutputFormat(sd.getOutputFormat());
-
-            SerDeInfo serDeInfo = sd.getSerdeInfo();
-
-            if (Objects.nonNull(serDeInfo)) {
-                model.setSerde(serDeInfo.getSerializationLib());
-            }
-        }
-
         Map<String, String> params = partition.getParameters();
         setModelParam(params, model);
 

@@ -41,6 +41,11 @@ public class JobConfig {
     @JsonProperty("enable_verification")
     boolean enableVerification = true;
     Map<String, Object> others = new HashMap<>();
+    // 当分区数据超过这个值时，按照从后往前的顺序，把分区列转换为普通列
+    // 比如: maxPartitionLevel=2, 分区为p1,p2,p3,p4，则把p4, p3
+    // 作为普通列，p1, p2作为分区列
+    @JsonProperty("max_partition_level")
+    int maxPartitionLevel;
 
     @JsonIgnore
     MMAConfig mmaConfig;

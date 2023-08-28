@@ -134,7 +134,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     // bearer token   false   token     endpoint  tunnel endpoint   project   table
     try {
       if (odps == null) {
-        print("version:MMAv3_20220922");
+        print("version:MMAv3_20230516");
         // setup odps
         Account account;
         if ("AK".equals(readString(args, IDX_AUTH_TYPE))) {

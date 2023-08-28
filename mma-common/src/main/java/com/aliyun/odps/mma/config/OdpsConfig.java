@@ -12,6 +12,10 @@ import java.util.List;
 public class OdpsConfig extends SourceConfig {
     @ConfigItem(desc = "maxcompute endpoint", required = true)
     public static String MC_ENDPOINT = "mc.endpoint";
+    @ConfigItem(desc = "vpc endpoint", required = true)
+    public static String MC_DATA_ENDPOINT = "mc.data.endpoint";
+    @ConfigItem(desc = "tunnel endpoint", required = true)
+    public static String MC_TUNNEL_ENDPOINT = "mc.tunnel.endpoint";
     @ConfigItem(desc = "maxcompute access id", required = true)
     public static String MC_AUTH_ACCESS_ID = "mc.auth.access.id";
     @ConfigItem(desc = "maxcompute access key", required = true, type = "password")
@@ -28,6 +32,8 @@ public class OdpsConfig extends SourceConfig {
     public static String MC_REST_TRY_TIMES = "mc.rest.try.times";
     @ConfigItem(desc = "instance number of one copyTask, 仅用于\"跨region项目迁移\"", type = "int", defaultValue = "100")
     public static String COPYTASK_INS_NUM = "copytask.ins.num";
+    @ConfigItem(desc = "coppytask direction, 仅用于\"跨region项目迁移\"", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
+    public static String COPYTASK_DIRECTION = "copytask.direction";
     @ConfigItem(desc = "maxcompute 迁移任务sql参数, 仅用于\"同region项目迁移\"", type = "map", defaultValue = "{\n    " +
             "\"odps.sql.hive.compatible\": \"true\"" +
             "\n}")

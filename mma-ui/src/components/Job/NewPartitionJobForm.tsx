@@ -5,7 +5,7 @@ import {
     ProFormText,
     ProFormSelect,
     ProFormSwitch,
-    ProFormList, ProFormGroup, ProFormTextArea
+    ProFormList, ProFormGroup, ProFormTextArea, ProForm, ProFormDependency, ProFormDigit
 } from "@ant-design/pro-components";
 import {getJobOptions, submitJob} from "@/services/job";
 import {nowTime, showErrorMsg} from "@/utils/format";
@@ -121,6 +121,41 @@ export const NewPartitionJobForm = (
                 })()}
                 rules={[{ required: true, message: '请选择mc项目' }]}
             />
+
+            <ProForm.Group labelLayout='inline'>
+                <ProFormSwitch
+                    labelCol={{ span: 12 }}
+                    //colProps={{ md: 12, xl: 8 }}
+                    colProps={{ span: 6 }}
+                    initialValue={false}
+                    label="合并分区"
+                    name="merge_partition_enabled"
+                />
+
+                <ProFormDependency name={['merge_partition_enabled']}>
+                    {({ merge_partition_enabled }) => {
+                        console.log("*****", merge_partition_enabled);
+
+                        if (merge_partition_enabled) {
+                            return (
+                                <ProFormDigit
+                                    labelCol={{ span: 12 }}
+                                    colProps={{ span: 8 }}
+                                    label="最大分区层数"
+                                    name="max_partition_level"
+                                    min={0}
+                                    max={10}
+                                    fieldProps={{ precision: 0 }}
+                                    width="xs"
+                                />
+                            )
+                        } else {
+                            return <></>
+                        }
+                    }}
+                </ProFormDependency>
+            </ProForm.Group>
+
             <ProFormSwitch
                 colProps={{
                     span: 24,

@@ -82,14 +82,13 @@
         insert into partition_model
        (source_id, db_id, table_id, db_name, table_name, value,
         status,
-        size, num_rows, last_ddl_time,
-        location, input_format, output_format, serde)
+        size, num_rows, last_ddl_time
+        )
         values
        (
         #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{tableName}, #{value},
         #{status},
-        #{size}, #{numRows}, #{lastDdlTime},
-        #{location}, #{inputFormat}, #{outputFormat}, #{serde}
+        #{size}, #{numRows}, #{lastDdlTime}
         )
     </insert>
 
@@ -192,8 +191,9 @@
             </if>
         </where>
 
+        order by partition_model.id
         <if test="orders.size() > 0">
-            <foreach item="p" index="index" collection="orders" open="order by" separator="," close="">
+            <foreach item="p" index="index" collection="orders" open="," separator="," close="">
                 partition_model.${p.name} ${p.order}
             </foreach>
         </if>
