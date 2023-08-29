@@ -63,7 +63,48 @@ public class JobServiceImpl implements JobService, InitializingBean {
         int jobId = jobIdGen.nextId();
         jobModel.setId(jobId);
 
+        // 对task顺序进行重排，防止对同一个table的task挨在一起，这样可以避免
+        // 对同一个table进行add partition的时候的锁竞争
+        Map<String, List<TaskModel>> tableToTaskGroup = new HashMap<>();
+
         for (TaskModel taskModel: tasks) {
+            String tableName = taskModel.getTableName();
+            List<TaskModel> tasksOfTable = tableToTaskGroup.get(tableName);
+
+            if (Objects.nonNull(tasksOfTable)) {
+                tasksOfTable.add(taskModel);
+            } else {
+                tasksOfTable = new ArrayList<>();
+                tasksOfTable.add(taskModel);
+
+                tableToTaskGroup.put(tableName, tasksOfTable);
+            }
+        }
+
+        List<TaskModel> tasksShuffled = new ArrayList<>();
+        List<List<TaskModel>> taskGroups = new ArrayList<>(tableToTaskGroup.keySet().size());
+        for (String tableName: tableToTaskGroup.keySet()) {
+            taskGroups.add(tableToTaskGroup.get(tableName));
+        }
+
+        for (int i = 0; ; i ++) {
+            boolean stop = true;
+
+            for (List<TaskModel> taskGroup: taskGroups) {
+                if (i < taskGroup.size()) {
+                    tasksShuffled.add(taskGroup.get(i));
+                    stop = false;
+                }
+            }
+
+            if (stop) {
+                break;
+            }
+        }
+
+        assert tasks.size() == tasksShuffled.size();
+
+        for (TaskModel taskModel: tasksShuffled) {
             taskModel.setId(taskIdGen.nextId());
             taskModel.setJobId(jobId);
         }
