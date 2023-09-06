@@ -18,5 +18,6 @@ public class VerificationAction {
             throw new MMATaskInterruptException();
         }
 
+        task.log("select count", String.format("src: %d, dsc: %d", srcCnt, destCnt));
     }
 }

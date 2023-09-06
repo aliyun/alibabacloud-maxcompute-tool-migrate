@@ -30,37 +30,12 @@ public class OdpsSql {
         this.hasPartitions = hasPartitions;
     }
 
+
     public String createTableSql(String tableFullName, TableSchema tableSchema) {
-        return  createTableSql(tableFullName, tableSchema, 0);
-    }
-
-    public String createTableSql(String tableFullName, TableSchema tableSchema, Integer maxPartitionLevel) {
         StringBuilder sb = new StringBuilder();
-
-        sb.append(String.format("CREATE TABLE IF NOT EXISTS %s", tableFullName));
-
-        if (! partitionedTable) {
-            appendColumns(sb, tableSchema.getColumns());
-            return sb.append(";").toString();
-        }
-
-        List<Column> columns = new ArrayList<>(tableSchema.getColumns().size());
-        columns.addAll(tableSchema.getColumns());
-
-        List<Column> ptColumns = tableSchema.getPartitionColumns();
-
-        if (maxPartitionLevel > 0 && ptColumns.size() > maxPartitionLevel) {
-            columns.addAll(ptColumns.subList(maxPartitionLevel, ptColumns.size()));
-            ptColumns = ptColumns.subList(0, maxPartitionLevel);
-        }
-
-        appendColumns(sb, columns);
-        sb.append("\nPARTITIONED BY ");
-        appendColumns(sb,  ptColumns);
-
+        createTableCommon(sb, tableFullName, tableSchema, false);
         return sb.append(";").toString();
     }
-
 
     public String createExternalTableSql(String tempTableName,
                                          TableSchema tableSchema,

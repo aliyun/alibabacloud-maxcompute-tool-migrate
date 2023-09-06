@@ -96,6 +96,7 @@ create table if not exists `task` (
     `odps_table` varchar(255) not null,
     `type`  char(50) not null,
     `status` char(50) not null,
+    `sub_status` char(50),
     `stopped` boolean default false,
     `restart` boolean default false,
     `retried_times` integer default 0 not null,

@@ -13,24 +13,12 @@ import java.util.Objects;
 @Component
 public class OdpsToOdpsSchemaAdapter implements OdpsSchemaAdapter {
     @Override
-    public TableSchema toOdpsSchema(MMATableSchema mmaTableSchema) {
-        TableSchema tableSchema = new TableSchema();
-        mmaTableSchema.getColumns().forEach(columnSchema -> {
-            tableSchema.addColumn(convertToOdpsColumn(columnSchema));
-        });
-
-        mmaTableSchema.getPartitions().forEach(partitionSchema -> {
-            tableSchema.addPartitionColumn(convertToOdpsColumn(partitionSchema));
-        });
-        return tableSchema;
-    }
-
-    @Override
     public SourceType sourceType() {
         return SourceType.ODPS;
     }
 
-    private Column convertToOdpsColumn(MMAColumnSchema columnSchema) {
+    @Override
+    public Column convertToOdpsColumn(MMAColumnSchema columnSchema) {
         TypeInfo typeInfo = TypeInfoParser.getTypeInfoFromTypeString(columnSchema.getType());
 
         String comment = columnSchema.getComment();
@@ -41,4 +29,8 @@ public class OdpsToOdpsSchemaAdapter implements OdpsSchemaAdapter {
         return new Column(columnSchema.getName(), typeInfo, comment);
     }
 
+    @Override
+    public Column convertToOdpsPartitionColumn(MMAColumnSchema columnSchema) {
+        return convertToOdpsColumn(columnSchema);
+    }
 }

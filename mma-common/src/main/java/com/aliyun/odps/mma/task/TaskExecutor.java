@@ -219,7 +219,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         task.setStatus(endStatus);
     }
 
-    private void updateMigrationTargetStatus(MigrationStatus status) {
+    protected void updateMigrationTargetStatus(MigrationStatus status) {
         if (partitionNumOfTask > 0) {
             partitionService.updatePartitionsStatus(status, task.getTaskModel().getId());
         } else {

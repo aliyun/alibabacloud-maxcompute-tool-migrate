@@ -17,6 +17,8 @@ public interface TaskMapper {
     int getTasksCount(TaskFilter taskFilter);
     void addTaskLog(TaskLog taskLog);
     void updateTaskStatus(TaskModel task);
+
+    void updateTaskSubStatus(TaskModel task);
     void setTaskStart(@Param("id") int taskId);
     void setTaskEnd(@Param("id") int taskId);
     void setTaskStop(@Param("id") int taskId);

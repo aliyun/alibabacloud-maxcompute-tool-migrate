@@ -70,8 +70,12 @@ public class InsertOverwriteTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> destCountFuture = odpsAction.selectCount((ins) -> this.destCountInstance = ins);
+        CompletableFuture<Long> destCountFuture = odpsAction.selectCount(
+                task.getOdpsTableFullName(),
+                (ins) -> this.destCountInstance = ins
+        );
         CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectCount(
+                task.getTableFullName(),
                 (ins) -> this.srcCountInstance = ins,
                 sourceConfig.getMap(OdpsConfig.MC_SQL_HINTS)
         );

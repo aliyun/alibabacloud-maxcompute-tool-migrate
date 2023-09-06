@@ -1,8 +1,6 @@
 package com.aliyun.odps.mma.orm;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.aliyun.odps.Column;
@@ -64,12 +62,17 @@ public class TaskProxy {
         this.taskService.updateTaskStatus(this.taskModel);
     }
 
+    public void setSubStatus(String status) {
+        this.taskModel.setSubStatus(status);
+        this.taskService.updateTaskSubStatus(this.taskModel);
+    }
+
     public void error(String action, Exception e) {
         error(action, ExceptionUtils.getStackTrace(e));
     }
 
     public void error(String action, String msg) {
-        //setStatus(TaskStatus.getFailStatus(getStatus()));
+        setStatus(TaskStatus.getFailStatus(getStatus()));
         log(action, msg);
     }
 
@@ -95,12 +98,37 @@ public class TaskProxy {
         return this.taskModel.isRestart();
     }
 
+    public boolean requireMergePartition() {
+        Integer maxPartitionLevel = jobConfig.getMaxPartitionLevel();
+
+        return Objects.nonNull(maxPartitionLevel) && maxPartitionLevel >= 0;
+    }
+
+    public int getMaxPartitionLevel() {
+        Integer maxPartitionLevel = jobConfig.getMaxPartitionLevel();
+
+        if (Objects.isNull(maxPartitionLevel)) {
+            return -1;
+        }
+
+        return maxPartitionLevel;
+    }
+
     public void resetRestart() {
         taskService.resetRestart(taskModel.getId());
     }
 
     public TaskStatus getStatus() {
         return this.taskModel.getStatus();
+    }
+
+    public String getSubStatus() {
+        String status = this.taskModel.getSubStatus();
+        if (Objects.isNull(status)) {
+            return "";
+        }
+
+        return status;
     }
 
     public int getId() {
@@ -143,9 +171,18 @@ public class TaskProxy {
         return String.format("%s.`%s`", getOdpsProjectName(), getOdpsTableName());
     }
 
+    public TableSchema getOdpsTableSchema(boolean sameAsSrc) {
+        if (sameAsSrc) {
+            return getOdpsTableSchema();
+        }
+
+        OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1);
+    }
+
     public TableSchema getOdpsTableSchema() {
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema());
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel());
     }
 
     public int getPartitionNum() {
@@ -163,66 +200,87 @@ public class TaskProxy {
     /**
      * 获取 odps端partition value, partition value的type是经过转换后的odps type名称
      */
-    public List<PartitionValue> getOdpsPartitionValues() {
-        List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
-        List<MMAColumnSchema> mmaColumns = partitionColumns
-                .stream()
-                .map(MMAColumnSchema::fromOdpsColumn)
-                .collect(Collectors.toList());
-
-        List<PartitionModel> partitionModels = this.getPartitions();
-
-        return partitionModels
-                .stream()
-                .map(pm -> new PartitionValue(mmaColumns, pm.getValue()))
-                .collect(Collectors.toList());
-    }
-
-    public List<PartitionValue> getMergedOdpsPartitionValues(Integer maxPartitionLevel) {
-        List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
-
-        if (maxPartitionLevel == 0 || partitionColumns.size() < maxPartitionLevel) {
-            return getOdpsPartitionValues();
-        }
-
-        List<MMAColumnSchema> mmaColumns = partitionColumns
-                .subList(0, maxPartitionLevel)
-                .stream()
-                .map(MMAColumnSchema::fromOdpsColumn)
-                .collect(Collectors.toList());
-
-        List<PartitionModel> partitionModels = this.getPartitions();
-
-        return partitionModels
-                .stream()
-                .map(pm -> {
-                    String[] keyValues = pm.getValue().split("/");
-                    String value = "";
-
-                    for (int i = 0; i < maxPartitionLevel; i ++) {
-                        value += keyValues[i];
-
-                        if (i < maxPartitionLevel - 1) {
-                            value += "/";
-                        }
-                    }
-
-                    return new PartitionValue(mmaColumns, value);
-                })
-                .collect(Collectors.toList());
-    }
+//    public List<PartitionValue> getOdpsPartitionValues() {
+//        List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
+//        List<MMAColumnSchema> mmaColumns = partitionColumns
+//                .stream()
+//                .map(MMAColumnSchema::fromOdpsColumn)
+//                .collect(Collectors.toList());
+//
+//        List<PartitionModel> partitionModels = this.getPartitions();
+//
+//        return partitionModels
+//                .stream()
+//                .map(pm -> new PartitionValue(mmaColumns, pm.getValue()))
+//                .collect(Collectors.toList());
+//    }
 
     /**
      * 获取 原始partition value
      */
-    public List<PartitionValue> getOriginPartitionValues() {
-        List<MMAColumnSchema> columns = table.getTableSchema().getPartitions();
+    public List<PartitionValue> getSrcPartitionValues() {
+//        List<MMAColumnSchema> columns = table.getTableSchema().getPartitions();
+//        List<PartitionModel> partitionModels = this.getPartitions();
+//
+//        return partitionModels
+//                .stream()
+//                .map(pm -> new PartitionValue(columns, pm.getValue()))
+//                .collect(Collectors.toList());
+        return getDstOdpsPartitionValues();
+    }
+
+    public List<PartitionValue> getDstOdpsPartitionValues() {
+        List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
+
+        if (partitionColumns.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<MMAColumnSchema> mmaColumns = partitionColumns
+                .stream()
+                .map(MMAColumnSchema::fromOdpsColumn)
+                .collect(Collectors.toList());
+
         List<PartitionModel> partitionModels = this.getPartitions();
 
-        return partitionModels
-                .stream()
-                .map(pm -> new PartitionValue(columns, pm.getValue()))
-                .collect(Collectors.toList());
+        int maxPartitionLevel = getMaxPartitionLevel();
+        // 等于0时，相当于把分区表转换为分分区表，会在上面if语句的时候就返回，不会走到这里
+        if (maxPartitionLevel > 0) {
+            Set<String> valueSet = new HashSet<>();
+
+
+            return partitionModels
+                    .stream()
+                    .map(pm -> {
+                        String[] keyValues = pm.getValue().split("/");
+                        String value = "";
+
+                        for (int i = 0; i < maxPartitionLevel; i ++) {
+                            value += keyValues[i];
+
+                            if (i < maxPartitionLevel - 1) {
+                                value += "/";
+                            }
+                        }
+
+                        if (valueSet.contains(value)) {
+                            return null;
+                        }
+
+                        valueSet.add(value);
+
+                        return new PartitionValue(mmaColumns, value);
+                    }).filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } else {
+            return partitionModels
+                    .stream()
+                    .map(pm -> {
+                        return new PartitionValue(mmaColumns, pm.getValue());
+                    })
+                    .collect(Collectors.toList());
+        }
     }
+
 
 }

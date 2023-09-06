@@ -82,7 +82,10 @@ public class HiveOssTaskExecutor extends TaskExecutor {
     @Override
     protected void _verifyData() throws Exception {
         CompletableFuture<Long> hiveCountFuture = hiveSelectCount();
-        CompletableFuture<Long> odpsCountFuture = odpsAction.selectCount((ins) -> this.odpsCountInstance = ins);
+        CompletableFuture<Long> odpsCountFuture = odpsAction.selectCount(
+                task.getOdpsTableFullName(),
+                (ins) -> this.odpsCountInstance = ins
+        );
 //        CompletableFuture<Long> externalCountFuture = odpsAction.selectCountExternalTable(
 //                (ins) -> this.ossCountInstance = ins
 //        );
@@ -156,7 +159,7 @@ public class HiveOssTaskExecutor extends TaskExecutor {
     }
 
     private List<String> getWhereConditionWithPartitions() {
-        return task.getOriginPartitionValues()
+        return task.getSrcPartitionValues()
                 .stream()
                 .map(pv -> pv.transfer(
                         (name, type, value) -> String.format("%s=cast('%s' AS %s)", name, value, type),

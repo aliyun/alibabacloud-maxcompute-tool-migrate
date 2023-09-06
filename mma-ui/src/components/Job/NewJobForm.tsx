@@ -241,39 +241,47 @@ export const NewJobForm = (
                                     }
                                 })()}
 
-                                <ProForm.Group labelLayout='inline'>
-                                    <ProFormSwitch
-                                        labelCol={{ span: 12 }}
-                                        //colProps={{ md: 12, xl: 8 }}
-                                        colProps={{ span: 6 }}
-                                        initialValue={false}
-                                        label="合并分区"
-                                        name="merge_partition_enabled"
-                                    />
-
-                                    <ProFormDependency name={['merge_partition_enabled']}>
-                                        {({ merge_partition_enabled }) => {
-                                            console.log("*****", merge_partition_enabled);
-
-                                            if (merge_partition_enabled) {
-                                                return (
-                                                    <ProFormDigit
+                                <ProFormDependency name={['task_type']}>
+                                    {({task_type}) => {
+                                        if (task_type != 'ODPS') {
+                                            return (
+                                                <ProForm.Group labelLayout='inline'>
+                                                    <ProFormSwitch
                                                         labelCol={{ span: 12 }}
-                                                        colProps={{ span: 8 }}
-                                                        label="最大分区层数"
-                                                        name="max_partition_level"
-                                                        min={0}
-                                                        max={10}
-                                                        fieldProps={{ precision: 0 }}
-                                                        width="xs"
+                                                        //colProps={{ md: 12, xl: 8 }}
+                                                        colProps={{ span: 6 }}
+                                                        initialValue={false}
+                                                        label="合并分区"
+                                                        name="merge_partition_enabled"
                                                     />
-                                                )
-                                            } else {
-                                                return <></>
-                                            }
-                                        }}
-                                    </ProFormDependency>
-                                </ProForm.Group>
+
+                                                    <ProFormDependency name={['merge_partition_enabled']}>
+                                                        {({ merge_partition_enabled }) => {
+                                                            console.log("*****", merge_partition_enabled);
+
+                                                            if (merge_partition_enabled) {
+                                                                return (
+                                                                    <ProFormDigit
+                                                                        labelCol={{ span: 12 }}
+                                                                        colProps={{ span: 8 }}
+                                                                        label="最大分区层数"
+                                                                        name="max_partition_level"
+                                                                        min={0}
+                                                                        max={10}
+                                                                        fieldProps={{ precision: 0 }}
+                                                                        width="xs"
+                                                                    />
+                                                                )
+                                                            } else {
+                                                                return <></>
+                                                            }
+                                                        }}
+                                                    </ProFormDependency>
+                                                </ProForm.Group>
+                                            )
+                                        }
+                                    }}
+                                </ProFormDependency>
 
                                 <ProFormSwitch
                                     colProps={{
@@ -299,6 +307,23 @@ export const NewJobForm = (
                                     label="只迁schema"
                                     name="schema_only"
                                 />
+                                <ProFormDependency name={['task_type']}>
+                                    {({task_type}) => {
+                                        if (task_type == "HIVE_MERGED_TRANS" || task_type == "ODPS_MERGED_TRANS") {
+                                            return (
+                                                <ProFormSwitch
+                                                    colProps={{
+                                                        span: 24,
+                                                    }}
+                                                    initialValue={false}
+                                                    label="不拆分分区"
+                                                    name="no_unmerge_partition"
+                                                />
+                                            )
+
+                                        }
+                                    }}
+                                </ProFormDependency>
                                 <ProFormList name="partition_filters" label="分区过滤">
                                     <ProFormGroup key="group">
                                         <ProFormSelect showSearch  name="srcTable" valueEnum={tableEnum} colProps={{span: 10}} placeholder="请输入源表" />

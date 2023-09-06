@@ -18,13 +18,11 @@ import java.util.concurrent.CompletableFuture;
 public class Mc2McVerifyTaskExecutor extends TaskExecutor {
     Logger logger = LoggerFactory.getLogger(Mc2McVerifyTaskExecutor.class);
 
-    OdpsUtils sourceOdpsUtils;
     OdpsAction sourceOdpsAction;
 
     Instance odpsSrcIns;
     Instance odpsDstIns;
 
-    @Autowired
     public Mc2McVerifyTaskExecutor() {
         super();
     }
@@ -50,8 +48,14 @@ public class Mc2McVerifyTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> destCountFuture = odpsAction.selectCount((instance -> this.odpsDstIns = instance));
-        CompletableFuture<Long> srcCountFuture = sourceOdpsAction.selectCount((instance -> this.odpsSrcIns = instance));
+        CompletableFuture<Long> destCountFuture = odpsAction.selectCount(
+                task.getOdpsTableFullName(),
+                (instance -> this.odpsDstIns = instance)
+        );
+        CompletableFuture<Long> srcCountFuture = sourceOdpsAction.selectCount(
+                task.getTableFullName(),
+                (instance -> this.odpsSrcIns = instance)
+        );
         srcCountFuture.join();
 
         VerificationAction.countResultCompare("source odps", srcCountFuture.get(),

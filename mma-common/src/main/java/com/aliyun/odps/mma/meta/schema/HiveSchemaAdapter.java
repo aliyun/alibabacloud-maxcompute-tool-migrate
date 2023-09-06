@@ -11,7 +11,9 @@ import com.aliyun.odps.type.TypeInfo;
 import com.aliyun.odps.type.TypeInfoFactory;
 import com.aliyun.odps.type.TypeInfoParser;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 @Component
@@ -30,24 +32,12 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
     String[] specialChars = new String[] {"#", "$"};
 
     @Override
-    public TableSchema toOdpsSchema(MMATableSchema mmaTableSchema) {
-        TableSchema tableSchema = new TableSchema();
-        mmaTableSchema.getColumns().forEach(columnSchema -> {
-            tableSchema.addColumn(convertToOdpsColumn(columnSchema));
-        });
-
-        mmaTableSchema.getPartitions().forEach(partitionSchema -> {
-            tableSchema.addPartitionColumn(convertToOdpsPartitionColumn(partitionSchema));
-        });
-        return tableSchema;
-    }
-
-    @Override
     public SourceType sourceType() {
         return SourceType.HIVE;
     }
 
-    private Column convertToOdpsColumn(MMAColumnSchema columnSchema) {
+    @Override
+    public Column convertToOdpsColumn(MMAColumnSchema columnSchema) {
         // hive type string => odps TypeInfo
         // 1. all decimal(m,n) => decimal(36,18)
         // 2. all CHAR => STRING
@@ -62,7 +52,8 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
         return new Column(columnName, typeInfo, comment);
     }
 
-    private Column convertToOdpsPartitionColumn(MMAColumnSchema columnSchema) {
+    @Override
+    public Column convertToOdpsPartitionColumn(MMAColumnSchema columnSchema) {
         String type = columnSchema.getType().toUpperCase();
         TypeInfo odpsType = TypeInfoFactory.getPrimitiveTypeInfo(OdpsType.STRING);
         if (Arrays.asList(odpsPartitionTypes).contains(type)) {
@@ -95,5 +86,13 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
         }
 
         return columnName;
+    }
+
+    public static void main(String[] args) {
+        List<Integer> x = new ArrayList<>();
+        x.add(1);
+        x.add(2);
+
+        System.out.println(x.subList(0, 0).size());
     }
 }

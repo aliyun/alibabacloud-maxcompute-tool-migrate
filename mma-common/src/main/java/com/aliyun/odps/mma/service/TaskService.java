@@ -18,6 +18,7 @@ public interface TaskService {
     int getTasksCount(TaskFilter taskFilter);
     void addTaskLog(TaskLog taskLog);
     void updateTaskStatus(TaskModel task);
+    void updateTaskSubStatus(TaskModel task);
     void updateTaskStatus(int taskId, TaskStatus taskStatus);
     void setTaskStart(int taskId);
     void setTaskEnd(int taskId);

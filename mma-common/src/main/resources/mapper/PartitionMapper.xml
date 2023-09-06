@@ -78,7 +78,8 @@
         </where>
     </select>
 
-    <insert id="insertPartition" parameterType="com.aliyun.odps.mma.model.PartitionModel" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+<!--    <insert id="insertPartition" parameterType="com.aliyun.odps.mma.model.PartitionModel" useGeneratedKeys="true" keyProperty="id" keyColumn="id">-->
+    <insert id="insertPartition" parameterType="com.aliyun.odps.mma.model.PartitionModel">
         insert into partition_model
        (source_id, db_id, table_id, db_name, table_name, value,
         status,

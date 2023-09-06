@@ -4,10 +4,7 @@ import static com.aliyun.odps.mma.util.PebbleUtils.renderTpl;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -17,7 +14,6 @@ import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.meta.HiveUtils;
 import com.aliyun.odps.mma.util.ListUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -52,7 +48,6 @@ public class HiveTaskExecutor extends TaskExecutor {
     private static final String UDTF_TPL_FILE = "tpl/udtf.peb";
     private static final String COUNT_TPL_FILE = "tpl/count.peb";
 
-    @Autowired
     public HiveTaskExecutor() {
         super();
     }
@@ -87,7 +82,10 @@ public class HiveTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> odpsCountFuture = odpsAction.selectCount((ins) -> this.odpsIns = ins);
+        CompletableFuture<Long> odpsCountFuture = odpsAction.selectCount(
+                task.getOdpsTableFullName(),
+                (ins) -> this.odpsIns = ins
+        );
 
         if (!countByUDTF) {
             CompletableFuture<Void> hiveCountFuture = CompletableFuture.runAsync(() -> {
@@ -142,11 +140,6 @@ public class HiveTaskExecutor extends TaskExecutor {
 
     public String getUDTFSql() throws MMATaskInterruptException {
         // get hive & odps column name list
-        MMATableSchema hiveTableSchema = task.getTable().getTableSchema();
-
-        List<MMAColumnSchema> columns = hiveTableSchema.getColumns();
-        List<MMAColumnSchema> ptColumns = hiveTableSchema.getPartitions();
-
         TableSchema odpsTableSchema = task.getOdpsTableSchema();
         List<String> odpsColumnNames = ListUtils.map(odpsTableSchema.getColumns(), Column::getName);
         List<String> odpsPartitionColumns = ListUtils.map(odpsTableSchema.getPartitionColumns(), Column::getName);
@@ -154,12 +147,14 @@ public class HiveTaskExecutor extends TaskExecutor {
         JobConfig jobConfig = task.getJobConfig();
         int maxPartitionLevel = jobConfig.getMaxPartitionLevel();
 
-        if (maxPartitionLevel > 0 && ptColumns.size() > maxPartitionLevel) {
+        MMATableSchema hiveTableSchema = task.getTable().getTableSchema();
+
+        List<MMAColumnSchema> columns = new ArrayList<>(hiveTableSchema.getColumns());
+        List<MMAColumnSchema> ptColumns = new ArrayList<>(hiveTableSchema.getPartitions());
+
+        if (maxPartitionLevel >= 0 && ptColumns.size() > maxPartitionLevel) {
             columns.addAll(ptColumns.subList(maxPartitionLevel, ptColumns.size()));
             ptColumns = ptColumns.subList(0, maxPartitionLevel);
-
-            odpsColumnNames.addAll(odpsPartitionColumns.subList(maxPartitionLevel, odpsPartitionColumns.size()));
-            odpsPartitionColumns = odpsPartitionColumns.subList(0, maxPartitionLevel);
         }
 
         List<String> hiveColumnNames = ListUtils.map(columns, (c) -> String.format("`%s`", c.getName()));
@@ -178,7 +173,6 @@ public class HiveTaskExecutor extends TaskExecutor {
         ctx.put("hiveDb", task.getDbName());
         ctx.put("hiveTable", task.getTableName());
         ctx.put("partitionSpecs", getWhereConditionWithPartitions());
-        ctx.put("ptColumns", task.getTable().getTableSchema().getPartitions());
 
         return renderTpl(UDTF_TPL_FILE, ctx);
     }
@@ -195,7 +189,7 @@ public class HiveTaskExecutor extends TaskExecutor {
     }
 
     private List<String> getWhereConditionWithPartitions() {
-        return task.getOriginPartitionValues()
+        return task.getSrcPartitionValues()
                 .stream()
                 .map(pv -> pv.transfer(
                         (name, type, value) -> String.format("`%s`=cast('%s' AS %s)", name, value, type),

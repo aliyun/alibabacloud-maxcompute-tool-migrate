@@ -18,7 +18,7 @@ public class CommonPartitionGrouping implements PartitionGrouping {
     }
 
     public List<List<PartitionModel>> group(List<PartitionModel> partitions) {
-        if (partitions.size() == 0) {
+        if (partitions.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -30,6 +30,11 @@ public class CommonPartitionGrouping implements PartitionGrouping {
 
         List<List<PartitionModel>> groups = new LinkedList<>();
         List<PartitionModel> group = new ArrayList<>();
+
+        if (maxPartitionNum <= 0 && maxPartitionSize <=0) {
+            groups.add(partitions);
+            return groups;
+        }
 
         for (PartitionModel pm: partitions) {
             size += pm.getSizeOpt().orElse(0L);
@@ -45,7 +50,7 @@ public class CommonPartitionGrouping implements PartitionGrouping {
             }
         }
 
-        if (group.size() > 0) {
+        if (!group.isEmpty()) {
             groups.add(group);
         }
 

@@ -3,10 +3,7 @@ package com.aliyun.odps.mma.orm;
 import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.config.PartitionFilter;
-import com.aliyun.odps.mma.constant.JobType;
-import com.aliyun.odps.mma.constant.MigrationStatus;
-import com.aliyun.odps.mma.constant.TaskStatus;
-import com.aliyun.odps.mma.constant.TaskType;
+import com.aliyun.odps.mma.constant.*;
 import com.aliyun.odps.mma.execption.JobConfigException;
 import com.aliyun.odps.mma.execption.JobSubmittingException;
 import com.aliyun.odps.mma.model.*;
@@ -74,6 +71,12 @@ public class JobProxy {
     public int submit() throws JobSubmittingException {
         String dsName = jobModel.getSourceName();
         String dbName = jobModel.getDbName();
+
+        TaskType taskType = jobConfig.getTaskType();
+
+        if (taskType == TaskType.ODPS && jobConfig.getMaxPartitionLevel() >= 0) {
+            throw new JobSubmittingException(String.format("%s类型任务不支持合并分区", TaskTypeName.getName(taskType)));
+        }
 
         switch (this.jobModel.getType()) {
             case Database:
@@ -145,7 +148,7 @@ public class JobProxy {
         logger.info("start to get running task for {} partitions and {} tables", partitionIds.size(), tableIds.size());
         List<TaskModel> existedTasks = taskService.getRunningTasks(partitionIds, tableIds);
         logger.info("success to get running task for {} partitions and {} tables", partitionIds.size(), tableIds.size());
-        if (existedTasks.size() > 0) {
+        if (!existedTasks.isEmpty()) {
             throw newException(existedTasks);
         }
 
@@ -240,7 +243,7 @@ public class JobProxy {
         }
 
         // 分区表如果没有分区的话只建schema
-        if (partitions.size() == 0) {
+        if (partitions.isEmpty()) {
             TaskModel task = tb.build();
             tasks.add(task);
             return tasks;

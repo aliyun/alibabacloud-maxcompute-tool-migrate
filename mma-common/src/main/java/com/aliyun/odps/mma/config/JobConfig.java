@@ -4,6 +4,7 @@ import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.task.CommonPartitionGrouping;
 import com.aliyun.odps.mma.task.HivePartitionGrouping;
+import com.aliyun.odps.mma.task.MergedPartitionGrouping;
 import com.aliyun.odps.mma.task.PartitionGrouping;
 import com.aliyun.odps.mma.util.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -45,7 +46,11 @@ public class JobConfig {
     // 比如: maxPartitionLevel=2, 分区为p1,p2,p3,p4，则把p4, p3
     // 作为普通列，p1, p2作为分区列
     @JsonProperty("max_partition_level")
-    int maxPartitionLevel;
+    Integer maxPartitionLevel;
+    @JsonProperty("enable_merged_transport")
+    boolean enableMergedTransport;
+    @JsonProperty("no_unmerge_partition")
+    boolean noUnMergePartition;
 
     @JsonIgnore
     MMAConfig mmaConfig;
@@ -190,6 +195,12 @@ public class JobConfig {
 
     @JsonIgnore
     public PartitionGrouping getPartitionGrouping() {
+        if (this.taskType == TaskType.HIVE_MERGED_TRANS || this.taskType == TaskType.ODPS_MERGED_TRANS) {
+            return new CommonPartitionGrouping(0, 0);
+        }
+
+        int maxPtLevel = this.getMaxPartitionLevel();
+
         switch (this.getSourceConfig().getSourceType()) {
             case HIVE:
                 if (Objects.nonNull(others)) {
@@ -205,10 +216,16 @@ public class JobConfig {
                     }
 
                     if (maxSizeObj instanceof Integer) {
-                       maxSize = (int)maxSizeObj;
+                        maxSize = (int)maxSizeObj;
                     }
 
-                    return new HivePartitionGrouping(maxNum, maxSize);
+
+                    HivePartitionGrouping grouping = new HivePartitionGrouping(maxNum, maxSize);
+                    if (maxPtLevel < 0) {
+                        return grouping;
+                    }
+
+                    return new MergedPartitionGrouping(maxPtLevel, maxNum, grouping);
                 }
             case ODPS:
                 if (TaskType.MC2MC_VERIFY == this.taskType || TaskType.ODPS_INSERT_OVERWRITE == this.taskType) {
@@ -221,11 +238,26 @@ public class JobConfig {
                         maxNum = (int)maxNumObj;
                     }
 
-                    return new CommonPartitionGrouping(maxNum, -1);
+                    CommonPartitionGrouping grouping = new CommonPartitionGrouping(maxNum, -1);
+                    if (maxPtLevel < 0) {
+                        return grouping;
+                    }
+
+                    return new MergedPartitionGrouping(maxPtLevel, maxNum, grouping);
                 }
             default:
                 break;
         }
+
         return this.sourceConfig.getPartitionGrouping();
+    }
+
+
+    public int getMaxPartitionLevel() {
+        if (Objects.isNull(maxPartitionLevel)) {
+            return -1;
+        }
+
+        return maxPartitionLevel;
     }
 }

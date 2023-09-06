@@ -30,3 +30,4 @@ config.db
 /.husky
 /.fleet
 .java-version
+/mma-server/src/main/resources/static/

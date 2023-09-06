@@ -7,7 +7,7 @@ import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
 import com.aliyun.odps.mma.service.DbService;
-import com.aliyun.odps.mma.sql.OdpsSql;
+import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.sql.PartitionValue;
 import com.aliyun.odps.mma.util.OdpsUtils;
 import com.aliyun.odps.task.CopyTask;
@@ -38,15 +38,9 @@ public class CopyTaskExecutor extends TaskExecutor {
     Instance dataTransInstance;
     Instance srcCountInstance;
     Instance destCountInstance;
-    DbService dbService;
     Datasource.Direction copyTaskDirection;
     OdpsUtils odpsUtils;
 
-    @Autowired
-    public CopyTaskExecutor(DbService dbService) {
-        super();
-        this.dbService = dbService;
-    }
 
     @Override
     protected void setUp() {
@@ -112,8 +106,14 @@ public class CopyTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> destCountFuture = odpsAction.selectCount((ins) -> this.destCountInstance = ins);
-        CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectCount((ins) -> this.srcCountInstance = ins);
+        CompletableFuture<Long> destCountFuture = odpsAction.selectCount(
+                task.getOdpsTableFullName(),
+                (ins) -> this.destCountInstance = ins
+        );
+        CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectCount(
+                task.getTableFullName(),
+                (ins) -> this.srcCountInstance = ins
+        );
         sourceCountFuture.join();
 
         VerificationAction.countResultCompare(
@@ -141,13 +141,23 @@ public class CopyTaskExecutor extends TaskExecutor {
         String destProject = task.getOdpsProjectName();
         String destTable = task.getOdpsTableName();
 
-        List<PartitionValue> ptValues = task.getOdpsPartitionValues();
-        String partitions = "";
+        List<PartitionValue> srcPtValues = task.getSrcPartitionValues();
+        String srcPartitions = "";
 
-        if (ptValues.size() > 0) { // 大于0的话永远会是1
-            partitions = ptValues.get(0).transfer(
-                    (name, type, value) -> String.format("%s=%s", name, OdpsSql.adaptOdpsPartitionValue(type, value)),
+        if (!srcPtValues.isEmpty()) { // 大于0的话永远会是1
+            srcPartitions = srcPtValues.get(0).transfer(
+                    (name, type, value) -> String.format("%s=%s", name, OdpsSqlUtils.adaptOdpsPartitionValue(type, value)),
                     ",");
+        }
+
+        List<PartitionValue> dstPtValues = task.getDstOdpsPartitionValues();
+        String dstPartitions = "";
+
+        if (!dstPtValues.isEmpty()) {
+            dstPartitions = dstPtValues.get(0).transfer(
+                    (name, type, value) -> String.format("%s=%s", name, OdpsSqlUtils.adaptOdpsPartitionValue(type, value)),
+                    ","
+            );
         }
 
         LocalDatasource local;
@@ -155,10 +165,10 @@ public class CopyTaskExecutor extends TaskExecutor {
 
         if (copyTaskDirection == Datasource.Direction.EXPORT) {
             // LOCAL, 运行copy task的地方，export模式下为源端
-            local = new LocalDatasource(copyTaskDirection, sourceProject, sourceTable, partitions);
+            local = new LocalDatasource(copyTaskDirection, sourceProject, sourceTable, srcPartitions);
 
             // 使用目的端的tunnel
-            tunnel = new TunnelDatasource(copyTaskDirection, destProject, destTable, partitions);
+            tunnel = new TunnelDatasource(copyTaskDirection, destProject, destTable, dstPartitions);
             String token = createToken(copyTaskDirection, destProject, destTable);
             tunnel.setAccountType("token");
             tunnel.setSignature(token);
@@ -172,10 +182,10 @@ public class CopyTaskExecutor extends TaskExecutor {
             }
         } else {
             // LOCAL, 运行copy task的地方，import模式下为目的端
-            local = new LocalDatasource(copyTaskDirection, destProject, destTable, partitions);
+            local = new LocalDatasource(copyTaskDirection, destProject, destTable, dstPartitions);
 
             // 使用源端的tunnel
-            tunnel = new TunnelDatasource(copyTaskDirection, sourceProject, sourceTable, partitions);
+            tunnel = new TunnelDatasource(copyTaskDirection, sourceProject, sourceTable, srcPartitions);
             String token = createToken(copyTaskDirection, sourceProject, sourceTable);
             tunnel.setAccountType("token");
             tunnel.setSignature(token);

@@ -61,6 +61,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public void updateTaskSubStatus(TaskModel task) {
+        taskMapper.updateTaskSubStatus(task);
+    }
+
+    @Override
     public void updateTaskStatus(int taskId, TaskStatus taskStatus) {
         TaskModel taskModel = new TaskModel();
         taskModel.setId(taskId);

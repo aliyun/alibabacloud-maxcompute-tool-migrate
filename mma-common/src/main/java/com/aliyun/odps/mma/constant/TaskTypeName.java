@@ -10,6 +10,8 @@ public class TaskTypeName {
         put(TaskType.ODPS_INSERT_OVERWRITE, "mc同region");
         put(TaskType.MC2MC_VERIFY, "mc校验");
         put(TaskType.HIVE_OSS, "OSS外表");
+        put(TaskType.HIVE_MERGED_TRANS, "hive UDTF合并传输");
+        put(TaskType.ODPS_MERGED_TRANS, "mc跨region合并传输");
     }};
 
     public static String getName(TaskType type) {

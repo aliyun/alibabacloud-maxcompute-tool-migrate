@@ -127,6 +127,7 @@ public class JobApi {
         switch (dsm.getType()) {
             case HIVE:
                 taskTypes.put(TaskType.HIVE, TaskTypeName.getName(TaskType.HIVE));
+                taskTypes.put(TaskType.HIVE_MERGED_TRANS, TaskTypeName.getName(TaskType.HIVE_MERGED_TRANS));
                 defaultTaskType = TaskType.HIVE;
                 break;
             case HIVE_OSS:
@@ -140,6 +141,7 @@ public class JobApi {
                 taskTypes.put(TaskType.ODPS, TaskTypeName.getName(TaskType.ODPS));
                 taskTypes.put(TaskType.ODPS_INSERT_OVERWRITE, TaskTypeName.getName(TaskType.ODPS_INSERT_OVERWRITE));
                 taskTypes.put(TaskType.MC2MC_VERIFY, TaskTypeName.getName(TaskType.MC2MC_VERIFY));
+                taskTypes.put(TaskType.ODPS_MERGED_TRANS, TaskTypeName.getName(TaskType.ODPS_MERGED_TRANS));
                 defaultTaskType = TaskType.ODPS_INSERT_OVERWRITE;
                 break;
             default:

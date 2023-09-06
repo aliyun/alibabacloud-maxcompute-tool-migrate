@@ -36,6 +36,8 @@ public class TaskManager implements InitializingBean {
     private final Map<Integer, Future<?>> taskFutures = new HashMap<>();
     private final Map<Integer, TaskExecutor> taskExecutors = new HashMap<>();
     private ApplicationEventPublisher publisher;
+    private boolean stoppingJob;
+
 
     public TaskManager(@Autowired MMAConfig config, ApplicationEventPublisher publisher) {
         this.config = config;
@@ -68,6 +70,10 @@ public class TaskManager implements InitializingBean {
         int executorAvailable = this.maxTaskNum - activeTasks;
 
         if (executorAvailable <= 0) {
+            return;
+        }
+
+        if (stoppingJob) {
             return;
         }
 
@@ -149,15 +155,19 @@ public class TaskManager implements InitializingBean {
 
     public void cancelJob(int jobId) {
         logger.info("try to stop job {} ", jobId);
+        stoppingJob = true;
         stopTaskExecutor(jobId);
         setJobStopped(jobId);
+        stoppingJob = false;
         logger.info("success to stop job {} ", jobId);
     }
 
     public void deleteJob(int jobId) {
         logger.info("try to delete job {} ", jobId);
+        stoppingJob = true;
         stopTaskExecutor(jobId);
         setJobDeleted(jobId);
+        stoppingJob = false;
         logger.info("success to delete job {} ", jobId);
     }
 

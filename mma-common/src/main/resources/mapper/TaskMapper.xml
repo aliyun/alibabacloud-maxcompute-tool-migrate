@@ -11,6 +11,7 @@
         <result column="table_name" property="tableName"/>
         <result column="odps_project" property="odpsProject"/>
         <result column="odps_table" property="odpsTable"/>
+        <result column="sub_status" property="subStatus"/>
         <result column="retried_times" property="retriedTimes"/>
         <result column="start_time"  property="startTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
         <result column="end_time"  property="endTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
@@ -165,6 +166,14 @@
             task
         set
             status=#{status}
+        where id=#{id};
+    </update>
+
+    <update id="updateTaskSubStatus" parameterType="com.aliyun.odps.mma.model.TaskModel">
+        update
+            task
+        set
+            sub_status=#{subStatus}
         where id=#{id};
     </update>
 

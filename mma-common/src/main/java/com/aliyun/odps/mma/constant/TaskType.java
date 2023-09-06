@@ -23,5 +23,7 @@ public enum TaskType {
      *
      */
     OSS,
-    HIVE_OSS
+    HIVE_OSS,
+    HIVE_MERGED_TRANS,
+    ODPS_MERGED_TRANS
 }

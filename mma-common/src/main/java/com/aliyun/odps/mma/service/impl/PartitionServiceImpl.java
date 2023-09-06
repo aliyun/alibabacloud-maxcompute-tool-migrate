@@ -93,6 +93,16 @@ public class PartitionServiceImpl implements PartitionService {
     @Override
     @Transactional
     public void batchInsertPartitions(List<PartitionModel> pmList) {
+        int maxBatch = 50*10000;
+        StepIter<PartitionModel> tableStepIter = new StepIter<>(pmList, maxBatch);
+
+        for (List<PartitionModel> subList: tableStepIter) {
+            _batchInsertPartitions(subList);
+        }
+    }
+
+    @Transactional
+    public void _batchInsertPartitions(List<PartitionModel> pmList) {
         try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
             PartitionMapper mapper = sqlSession.getMapper(PartitionMapper.class);
 
@@ -105,17 +115,17 @@ public class PartitionServiceImpl implements PartitionService {
 
         // batch提交的时候，mybatis只能获取最后一个id，把这个id设置给pmList的第一个元素。
         // 所以，所有元素的id需要自己计算出来
-        int n = pmList.size();
-        if (n > 0) {
-            PartitionModel firstPm = pmList.get(0);
-            int lastId = firstPm.getId();
-            int offset = lastId - n + 1;
-
-            for (int i = n - 1; i >= 0; i --) {
-                PartitionModel pm = pmList.get(i);
-                pm.setId(offset + i);
-            }
-        }
+//        int n = pmList.size();
+//        if (n > 0) {
+//            PartitionModel firstPm = pmList.get(0);
+//            int lastId = firstPm.getId();
+//            int offset = lastId - n + 1;
+//
+//            for (int i = n - 1; i >= 0; i --) {
+//                PartitionModel pm = pmList.get(i);
+//                pm.setId(offset + i);
+//            }
+//        }
     }
 
     @Override

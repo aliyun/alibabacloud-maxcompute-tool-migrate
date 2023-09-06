@@ -27,6 +27,7 @@ public class TaskModel {
     private String odpsTable;
     private TaskType type;
     private TaskStatus status;
+    private String subStatus;
     private boolean stopped;
     private boolean restart;
     private Integer retriedTimes = 0;

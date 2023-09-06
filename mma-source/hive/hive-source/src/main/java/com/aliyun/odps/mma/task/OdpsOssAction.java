@@ -1,20 +1,23 @@
 package com.aliyun.odps.mma.task;
 
-import java.security.Key;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 
+import com.aliyun.odps.Column;
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.config.HiveOssConfig;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
 import com.aliyun.odps.mma.model.TableModel;
-import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.orm.TaskProxy;
+import com.aliyun.odps.mma.sql.OdpsSqlUtils;
+import com.aliyun.odps.mma.sql.PartitionValue;
 import com.aliyun.odps.mma.util.KeyLock;
 import com.aliyun.odps.mma.util.OdpsUtils;
 
@@ -56,7 +59,7 @@ public class OdpsOssAction extends OdpsAction {
 //            storageType = ossConfig.getOdpsFileFormatByInputFormat(inputFormat);
 //        }
 
-        String sql = odpsSql.createExternalTableSql(
+        String sql = OdpsSqlUtils.createExternalTableSql(
                 odpsTempOssTableFullName,
                 task.getOdpsTableSchema(),
                 serde,
@@ -73,10 +76,20 @@ public class OdpsOssAction extends OdpsAction {
     }
 
     public void addPartitionsToExternalTable() throws MMATaskInterruptException {
-        if (!hasPartition) {
+        if (! task.getTable().isPartitionedTable()) {
             return;
         }
-        String sql = odpsSql.addPartitionsSql(odpsTempOssTableFullName);
+
+        List<PartitionValue> ptValues = task.getSrcPartitionValues();
+        if (ptValues.isEmpty()) {
+            return;
+        }
+
+        String sql = OdpsSqlUtils.addPartitionsSql(
+                odpsTempOssTableFullName,
+                ptValues
+        );
+
         wrapWithTryCatch(sql, () -> {
             try (KeyLock keyLock = new KeyLock(odpsTempOssTableFullName)) {
                 keyLock.lock();
@@ -93,11 +106,20 @@ public class OdpsOssAction extends OdpsAction {
     }
 
     public CompletableFuture<Long> selectCountExternalTable(Consumer<Instance> insGetter) throws MMATaskInterruptException {
-        return getCountFuture(odpsSql.selectCountSql(odpsTempOssTableFullName), insGetter, null);
+        String sql = OdpsSqlUtils.selectCountSql(odpsTempOssTableFullName, task.getSrcPartitionValues());
+        return getCountFuture(sql, insGetter, null);
     }
 
     public void insertOverwriteFromOssToMc(Map<String, String> hints, Consumer<Instance> insGetter) throws MMATaskInterruptException {
-        String sql = odpsSql.insertOverwriteSql(odpsTempOssTableFullName, task.getOdpsTableFullName());
+        TableSchema tableSchema = task.getOdpsTableSchema();
+
+        String sql = OdpsSqlUtils.insertOverwriteSql(
+                odpsTempOssTableFullName,
+                task.getOdpsTableFullName(),
+                tableSchema,
+                task.getSrcPartitionValues()
+        );
+
         wrapWithTryCatch(sql, () -> {
             Instance instance = executeSql(sql, hints);
             insGetter.accept(instance);
