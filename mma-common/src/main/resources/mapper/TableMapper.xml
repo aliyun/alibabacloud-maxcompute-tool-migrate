@@ -68,12 +68,12 @@
 
     <insert id="insertTable" parameterType="com.aliyun.odps.mma.model.TableModel" useGeneratedKeys="true"
             keyProperty="id" keyColumn="id">
-        insert into table_model (source_id, db_id, db_name, name, type, has_partitions,
+        insert into table_model (source_id, db_id, db_name, name, type, lifecycle, has_partitions,
                                  status,
                                  size, num_rows,
                                  table_schema,
                                  last_ddl_time, owner, location, input_format, output_format, serde, extra)
-        values (#{sourceId}, #{dbId}, #{dbName}, #{name}, #{type}, #{hasPartitions},
+        values (#{sourceId}, #{dbId}, #{dbName}, #{name}, #{type}, #{lifecycle}, #{hasPartitions},
                 #{status},
                 #{size}, #{numRows},
                 #{schema, typeHandler=com.aliyun.odps.mma.util.TableSchemaHandler},

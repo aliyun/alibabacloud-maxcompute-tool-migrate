@@ -17,9 +17,6 @@ import com.aliyun.odps.task.copy.TunnelDatasource;
 import com.aliyun.oss.common.auth.HmacSHA1Signature;
 import com.google.gson.JsonObject;
 import org.apache.commons.codec.binary.Base64;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -28,20 +25,23 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class CopyTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(CopyTaskExecutor.class);
+public class CopyTaskMergedTransExecutor extends MergedTransportTaskExecutor {
 
     OdpsUtils sourceOdpsUtils;
     OdpsAction sourceOdpsAction;
     Instance dataTransInstance;
     Instance srcCountInstance;
     Instance destCountInstance;
+
     Datasource.Direction copyTaskDirection;
     OdpsUtils odpsUtils;
 
+    @Override
+    public TaskType taskType() {
+        return TaskType.ODPS_MERGED_TRANS;
+    }
 
     @Override
     protected void setUp() {
@@ -59,28 +59,31 @@ public class CopyTaskExecutor extends TaskExecutor {
     }
 
     @Override
-    public TaskType taskType() {
-        return TaskType.ODPS;
-    }
-
-    @Override
     protected void _setUpSchema() throws Exception {
         odpsAction.createTableIfNotExists();
-
-        if (copyTaskDirection == Datasource.Direction.IMPORT) {
-            odpsAction.addPartitions();
-        }
     }
 
     @Override
-    protected void _dataTruncate() throws Exception {
-        if (copyTaskDirection == Datasource.Direction.IMPORT) {
-            odpsAction.truncate();
-        }
+    protected void _mergeSourceTable() throws Exception {
+        String srcTempTableName = String.format("%s.%s", task.getDbName(), getTempTableName());
+
+        String dropTableSql = "drop table if exists " + srcTempTableName + ";";
+        executeSrcOdpsSql(dropTableSql, null);
+
+
+        String createTempTableSqlTpl = "create table %s lifecycle %d as select * from %s ;";
+        String createTempTableSql = String.format(
+                createTempTableSqlTpl,
+                srcTempTableName, DEFAULT_TEMP_TABLE_LIFECYCLE, task.getTableFullName()
+        );
+
+        Map<String, String> hints = new HashMap<>();
+        hints.put("odps.sql.allow.fullscan", "true");
+        executeSrcOdpsSql(createTempTableSql, hints);
     }
 
     @Override
-    protected void _dataTrans() throws Exception {
+    public void _dataMergedTrans() throws Exception {
         CopyTask copyTask = createCopyTask();
 
         try {
@@ -107,21 +110,42 @@ public class CopyTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> destCountFuture = odpsAction.selectCount(
-                task.getOdpsTableFullName(),
-                (ins) -> this.destCountInstance = ins
-        );
-        CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectCount(
-                task.getTableFullName(),
+        CompletableFuture<Long> destCountFuture;
+        String dstTable;
+        String srcTable = String.format("%s.%s", task.getDbName(), getTempTableName());
+
+
+        if (!jobConfig.isNoUnMergePartition()) {
+            dstTable = task.getOdpsTableFullName();
+            destCountFuture = odpsAction.selectMergedCount(
+                    dstTable,
+                    (ins) -> this.destCountInstance = ins
+            );
+        } else {
+            dstTable = String.format("%s.%s", task.getOdpsProjectName(), getTempTableName());
+            destCountFuture = odpsAction.selectMergedCount(
+                    dstTable,
+                    (ins) -> this.destCountInstance = ins
+            );
+        }
+
+        CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectMergedCount(
+                srcTable,
                 (ins) -> this.srcCountInstance = ins
         );
         sourceCountFuture.join();
 
         VerificationAction.countResultCompare(
-                "src odps", sourceCountFuture.get(),
-                "dest odps", destCountFuture.get(),
+                "src odps table " + srcTable, sourceCountFuture.get(),
+                "dest odps table " + dstTable, destCountFuture.get(),
                 task
         );
+    }
+
+    private void executeSrcOdpsSql(String sql, Map<String, String> hints) throws Exception {
+        odpsAction.wrapWithTryCatch(sql, () -> {
+            this.odpsIns = sourceOdpsAction.executeSql(sql, hints);
+        });
     }
 
     @Override
@@ -138,38 +162,19 @@ public class CopyTaskExecutor extends TaskExecutor {
 
     private CopyTask createCopyTask() throws Exception {
         String sourceProject = task.getDbName();
-        String sourceTable = task.getTableName();
+        String sourceTable = getTempTableName();
         String destProject = task.getOdpsProjectName();
-        String destTable = task.getOdpsTableName();
-
-        List<PartitionValue> srcPtValues = task.getSrcPartitionValues();
-        String srcPartitions = "";
-
-        if (!srcPtValues.isEmpty()) { // 大于0的话永远会是1
-            srcPartitions = srcPtValues.get(0).transfer(
-                    (name, type, value) -> String.format("%s=%s", name, OdpsSqlUtils.adaptOdpsPartitionValue(type, value)),
-                    ",");
-        }
-
-        List<PartitionValue> dstPtValues = task.getDstOdpsPartitionValues();
-        String dstPartitions = "";
-
-        if (!dstPtValues.isEmpty()) {
-            dstPartitions = dstPtValues.get(0).transfer(
-                    (name, type, value) -> String.format("%s=%s", name, OdpsSqlUtils.adaptOdpsPartitionValue(type, value)),
-                    ","
-            );
-        }
+        String destTable = sourceTable;
 
         LocalDatasource local;
         TunnelDatasource tunnel;
 
         if (copyTaskDirection == Datasource.Direction.EXPORT) {
             // LOCAL, 运行copy task的地方，export模式下为源端
-            local = new LocalDatasource(copyTaskDirection, sourceProject, sourceTable, srcPartitions);
+            local = new LocalDatasource(copyTaskDirection, sourceProject, sourceTable, "");
 
             // 使用目的端的tunnel
-            tunnel = new TunnelDatasource(copyTaskDirection, destProject, destTable, dstPartitions);
+            tunnel = new TunnelDatasource(copyTaskDirection, destProject, destTable, "");
             String token = createToken(copyTaskDirection, destProject, destTable);
             tunnel.setAccountType("token");
             tunnel.setSignature(token);
@@ -183,10 +188,10 @@ public class CopyTaskExecutor extends TaskExecutor {
             }
         } else {
             // LOCAL, 运行copy task的地方，import模式下为目的端
-            local = new LocalDatasource(copyTaskDirection, destProject, destTable, dstPartitions);
+            local = new LocalDatasource(copyTaskDirection, destProject, destTable,  "");
 
             // 使用源端的tunnel
-            tunnel = new TunnelDatasource(copyTaskDirection, sourceProject, sourceTable, srcPartitions);
+            tunnel = new TunnelDatasource(copyTaskDirection, sourceProject, sourceTable, "");
             String token = createToken(copyTaskDirection, sourceProject, sourceTable);
             tunnel.setAccountType("token");
             tunnel.setSignature(token);
@@ -198,6 +203,7 @@ public class CopyTaskExecutor extends TaskExecutor {
             if (Objects.nonNull(srcTunnelEndpoint)) {
                 tunnel.setEndPoint(srcTunnelEndpoint);
             }
+
 
             String[] chinaRegions = new String[] {
                     "hangzhou",
@@ -273,7 +279,7 @@ public class CopyTaskExecutor extends TaskExecutor {
     }
 
     private String createToken(Datasource.Direction direction, String project, String table)
-        throws MMATaskInterruptException {
+            throws MMATaskInterruptException {
 
         // 1. setup policy
         String policy;
@@ -283,15 +289,15 @@ public class CopyTaskExecutor extends TaskExecutor {
         switch (direction.toString()) {
             case "EXPORT":
                 policy = "{\"Version\":\"1\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"odps:Describe\",\"odps:Update\",\"odps:Alter\",\"odps:Drop\",\"odps:Create\"],\"Resource\":\"acs:odps:*:"
-                         + tableUrl.toLowerCase()
-                         + "\"},{\"Effect\":\"Allow\",\"Action\":[\"odps:CreateInstance\"],\"Resource\":\"acs:odps:*:"
-                         + projectUrl.toLowerCase()
-                         + "\"},{\"Effect\":\"Allow\",\"Action\":[\"odps:Read\"],\"Resource\":\"acs:odps:*:"
-                         + instanceUrl.toLowerCase() + "\"}]}";
+                        + tableUrl.toLowerCase()
+                        + "\"},{\"Effect\":\"Allow\",\"Action\":[\"odps:CreateInstance\"],\"Resource\":\"acs:odps:*:"
+                        + projectUrl.toLowerCase()
+                        + "\"},{\"Effect\":\"Allow\",\"Action\":[\"odps:Read\"],\"Resource\":\"acs:odps:*:"
+                        + instanceUrl.toLowerCase() + "\"}]}";
                 break;
             case "IMPORT":
                 policy = "{\"Version\":\"1\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"odps:Describe\",\"odps:Select\",\"odps:Download\"],\"Resource\":\"acs:odps:*:"
-                         + tableUrl.toLowerCase() + "\"}]}";
+                        + tableUrl.toLowerCase() + "\"}]}";
                 break;
             default:
                 task.error("copy task create token", "Unknown Direction mode: " + direction);
@@ -320,7 +326,7 @@ public class CopyTaskExecutor extends TaskExecutor {
         String data = TOKEN_ALGORITHM_ID + TOKEN_TYPE + accessId + grantee + expires + policy;
         HmacSHA1Signature signer = new HmacSHA1Signature();
         String signature = signer.computeSignature(accessKey, data) + "#" + TOKEN_ALGORITHM_ID + "#" + TOKEN_TYPE
-                           + "#" + accessId + "#" + grantee + "#" + expires + "#" + policy;
+                + "#" + accessId + "#" + grantee + "#" + expires + "#" + policy;
         String base64Signature = new String(Base64.encodeBase64(signature.getBytes()));
 
         return TOKEN_VERSION + "." + base64Signature;

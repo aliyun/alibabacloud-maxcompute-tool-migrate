@@ -61,6 +61,10 @@ public class TableProxy {
         return this.tableModel.decimalOdps2();
     }
 
+    public Integer getLifeCycle() {
+        return this.tableModel.getLifecycle();
+    }
+
     public String getFullname() {
         return String.format("%s.%s.%s", tableModel.getSourceId(), tableModel.getDbName(), tableModel.getName());
     }

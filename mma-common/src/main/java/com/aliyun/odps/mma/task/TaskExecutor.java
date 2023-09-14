@@ -109,7 +109,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
             while (task.getStatus() != TaskStatus.DONE && !stopped) {
                 if (task.getStatus() == TaskStatus.SCHEMA_DONE) {
                     TableProxy table = task.getTable();
-                    // 分区表无分区的情况建完table后直接结束任务
+                    // 分区表无分区的情况建完task后直接结束任务
                     if (table.isPartitionedTable() && partitionNumOfTask == 0) {
                         publishTaskEvent();
                         updateMigrationTargetStatus(MigrationStatus.DONE);
@@ -243,9 +243,11 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         //task.log(String.format("create table %s if not exist", task.getOdpsTableFullName()), "");
 
         TableProxy table = task.getTable();
-        if (table.isPartitionedTable() && task.getPartitions().size() == 0) {
+        if (table.isPartitionedTable() && task.getPartitions().isEmpty()) {
             logger.info("{} has no partitions, only table creation is needed", task.getTaskName());
             task.setTaskEnd();
+            publishTaskEvent();
+            updateMigrationTargetStatus(MigrationStatus.DONE);
         }
     }
 

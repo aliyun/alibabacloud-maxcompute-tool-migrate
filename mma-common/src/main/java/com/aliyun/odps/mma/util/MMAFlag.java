@@ -5,14 +5,15 @@ import com.aliyun.odps.Odps;
 
 public class MMAFlag {
     public static String getMMAFlag(Odps odps) {
-        String tenantId = OdpsTenantGetter.getTenantId(odps);
-
-        return String.format("MMAv3:%s", tenantId);
+        return "MMAv3";
+        //String tenantId = OdpsTenantGetter.getTenantId(odps);
+        //return String.format("MMAv3:%s", tenantId);
     }
 
     public static String getSQLTaskName(Odps odps) {
-        String tenantId = OdpsTenantGetter.getTenantId(odps);
-
-        return String.format("MMAv3_%s", tenantId);
+        return "MMAv3";
+//        String tenantId = OdpsTenantGetter.getTenantId(odps);
+//
+//        return String.format("MMAv3_%s", tenantId);
     }
 }

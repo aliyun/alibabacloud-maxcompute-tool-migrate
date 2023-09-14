@@ -140,7 +140,7 @@ public class MetaDataStatusUpdater {
     }
 
     @Transactional
-    void updateTablesStatus(Map<MigrationStatus, List<Integer>> statusToTable) {
+    public void updateTablesStatus(Map<MigrationStatus, List<Integer>> statusToTable) {
         try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
             TableMapper tableMapper = sqlSession.getMapper(TableMapper.class);
 
@@ -160,7 +160,7 @@ public class MetaDataStatusUpdater {
     }
 
     @Transactional
-    void updateDbsStatus(Map<MigrationStatus, List<Integer>> statusTodb) {
+    public void updateDbsStatus(Map<MigrationStatus, List<Integer>> statusTodb) {
         try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
             DbMapper dbMapper = sqlSession.getMapper(DbMapper.class);
 

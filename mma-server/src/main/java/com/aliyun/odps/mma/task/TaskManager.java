@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -39,9 +40,15 @@ public class TaskManager implements InitializingBean {
     private boolean stoppingJob;
 
 
-    public TaskManager(@Autowired MMAConfig config, ApplicationEventPublisher publisher) {
+    public TaskManager(
+            @Autowired MMAConfig config,
+            ApplicationEventPublisher publisher,
+            @Value("${mma-version}") String mmaVersion
+    ) {
         this.config = config;
         this.publisher = publisher;
+
+        logger.info("MMA version is {}", mmaVersion);
     }
 
     @Autowired
@@ -79,7 +86,7 @@ public class TaskManager implements InitializingBean {
 
         // select * from tasks where restart=1 or status=INIT order by restart desc, job_id limit n
         List<TaskModel> tasks = taskService.getTasksAvailable(executorAvailable);
-        if (tasks.size() > 0) {
+        if (!tasks.isEmpty()) {
             logger.info("get available tasks num: {}", tasks.size());
         }
 

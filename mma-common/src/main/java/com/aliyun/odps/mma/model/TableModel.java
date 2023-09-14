@@ -17,6 +17,7 @@ public class TableModel extends ModelBase {
     private String dbName;
     private String name;
     private String type;
+    private Integer lifecycle;
     private boolean hasPartitions;
     private MMATableSchema schema;
     private String owner;

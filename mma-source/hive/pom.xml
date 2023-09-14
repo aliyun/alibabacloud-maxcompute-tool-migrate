@@ -21,7 +21,7 @@
 
     <modules>
         <module>hive-source</module>
-        <module>hive-udtf</module>
+<!--        <module>hive-udtf</module>-->
     </modules>
 
     <profiles>

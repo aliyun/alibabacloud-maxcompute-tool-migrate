@@ -111,6 +111,11 @@ public class OdpsMetaLoader implements MetaLoader {
             tm.setType("MANAGED_TABLE");
         }
 
+        long lifecycle = table.getLife();
+        if (lifecycle > 0) {
+            tm.setLifecycle((int)lifecycle);
+        }
+
         TableSchema odpsSchema = table.getSchema();
         MMATableSchema mmaSchema = new MMATableSchema(tableName);
 

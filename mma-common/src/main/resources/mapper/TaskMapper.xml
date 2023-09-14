@@ -263,8 +263,8 @@
 
         <select id="getTasksAvailable" resultMap="taskMap">
             select task.* from task join job on task.job_id=job.id
-            where (task.status='INIT' or task.restart=1) and task.stopped=0 and task.deleted=0 and job.stopped=0 and job.deleted=0
-            limit #{limit}
+            where (task.status='INIT' or task.restart=1) and task.stopped=0 and task.deleted=0 and job.stopped=0 and job.deleted=0a
+            order by task.restart desc, task.job_id limit #{limit}
         </select>
 
 <!--    <select id="getTasksAvailable" resultMap="taskMap">-->

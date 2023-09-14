@@ -83,7 +83,9 @@ public class OdpsAction {
                 task.getOdpsProjectName(),
                 task.getOdpsTableName(),
                 task.getOdpsTableSchema(),
-                null
+                null,
+                task.getTable().getLifeCycle()
+
         );
 
         task.log(sql, "try to create table: " + task.getOdpsTableFullName());
