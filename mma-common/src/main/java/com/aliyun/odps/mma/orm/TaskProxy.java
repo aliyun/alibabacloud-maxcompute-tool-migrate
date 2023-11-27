@@ -177,12 +177,12 @@ public class TaskProxy {
         }
 
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1);
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1, null);
     }
 
     public TableSchema getOdpsTableSchema() {
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel());
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel(), jobConfig.getColumnMapping());
     }
 
     public int getPartitionNum() {
@@ -219,35 +219,31 @@ public class TaskProxy {
      * 获取 原始partition value
      */
     public List<PartitionValue> getSrcPartitionValues() {
-//        List<MMAColumnSchema> columns = table.getTableSchema().getPartitions();
-//        List<PartitionModel> partitionModels = this.getPartitions();
-//
-//        return partitionModels
-//                .stream()
-//                .map(pm -> new PartitionValue(columns, pm.getValue()))
-//                .collect(Collectors.toList());
-        return getDstOdpsPartitionValues();
+        List<MMAColumnSchema> columns = table.getTableSchema().getPartitions();
+        return getOdpsPartitionValues(columns);
     }
 
     public List<PartitionValue> getDstOdpsPartitionValues() {
         List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
-
-        if (partitionColumns.isEmpty()) {
-            return Collections.emptyList();
-        }
-
         List<MMAColumnSchema> mmaColumns = partitionColumns
                 .stream()
                 .map(MMAColumnSchema::fromOdpsColumn)
                 .collect(Collectors.toList());
 
+        return getOdpsPartitionValues(mmaColumns);
+    }
+
+    private List<PartitionValue> getOdpsPartitionValues(List<MMAColumnSchema> mmaColumns) {
+        if (mmaColumns.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         List<PartitionModel> partitionModels = this.getPartitions();
 
         int maxPartitionLevel = getMaxPartitionLevel();
-        // 等于0时，相当于把分区表转换为分分区表，会在上面if语句的时候就返回，不会走到这里
+        // 等于0时，相当于把分区表转换为非分区表，会在上面if语句的时候就返回，不会走到这里
         if (maxPartitionLevel > 0) {
             Set<String> valueSet = new HashSet<>();
-
 
             return partitionModels
                     .stream()

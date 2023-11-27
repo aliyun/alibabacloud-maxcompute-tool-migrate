@@ -42,6 +42,7 @@ create table if not exists `table_model` (
     `schema_name` varchar (255) comment 'odps的三层模型中的schema',
     `name` varchar (255) not null comment '表名',
     `type` varchar(255) comment '表类型, 如managed, external',
+    `lifecycle` integer comment '表声明周期',
     `has_partitions` boolean not null comment '是否有分区',
     `status` char(50) comment '迁移状态',
     `size` bigint comment 'size in bytes',

@@ -18,19 +18,12 @@ public class OdpsToOdpsSchemaAdapter implements OdpsSchemaAdapter {
     }
 
     @Override
-    public Column convertToOdpsColumn(MMAColumnSchema columnSchema) {
-        TypeInfo typeInfo = TypeInfoParser.getTypeInfoFromTypeString(columnSchema.getType());
-
-        String comment = columnSchema.getComment();
-        if (Objects.nonNull(comment)) {
-            comment = comment.replace("'", "\\'");
-        }
-
-        return new Column(columnSchema.getName(), typeInfo, comment);
-    }
+    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema) {
+        return TypeInfoParser.getTypeInfoFromTypeString(columnSchema.getType());
+     }
 
     @Override
-    public Column convertToOdpsPartitionColumn(MMAColumnSchema columnSchema) {
-        return convertToOdpsColumn(columnSchema);
+    public TypeInfo convertToOdpsPartitionType(MMAColumnSchema columnSchema) {
+        return convertToOdpsType(columnSchema);
     }
 }

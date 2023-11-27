@@ -71,6 +71,17 @@ export const NewPartitionJobForm = (
                     }
                 }
 
+                let COLUMN_MAPPING = "column_mapping";
+                if (COLUMN_MAPPING in jobJson) {
+                    let columnMap = listFieldConverter(jobJson[COLUMN_MAPPING], "srcColumn", "dstColumn");
+
+                    if (Object.keys(columnMap).length > 0) {
+                        jobJson[COLUMN_MAPPING] = columnMap;
+                    } else {
+                        delete jobJson[COLUMN_MAPPING];
+                    }
+                }
+
                 jobJson["type"] = "partitions";
                 jobJson["increment"] = false;
                 jobJson["partitions"] = props.partitions.map(p => p.id);
@@ -95,7 +106,7 @@ export const NewPartitionJobForm = (
                     });
             }}
         >
-            <ProFormText name="description" label="名称:" placeholder="请输入名称" initialValue={`${props.db?.name}@${nowTime()}`}  rules={[{ required: true, message: '请输入名称' }]} />
+            <ProFormText name="description" label="名称:" placeholder="请输入名称" rules={[{ required: true, message: '请输入名称' }]} />
             <ProFormText name="source_name" label="数据源:" placeholder="请输入名称" initialValue={props.db?.sourceName} disabled />
             <ProFormText name="db_name" label="库名:" placeholder="请输入名称" initialValue={props.db?.name} disabled />
             <ProFormSelect
@@ -134,8 +145,6 @@ export const NewPartitionJobForm = (
 
                 <ProFormDependency name={['merge_partition_enabled']}>
                     {({ merge_partition_enabled }) => {
-                        console.log("*****", merge_partition_enabled);
-
                         if (merge_partition_enabled) {
                             return (
                                 <ProFormDigit
@@ -182,6 +191,12 @@ export const NewPartitionJobForm = (
                 <ProFormGroup key="group">
                     <ProFormSelect showSearch   name="srcTable" valueEnum={tableEnum} colProps={{span: 10}} placeholder="请输入源表" />
                     <ProFormText name="dstTable"  colProps={{span: 10}} placeholder="请输入目的表" />
+                </ProFormGroup>
+            </ProFormList>
+            <ProFormList name="column_mapping" label="列名映射">
+                <ProFormGroup key="group">
+                    <ProFormText name="srcColumn"  colProps={{span: 10}} placeholder="请输入源列名" />
+                    <ProFormText name="dstColumn"  colProps={{span: 10}} placeholder="请输入目的列名" />
                 </ProFormGroup>
             </ProFormList>
         </ModalForm>

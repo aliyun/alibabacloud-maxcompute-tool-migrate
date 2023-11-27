@@ -227,7 +227,7 @@ public class DataSourceMetaLoader {
         });
 
         // 累加partition的size, numRows到table, db, 如果是hive, 更新partition value值:v1/v2 -> k1=v1/k2=v2
-        this.partitions.forEach(pm -> {
+        for (PartitionModel pm: this.partitions) {
             pm.setSourceId(this.dsId);
             Long size = pm.getSizeOpt().orElse(0L);
             Long numRows = pm.getNumRowsOpt().orElse(0L);
@@ -255,7 +255,17 @@ public class DataSourceMetaLoader {
                 // 将partition value写成p1=xxx/p2=xx的形式
                 if (! pmValue.contains("=")) {
                     String[] values = pmValue.split("/");
-                    assert partitionColumns.size() == values.length;
+                    //assert partitionColumns.size() == values.length;
+                    if (partitionColumns.size() != values.length) {
+                        String errMsg = String.format(
+                                "failed to load meta data for table %s.%s: partition column num is %d, value is %s",
+                                dbName, tableName,
+                                partitionColumns.size(),
+                                pmValue
+                        );
+                        throw new Exception(errMsg);
+                    }
+
                     StringBuilder sb = new StringBuilder();
 
                     for (int i = 0, n = values.length;  i < n; i ++) {
@@ -269,7 +279,7 @@ public class DataSourceMetaLoader {
                     pm.setValue(sb.toString());
                 }
             }
-        });
+        }
     }
 
     private void loadAllDbs() throws Exception {

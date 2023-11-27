@@ -2,6 +2,7 @@ package com.aliyun.odps.mma.api;
 
 import com.aliyun.odps.mma.MMAServer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
@@ -17,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class IndexApi {
     ConfigurableApplicationContext appCtx;
 
+    @Value("${mma-version}")
+    String mmaVersion;
     @Autowired
     public IndexApi(ConfigurableApplicationContext appCtx) {
         this.appCtx = appCtx;
@@ -40,5 +43,10 @@ public class IndexApi {
     @GetMapping("/ping")
     public String ping() {
         return "ok";
+    }
+
+    @GetMapping("/version")
+    public String getVersion() {
+        return mmaVersion;
     }
 }

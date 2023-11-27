@@ -37,37 +37,27 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
     }
 
     @Override
-    public Column convertToOdpsColumn(MMAColumnSchema columnSchema) {
+    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema) {
         // hive type string => odps TypeInfo
         // 1. all decimal(m,n) => decimal(36,18)
         // 2. all CHAR => STRING
-        TypeInfo typeInfo = convertToOdpsType(columnSchema.getType());
-
-        String comment = columnSchema.getComment();
-        if (Objects.nonNull(comment)) {
-            comment = comment.replace("'", "\\'");
-        }
-
-        String columnName = trimSpecialChar(columnSchema.getName());
-        return new Column(columnName, typeInfo, comment);
+        return convertToOdpsType(columnSchema.getType());
     }
 
     @Override
-    public Column convertToOdpsPartitionColumn(MMAColumnSchema columnSchema) {
+    public TypeInfo convertToOdpsPartitionType(MMAColumnSchema columnSchema) {
         String type = columnSchema.getType().toUpperCase();
         TypeInfo odpsType = TypeInfoFactory.getPrimitiveTypeInfo(OdpsType.STRING);
         if (Arrays.asList(odpsPartitionTypes).contains(type)) {
             odpsType = convertToOdpsType(type);
         }
 
-        String columnName = trimSpecialChar(columnSchema.getName());
-        return new Column(columnName, odpsType, columnSchema.getComment());
+        return odpsType;
     }
 
     private TypeInfo convertToOdpsType(String type) {
         // hive type string => odps TypeInfo
-        // 1. all decimal(m,n) => decimal(36,18)
-        // 2. all CHAR => STRING
+        // all CHAR => STRING
         String hiveType = type.toUpperCase();
 
         // hiveType = hiveType.replaceAll("(?<=DECIMAL[^(]{0,10}\\()[^)]*", "36,18");

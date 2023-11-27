@@ -82,7 +82,7 @@ public class HiveTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> odpsCountFuture = odpsAction.selectCount(
+        CompletableFuture<Long> odpsCountFuture = odpsAction.selectDstCount(
                 task.getOdpsTableFullName(),
                 (ins) -> this.odpsIns = ins
         );

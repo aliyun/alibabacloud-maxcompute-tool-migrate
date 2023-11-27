@@ -160,8 +160,26 @@ public class OdpsAction {
         return selectCount(tableFullName, insGetter, null);
     }
 
+    public CompletableFuture<Long> selectSrcCount(String tableFullName, Consumer<Instance> insGetter) {
+        return selectSrcCount(tableFullName, insGetter, null);
+    }
+
+    public CompletableFuture<Long> selectDstCount(String tableFullName, Consumer<Instance> insGetter) {
+        return selectDstCount(tableFullName, insGetter, null);
+    }
+
     public CompletableFuture<Long> selectCount(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
         String sql = OdpsSqlUtils.selectCountSql(tableFullName, task.getSrcPartitionValues());
+        return getCountFuture(sql, insGetter, hints);
+    }
+
+    public CompletableFuture<Long> selectSrcCount(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
+        String sql = OdpsSqlUtils.selectCountSql(tableFullName, task.getSrcPartitionValues());
+        return getCountFuture(sql, insGetter, hints);
+    }
+
+    public CompletableFuture<Long> selectDstCount(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
+        String sql = OdpsSqlUtils.selectCountSql(tableFullName, task.getDstOdpsPartitionValues());
         return getCountFuture(sql, insGetter, hints);
     }
 

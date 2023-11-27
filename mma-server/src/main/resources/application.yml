@@ -57,3 +57,5 @@ springdoc:
 logging:
   file:
     name: ./logs/com.aliyun.odps.mma.log
+
+mma-version: 2023091514

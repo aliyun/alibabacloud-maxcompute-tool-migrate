@@ -111,6 +111,17 @@ export const NewJobForm = (
                     }
                 }
 
+                let COLUMN_MAPPING = "column_mapping";
+                if (COLUMN_MAPPING in jobJson) {
+                    let columnMap = listFieldConverter(jobJson[COLUMN_MAPPING], "srcColumn", "dstColumn");
+
+                    if (Object.keys(columnMap).length > 0) {
+                        jobJson[COLUMN_MAPPING] = columnMap;
+                    } else {
+                        delete jobJson[COLUMN_MAPPING];
+                    }
+                }
+
                 let TABLE_WHITE_LIST = "table_whitelist";
                 let TABLE_BLACK_LIST = "table_blacklist";
 
@@ -165,7 +176,7 @@ export const NewJobForm = (
                     if (! jsonMode) {
                         return (
                             <>
-                                <ProFormText name="description" label="名称:" placeholder="请输入名称" initialValue={`${props.db?.name}@${nowTime()}`}  rules={[{ required: true, message: '请输入名称' }]}   fieldProps={{ref: inputRef}}/>
+                                <ProFormText name="description" label="名称:" placeholder="请输入名称"  rules={[{ required: true, message: '请输入名称' }]}   fieldProps={{ref: inputRef}}/>
                                 <ProFormText name="source_name" label="数据源:" placeholder="请输入名称" initialValue={props.db?.sourceName} disabled />
                                 <ProFormText name="db_name" label="库名:" placeholder="请输入名称" initialValue={props.db?.name} disabled />
                                 <ProFormSelect
@@ -257,8 +268,6 @@ export const NewJobForm = (
 
                                                     <ProFormDependency name={['merge_partition_enabled']}>
                                                         {({ merge_partition_enabled }) => {
-                                                            console.log("*****", merge_partition_enabled);
-
                                                             if (merge_partition_enabled) {
                                                                 return (
                                                                     <ProFormDigit
@@ -336,6 +345,22 @@ export const NewJobForm = (
                                         <ProFormText name="dstTable"  colProps={{span: 10}} placeholder="请输入目的表" />
                                     </ProFormGroup>
                                 </ProFormList>
+                                <ProFormList name="column_mapping" label="列名映射">
+                                    <ProFormGroup key="group">
+                                        <ProFormText name="srcColumn"  colProps={{span: 10}} placeholder="请输入源列名" />
+                                        <ProFormText name="dstColumn"  colProps={{span: 10}} placeholder="请输入目的列名" />
+                                    </ProFormGroup>
+                                </ProFormList>
+                                <ProFormText
+                                    name="table_mapping_pattern"
+                                    label="表名映射规则:"
+                                    placeholder="格式: prefix${table}suffix"
+                                    rules={[{
+                                        required: false,
+                                        pattern: /^.*?\$\{table\}.*$/,
+                                        message: "格式: prefix${table}suffix"
+                                    }]}
+                                />
                             </>
                         )
                     }

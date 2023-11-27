@@ -107,11 +107,11 @@ public class CopyTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _verifyData() throws Exception {
-        CompletableFuture<Long> destCountFuture = odpsAction.selectCount(
+        CompletableFuture<Long> destCountFuture = odpsAction.selectSrcCount(
                 task.getOdpsTableFullName(),
                 (ins) -> this.destCountInstance = ins
         );
-        CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectCount(
+        CompletableFuture<Long> sourceCountFuture = sourceOdpsAction.selectDstCount(
                 task.getTableFullName(),
                 (ins) -> this.srcCountInstance = ins
         );

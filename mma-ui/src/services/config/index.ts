@@ -70,6 +70,15 @@ export async function getDstMcProjects() {
     )
 }
 
+export async function getMMAVersion() {
+    return request<string>(
+        "/api/version",
+        {
+            method: "GET"
+        }
+    )
+}
+
 export default {
     getMMAConfig,
     saveMMAConfig,

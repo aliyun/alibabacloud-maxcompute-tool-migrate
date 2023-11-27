@@ -15,8 +15,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableAsync
 public class MMAServer {
-    private static ConfigurableApplicationContext context;
-
     public static void main(String[] args) {
         CmdArgParser parser = new CmdArgParser();
         parser.parse(args);

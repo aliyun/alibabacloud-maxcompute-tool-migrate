@@ -79,6 +79,7 @@ public class CopyTaskMergedTransExecutor extends MergedTransportTaskExecutor {
 
         Map<String, String> hints = new HashMap<>();
         hints.put("odps.sql.allow.fullscan", "true");
+        hints.put("odps.sql.type.system.odps2", "true");
         executeSrcOdpsSql(createTempTableSql, hints);
     }
 

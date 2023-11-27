@@ -6,6 +6,7 @@ import com.aliyun.odps.mma.task.CommonPartitionGrouping;
 import com.aliyun.odps.mma.task.HivePartitionGrouping;
 import com.aliyun.odps.mma.task.MergedPartitionGrouping;
 import com.aliyun.odps.mma.task.PartitionGrouping;
+import com.aliyun.odps.mma.util.StringUtils;
 import com.aliyun.odps.mma.util.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -51,6 +52,10 @@ public class JobConfig {
     boolean enableMergedTransport;
     @JsonProperty("no_unmerge_partition")
     boolean noUnMergePartition;
+    @JsonProperty("table_mapping_pattern")
+    String tableMappingPattern;
+    @JsonProperty("column_mapping")
+    Map<String, String> columnMapping;
 
     @JsonIgnore
     MMAConfig mmaConfig;
@@ -139,6 +144,12 @@ public class JobConfig {
             String dstTable = this.tableMapping.get(srcTable);
             return new TableName(dstOdpsProject, dstTable);
         }
+
+        if (!StringUtils.isBlank(tableMappingPattern)) {
+            String dstTable = tableMappingPattern.replace("${table}", srcTable);
+            return new TableName(dstOdpsProject, dstTable);
+        }
+
         return new TableName(dstOdpsProject, srcTable);
     }
 
