@@ -1,10 +1,6 @@
 package com.aliyun.odps.mma.util;
 
-import com.aliyun.odps.Instance;
-import com.aliyun.odps.LogView;
-import com.aliyun.odps.Odps;
-import com.aliyun.odps.OdpsException;
-import com.aliyun.odps.Task;
+import com.aliyun.odps.*;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.Config;
 import com.aliyun.odps.mma.config.OdpsConfig;
