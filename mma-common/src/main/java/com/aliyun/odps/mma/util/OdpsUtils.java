@@ -7,6 +7,8 @@ import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.task.SQLTask;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -43,16 +45,51 @@ public class OdpsUtils {
         return odps.projects().exists(projectName);
     }
 
-    public String getBearerToken(String project, String tableName) throws OdpsException {
+    public String getBearerToken(String project, String schema, String tableName) throws OdpsException {
+        String schemaPath = "";
+        if (!StringUtils.isBlank(schema)) {
+            schemaPath = "/schemas/" + schema;
+        }
+
         String policy = "{\n"
-                + "    \"expires_in_hours\": 168,\n"
+                + "    \"expires_in_hours\": 24,\n"
                 + "    \"policy\": {\n"
                 + "        \"Statement\": [{\n"
                 + "            \"Action\": [\"odps:*\"],\n"
                 + "            \"Effect\": \"Allow\",\n"
-                + "            \"Resource\": \"acs:odps:*:projects/" + project + "/tables/" + tableName
+                + "            \"Resource\": \"acs:odps:*:projects/" + project + schemaPath + "/tables/" + tableName
                 + "\"\n"
                 + "        }],\n"
+                + "        \"Version\": \"1\"\n"
+                + "    }\n"
+                + "}";
+        return odps.projects()
+                .get()
+                .getSecurityManager()
+                .generateAuthorizationToken(policy, "Bearer");
+    }
+
+    public String getSuperBearerToken(String project, String schema, String tableName) throws OdpsException {
+        String schemaPath = "";
+        if (!StringUtils.isBlank(schema)) {
+            schemaPath = "/schemas/" + schema;
+        }
+
+        String policy = "{\n"
+                + "    \"expires_in_hours\": 24,\n"
+                + "    \"policy\": {\n"
+                + "        \"Statement\": ["
+                + "          {\n"
+                + "            \"Action\": [\"odps:*\"],\n"
+                + "            \"Effect\": \"Allow\",\n"
+                + "            \"Resource\": \"acs:odps:*:projects/" + project + schemaPath + "/tables/" + tableName + "\"\n"
+                + "          },\n"
+                + "          {\n"
+                + "            \"Action\": [\"odps:*\"],\n"
+                + "            \"Effect\": \"Allow\",\n"
+                + "            \"Resource\": \"acs:odps:*:projects/" + project + "\"\n"
+                + "          }\n" +
+                "           ],\n"
                 + "        \"Version\": \"1\"\n"
                 + "    }\n"
                 + "}";
@@ -86,5 +123,16 @@ public class OdpsUtils {
             } catch (Exception ignore) {
             }
         }
+    }
+
+    public List<String> listSchemas(String projectName) {
+        Iterable<Schema> schemaIter = odps.schemas().iterable(projectName);
+        List<String> names = new ArrayList<>();
+
+        for (Schema schema: schemaIter) {
+            names.add(schema.getName());
+        }
+
+        return names;
     }
 }

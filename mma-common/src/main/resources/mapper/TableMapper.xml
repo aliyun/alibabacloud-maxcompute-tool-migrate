@@ -6,6 +6,7 @@
         <result column="source_id" property="sourceId"/>
         <result column="db_id" property="dbId"/>
         <result column="db_name" property="dbName"/>
+        <result column="schema_name" property="schemaName"/>
         <result column="has_partitions" property="hasPartitions"/>
         <result column="num_rows" property="numRows"/>
         <result column="input_format" property="inputFormat"/>
@@ -25,7 +26,7 @@
     <select id="getTablesOfDataSource" resultMap="tableMap">
         select *
         from table_model
-        where source_id in (select id from data_source where name = #{sourceName})
+        where source_id in (select id from datasource where name = #{sourceName})
     </select>
 
     <select id="getTablesStatusOfDb" resultType="com.aliyun.odps.mma.constant.MigrationStatus">
@@ -68,16 +69,16 @@
 
     <insert id="insertTable" parameterType="com.aliyun.odps.mma.model.TableModel" useGeneratedKeys="true"
             keyProperty="id" keyColumn="id">
-        insert into table_model (source_id, db_id, db_name, name, type, lifecycle, has_partitions,
+        insert into table_model (id, source_id, db_id, db_name, `schema_name`, name, type, lifecycle, has_partitions,
                                  status,
                                  size, num_rows,
                                  table_schema,
-                                 last_ddl_time, owner, location, input_format, output_format, serde, extra)
-        values (#{sourceId}, #{dbId}, #{dbName}, #{name}, #{type}, #{lifecycle}, #{hasPartitions},
+                                 last_ddl_time, owner, location, input_format, output_format, serde, extra, create_time)
+        values (#{id}, #{sourceId}, #{dbId}, #{dbName}, #{schemaName}, #{name}, #{type}, #{lifecycle}, #{hasPartitions},
                 #{status},
                 #{size}, #{numRows},
                 #{schema, typeHandler=com.aliyun.odps.mma.util.TableSchemaHandler},
-                #{lastDdlTime}, #{owner}, #{location}, #{inputFormat}, #{outputFormat}, #{serde}, #{extra})
+                #{lastDdlTime}, #{owner}, #{location}, #{inputFormat}, #{outputFormat}, #{serde}, #{extra}, now())
     </insert>
 
     <update id="updateTable" parameterType="com.aliyun.odps.mma.model.TableModel">
@@ -92,7 +93,7 @@
     </update>
 
     <select id="getAllTableHasher" resultType="com.aliyun.odps.mma.util.TableHasher">
-        select source_id as sourceId, name as tableName, id as tableId, db_name as dbName, db_id as DbId
+        select source_id as sourceId, name as tableName, id as tableId, db_name as dbName, schema_name as schemaName, db_id as DbId
         from table_model;
     </select>
 
@@ -108,7 +109,7 @@
             </if>
 
             <if test="dsName != null">
-                and source_id in (select id from data_source where name=#{dsName})
+                and source_id in (select id from datasource where name=#{dsName})
             </if>
         </where>
     </select>
@@ -129,12 +130,12 @@
     </update>
 
     <select id="getTables" resultMap="tableMap" parameterType="com.aliyun.odps.mma.query.TableFilter">
-        select table_model.*, data_source.name as sourceName from table_model join data_source on
-        table_model.source_id = data_source.id
+        select table_model.*, datasource.name as sourceName from table_model join datasource on
+        table_model.source_id = datasource.id
 
         <where>
             <if test="sourceId > 0">
-                data_source.id=#{sourceId}
+                datasource.id=#{sourceId}
             </if>
 
             <if test="dbId > 0">
@@ -143,6 +144,10 @@
 
             <if test="dbName != null">
                 and table_model.db_name like CONCAT('%', #{dbName}, '%')
+            </if>
+
+            <if test="schemaName != null">
+                and table_model.schema_name like CONCAT('%', #{schemaName}, '%')
             </if>
 
             <if test="name != null">
@@ -195,6 +200,10 @@
 
             <if test="dbName != null">
                 and db_name like CONCAT('%', #{dbName}, '%')
+            </if>
+
+            <if test="schemaName != null">
+                and `schema_name` like CONCAT('%', #{schemaName}, '%')
             </if>
 
             <if test="name != null">

@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.service;
 
+import com.aliyun.odps.mma.model.JobBatchModel;
 import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.query.JobFilter;
@@ -16,4 +17,9 @@ public interface JobService {
     void setJobStop(int id);
     void retryJob(int jobId);
     Map<Integer, String> getIdToDecOfJobs();
+    void insertJobBatch(JobBatchModel jobBatch);
+
+    List<JobBatchModel> listJobBatches(int jobId);
+    List<JobModel> listJobsWithTimer();
+
 }

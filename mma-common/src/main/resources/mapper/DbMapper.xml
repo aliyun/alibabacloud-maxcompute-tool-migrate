@@ -15,7 +15,7 @@
     </select>
 
     <select id="getDbsOfDataSource" resultMap="dbMap">
-        select * from db_model where source_id in (select id from data_source where name=#{sourceName})
+        select * from db_model where source_id in (select id from datasource where name=#{sourceName})
     </select>
 
     <select id="getDbById"  resultMap="dbMap">
@@ -23,12 +23,12 @@
     </select>
 
     <select id="getDbByName"  resultMap="dbMap">
-        select * from db_model where name=#{dbName} and source_id in (select id from data_source where name=#{dsName})
+        select * from db_model where name=#{dbName} and source_id in (select id from datasource where name=#{dsName})
     </select>
 
     <insert id="insertDb" parameterType="com.aliyun.odps.mma.model.DataBaseModel" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        insert into db_model (source_id, name, description, owner, size, num_rows, location, status, last_ddl_time, extra)
-        values (#{sourceId}, #{name}, #{description}, #{owner}, #{size}, #{numRows}, #{location}, 'INIT', #{lastDdlTime}, #{extra})
+        insert into db_model (id, source_id, name, description, owner, size, num_rows, location, status, last_ddl_time, extra, create_time)
+        values (#{id}, #{sourceId}, #{name}, #{description}, #{owner}, #{size}, #{numRows}, #{location}, 'INIT', #{lastDdlTime}, #{extra}, now())
     </insert>
 
     <update id="updateDb" parameterType="com.aliyun.odps.mma.model.DataBaseModel">
@@ -46,11 +46,11 @@
     </update>
 
     <select id="getDbs" resultMap="dbMap" parameterType="com.aliyun.odps.mma.query.DbFilter">
-        select db_model.*, data_source.name as sourceName from db_model join data_source on db_model.source_id =  data_source.id
+        select db_model.*, datasource.name as sourceName from db_model join datasource on db_model.source_id =  datasource.id
 
         <where>
             <if test="sourceId > 0">
-                data_source.id=#{sourceId}
+                datasource.id=#{sourceId}
             </if>
 
             <if test="id > 0">

@@ -10,8 +10,8 @@ import {SOURCES_ROUTE} from "@/constant";
 
 export default (props?: { source?: API.DataSource }) => {
     const ds = props?.source;
-    const [currentDb, setCurrentDb] = useState<API.DbModel|null>(null);
-    const [visible, setVisible] = useState<boolean>(false);
+    const [currentDb, setCurrentDb] = useState<API.DbModel>();
+    const [newJobFormOpen, setNewJobFormOpen] = useState<boolean>(false);
     const [total, setTotal] = useState<number>(0);
 
     const columns: ProColumns<API.DbModel>[] = [
@@ -128,7 +128,7 @@ export default (props?: { source?: API.DataSource }) => {
             render: (row, entity) => {
                 return [
                     <a key={1} onClick={() => {
-                        setVisible(true);
+                        setNewJobFormOpen(true);
                         setCurrentDb(entity);
                     }}>迁移</a>
                 ]
@@ -176,7 +176,7 @@ export default (props?: { source?: API.DataSource }) => {
                 }}
             />
 
-            <NewJobForm db={currentDb} jobType="database" visible={visible} setVisible={setVisible} />
+            <NewJobForm sourceName={currentDb?.sourceName ?? ""} dbName={currentDb?.name ?? ""} jobType="database" open={newJobFormOpen} setOpen={setNewJobFormOpen} />
         </>
     );
 }

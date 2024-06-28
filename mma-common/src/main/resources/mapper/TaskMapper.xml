@@ -4,12 +4,15 @@
 <mapper namespace="com.aliyun.odps.mma.mapper.TaskMapper">
     <resultMap id="taskMap" type="com.aliyun.odps.mma.model.TaskModel">
         <result column="job_id" property="jobId"/>
+        <result column="batch_id" property="batchId"/>
         <result column="source_id" property="sourceId"/>
         <result column="db_id" property="dbId"/>
         <result column="table_id" property="tableId"/>
         <result column="db_name" property="dbName"/>
+        <result column="schema_name" property="schemaName"/>
         <result column="table_name" property="tableName"/>
         <result column="odps_project" property="odpsProject"/>
+        <result column="odps_schema" property="odpsSchema"/>
         <result column="odps_table" property="odpsTable"/>
         <result column="sub_status" property="subStatus"/>
         <result column="retried_times" property="retriedTimes"/>
@@ -20,16 +23,20 @@
     </resultMap>
 
     <select id="getTasks" resultMap="taskMap" parameterType="com.aliyun.odps.mma.query.TaskFilter">
-        select task.*, data_source.name as sourceName from task join data_source on task.source_id=data_source.id
+        select task.*, datasource.name as sourceName from task join datasource on task.source_id=datasource.id
         <where>
             task.deleted = 0
 
             <if test="sourceId > 0">
-                and data_source.id=#{sourceId}
+                and datasource.id=#{sourceId}
             </if>
 
             <if test="jobId > 0">
                 and task.job_id=#{jobId}
+            </if>
+
+            <if test="batchId > 0">
+                and task.batch_id=#{batchId}
             </if>
 
             <if test="jobIds != null and jobIds.size() > 0">
@@ -50,12 +57,20 @@
                 and task.db_name=#{dbName}
             </if>
 
+            <if test="schemaName != null">
+                and task.schema_name=#{schemaName}
+            </if>
+
             <if test="tableName != null">
                 and task.table_name=#{tableName}
             </if>
 
             <if test="odpsProject != null">
                 and task.odps_project=#{odpsProject}
+            </if>
+
+            <if test="odpsSchema != null">
+                and task.odps_schema=#{odpsSchema}
             </if>
 
             <if test="odpsTable != null">
@@ -108,6 +123,10 @@
                 and job_id=#{jobId}
             </if>
 
+            <if test="batchId > 0">
+                and batch_id=#{batchId}
+            </if>
+
             <if test="jobIds != null and jobIds.size() > 0">
                 and
                 <foreach item="jid" index="index" collection="jobIds" open="job_id in (" separator="," close=")">
@@ -126,12 +145,20 @@
                 and db_name=#{dbName}
             </if>
 
+            <if test="schemaName != null">
+                and schema_name=#{schemaName}
+            </if>
+
             <if test="tableName != null">
                 and table_name=#{tableName}
             </if>
 
             <if test="odpsProject != null">
                 and odps_project=#{odpsProject}
+            </if>
+
+            <if test="odpsSchema != null">
+                and odps_schema=#{odpsSchema}
             </if>
 
             <if test="odpsTable != null">
@@ -156,10 +183,10 @@
         </where>
     </select>
 
-    <update id="addTaskLog" parameterType="com.aliyun.odps.mma.model.TaskLog">
-        insert into task_log (task_id, status, action, msg)
-        values (#{taskId}, #{status}, #{action}, #{msg})
-    </update>
+    <insert id="addTaskLog" parameterType="com.aliyun.odps.mma.model.TaskLog">
+        insert into task_log (task_id, status, action, msg, create_time)
+        values (#{taskId}, #{status}, #{action}, #{msg}, now())
+    </insert>
 
     <update id="updateTaskStatus" parameterType="com.aliyun.odps.mma.model.TaskModel">
         update
@@ -233,6 +260,7 @@
                a.db_id as db_id,
                a.table_id as table_id,
                a.db_name as db_name,
+               a.schema_name as schema_name,
                a.table_name as table_name,
                a.type as type,
                a.status as status,
@@ -246,9 +274,9 @@
     </select>
 
     <insert id="insertTask" parameterType="com.aliyun.odps.mma.model.TaskModel">
-        insert into task (id, job_id, source_id, db_id, table_id, db_name, table_name, odps_project, odps_table, type, status)
-        values (#{id}, #{jobId}, #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{tableName}, #{odpsProject}, #{odpsTable}, #{type},
-                #{status}
+        insert into task (id, job_id, batch_id, source_id, db_id, table_id, db_name, schema_name, table_name, odps_project, odps_schema, odps_table, type, status, create_time)
+        values (#{id}, #{jobId}, #{batchId}, #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{schemaName}, #{tableName}, #{odpsProject}, #{odpsSchema}, #{odpsTable}, #{type},
+                #{status}, now()
                 )
     </insert>
 
@@ -275,7 +303,7 @@
 <!--    </select>-->
 
     <select id="getRunningTasksByTableIds" resultMap="taskMap">
-        select id, job_id, db_id, db_name, table_id, table_name from task
+        select id, job_id, db_id, db_name, schema_name, table_id, table_name from task
 
         <where>
             <foreach item="tableId" index="index" collection="tableIds" open="table_id in (" separator="," close=")">
@@ -290,7 +318,7 @@
     </select>
 
     <select id="getRunningTasksByPtIds" resultMap="taskMap">
-        select a.id, a.job_id, a.db_id, a.db_name, a.table_id, a.table_name
+        select a.id, a.job_id, a.db_id, a.db_name, a.schema_name, a.table_id, a.table_name
         from task a join task_partition b
         on a.id = b.task_id
         <where>
@@ -306,7 +334,7 @@
     </select>
 
     <select id="getRunningTasksByJobId" resultMap="taskMap">
-        select id, job_id, db_id, db_name, table_id, table_name
+        select id, job_id, db_id, db_name, schema_name, table_id, table_name
         from task
         where job_id=#{jobId} and status not in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED', 'DONE');
     </select>
@@ -342,12 +370,20 @@
                 db_name=#{dbName}
             </if>
 
+            <if test="schemaName != null">
+                and schema_name=#{schemaName}
+            </if>
+
             <if test="tableName != null">
                 and table_name=#{tableName}
             </if>
 
             <if test="dstOdpsProject != null">
                 and odps_project=#{dstOdpsProject}
+            </if>
+
+            <if test="dstOdpsSchema != null">
+                and odps_schema=#{dstOdpsSchema}
             </if>
 
             <if test="dstOdpsTable != null">

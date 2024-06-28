@@ -15,4 +15,5 @@ public interface ConfigMapper {
     void updateConfig(@Param("category") String category, @Param("name") String name, @Param("value") String value);
     void updateCategory(@Param("category") String category, @Param("newCategory") String newCategory);
     void deleteConfig(@Param("category") String category, @Param("name") String name);
+    List<ConfigItem> getTimers();
 }

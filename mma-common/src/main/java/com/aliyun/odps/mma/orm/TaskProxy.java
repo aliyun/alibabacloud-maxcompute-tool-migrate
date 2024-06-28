@@ -6,7 +6,9 @@ import java.util.stream.Collectors;
 import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.config.JobConfig;
+import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.constant.TaskStatus;
+import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.meta.schema.MMAColumnSchema;
 import com.aliyun.odps.mma.meta.schema.OdpsSchemaAdapter;
 import com.aliyun.odps.mma.meta.schema.SchemaUtils;
@@ -90,6 +92,10 @@ public class TaskProxy {
         taskLog.setTaskId(this.taskModel.getId());
         taskLog.setStatus(this.taskModel.getStatus());
         taskLog.setAction(action);
+        if (msg.length() > 65535) {
+            msg = msg.substring(0, 65535);
+        }
+
         taskLog.setMsg(msg);
         this.taskService.addTaskLog(taskLog);
     }
@@ -151,16 +157,28 @@ public class TaskProxy {
         return this.taskModel.getDbName();
     }
 
+    public String getSchemaName() {
+        return this.taskModel.getSchemaName();
+    }
+
     public String getTableName() {
         return this.taskModel.getTableName();
     }
 
     public String getTableFullName() {
-        return String.format("%s.%s", taskModel.getDbName(), taskModel.getTableName());
+        if (Objects.isNull(taskModel.getSchemaName())) {
+            return String.format("%s.%s", taskModel.getDbName(), taskModel.getTableName());
+        }
+
+        return String.format("%s.%s.%s", taskModel.getDbName(), taskModel.getSchemaName(), taskModel.getTableName());
     }
 
     public String getOdpsProjectName() {
         return this.taskModel.getOdpsProject();
+    }
+
+    public String getOdpsSchemaName() {
+        return this.taskModel.getOdpsSchema();
     }
 
     public String getOdpsTableName() {
@@ -168,21 +186,29 @@ public class TaskProxy {
     }
 
     public String getOdpsTableFullName() {
-        return String.format("%s.`%s`", getOdpsProjectName(), getOdpsTableName());
-    }
-
-    public TableSchema getOdpsTableSchema(boolean sameAsSrc) {
-        if (sameAsSrc) {
-            return getOdpsTableSchema();
+        String schema = this.taskModel.getOdpsSchema();
+        if (Objects.nonNull(schema)) {
+            return String.format("%s.%s.`%s`", getOdpsProjectName(), schema, getOdpsTableName());
         }
 
-        OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1, null);
+        return String.format("%s.`%s`", getOdpsProjectName(), getOdpsTableName());
     }
 
     public TableSchema getOdpsTableSchema() {
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel(), jobConfig.getColumnMapping());
+
+        boolean enableTS2 = taskModel.getType().equals(TaskType.DATABRICKS_UDTF);
+
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel(), jobConfig.getColumnMapping(), enableTS2);
+    }
+
+    /**
+     * 这个方法只给类型为odps，odps oss的数据源用
+     */
+    public TableSchema getTableSchemaOfOdpsSrc() {
+        OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(SourceType.ODPS);
+
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1, null, false);
     }
 
     public int getPartitionNum() {
@@ -195,6 +221,14 @@ public class TaskProxy {
         }
 
         return _partitions;
+    }
+
+    public List<String> getPartitionNames() {
+        if (table.isPartitionedTable()) {
+            return table.getTableSchema().getPartitions().stream().map(MMAColumnSchema::getName).collect(Collectors.toList());
+        }
+
+        return new ArrayList<>();
     }
 
     /**
@@ -248,7 +282,7 @@ public class TaskProxy {
             return partitionModels
                     .stream()
                     .map(pm -> {
-                        String[] keyValues = pm.getValue().split("/");
+                        String[] keyValues = pm.getValue(jobConfig.getSourceConfig()).split("/");
                         String value = "";
 
                         for (int i = 0; i < maxPartitionLevel; i ++) {
@@ -271,9 +305,8 @@ public class TaskProxy {
         } else {
             return partitionModels
                     .stream()
-                    .map(pm -> {
-                        return new PartitionValue(mmaColumns, pm.getValue());
-                    })
+                    .map(pm -> new PartitionValue(mmaColumns, pm.getValue(
+                        jobConfig.getSourceConfig())))
                     .collect(Collectors.toList());
         }
     }

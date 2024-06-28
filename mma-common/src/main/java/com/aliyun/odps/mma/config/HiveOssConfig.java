@@ -1,7 +1,6 @@
 package com.aliyun.odps.mma.config;
 
 import com.aliyun.odps.mma.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.constant.TaskType;
@@ -13,8 +12,6 @@ import org.springframework.web.util.UriBuilder;
 import java.util.HashMap;
 import java.util.Map;
 
-//@Component
-//@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class HiveOssConfig extends HiveConfig {
     @ConfigItem(desc = "oss endpoint internal, use in mc sql", required = true)
     public static final String OSS_ENDPOINT_INTERNAL = "oss.endpoint.internal";
@@ -46,8 +43,6 @@ public class HiveOssConfig extends HiveConfig {
         inputFormatToFileType.put("RCFileInputFormat", "RCFILE");
     }
 
-
-    @Autowired
     public HiveOssConfig() {
         super();
     }

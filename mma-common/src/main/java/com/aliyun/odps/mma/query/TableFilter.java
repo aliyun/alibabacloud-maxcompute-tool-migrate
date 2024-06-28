@@ -11,6 +11,7 @@ public class TableFilter extends QueryFilter {
     private int sourceId;
     private int dbId;
     private String dbName;
+    private String schemaName;
     private String name;
     private String type;
     private String hasPartitions;

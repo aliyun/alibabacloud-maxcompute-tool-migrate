@@ -18,12 +18,15 @@ import java.util.List;
 public class TaskModel {
     private Integer id;
     private Integer jobId;
+    private Integer batchId;
     private Integer sourceId;
     private Integer dbId;
     private Integer tableId;
     private String dbName;
+    private String schemaName;
     private String tableName;
     private String odpsProject;
+    private String odpsSchema;
     private String odpsTable;
     private TaskType type;
     private TaskStatus status;

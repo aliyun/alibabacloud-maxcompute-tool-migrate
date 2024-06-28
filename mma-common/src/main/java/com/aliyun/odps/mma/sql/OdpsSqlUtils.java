@@ -2,6 +2,8 @@ package com.aliyun.odps.mma.sql;
 
 import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
+import com.aliyun.odps.mma.meta.schema.MMAColumnSchema;
+import com.aliyun.odps.mma.meta.schema.MMAOdpsTableSchema;
 import com.aliyun.odps.mma.util.StringUtils;
 
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.stream.Stream;
 public class OdpsSqlUtils {
     public static String createTableSql(
             String projectName,
+            String schemaName,
             String tableName,
             TableSchema tableSchema,
             String tableComment,
@@ -21,20 +24,57 @@ public class OdpsSqlUtils {
     ) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE TABLE IF NOT EXISTS ");
+        sb.append(projectName).append(".");
 
-        sb.append(projectName).append(".").append(tableName);
+        if (StringUtils.isBlank(schemaName)) {
+            sb.append(tableName);
+        } else {
+            sb.append(schemaName)
+                    .append(".")
+                    .append(tableName);
+        }
+
         sb.append(" (");
 
         List<Column> columns = tableSchema.getColumns();
         for (int i = 0; i < columns.size(); i++) {
             Column c = columns.get(i);
-            sb.append("\n`").append(c.getName()).append("` ")
-                    .append(c.getTypeInfo().getTypeName());
+            sb.append("\n`")
+                    .append(c.getName()).append("` ")        // 列名
+                    .append(c.getTypeInfo().getTypeName());  // 列类型
+
+            // not null
+            if (! c.isNullable()) {
+                sb.append(" ")
+                        .append("NOT NULL");
+            }
+
+            // default value, 默认值无论什么类型都用单引号(')包裹
+            if (! StringUtils.isBlank(c.getDefaultValue())) {
+                sb.append(" DEFAULT ")
+                        .append("'")
+                        .append(c.getDefaultValue())
+                        .append("'");
+            }
+
             if (! StringUtils.isBlank(c.getComment())) {
                 sb.append(" COMMENT '").append(c.getComment()).append("'");
             }
             if (i + 1 < columns.size()) {
                 sb.append(',');
+            }
+        }
+
+        MMAOdpsTableSchema odpsTableSchema = (MMAOdpsTableSchema) tableSchema;
+        boolean ts2 = Objects.nonNull(odpsTableSchema.getEnableTransaction()) && odpsTableSchema.getEnableTransaction();
+
+        if (ts2) {
+            List<String> primaryKeys = odpsTableSchema.getPrimaryKeys();
+
+            if (! primaryKeys.isEmpty()) {
+                sb.append(", PRIMARY KEY(")
+                        .append(String.join(", ", primaryKeys))
+                        .append(") ");
             }
         }
 
@@ -58,7 +98,11 @@ public class OdpsSqlUtils {
                     sb.append(',');
                 }
             }
-            sb.append(")");
+            sb.append(")\n");
+        }
+
+        if (ts2) {
+            sb.append(" TBLPROPERTIES(\"transactional\"=\"true\")\n");
         }
 
         if (Objects.nonNull(lifecycle) && lifecycle > 0) {
@@ -78,6 +122,28 @@ public class OdpsSqlUtils {
             String inputFormat,
             String outputFormat,
             String location
+    ) {
+        return createExternalTableSql(
+                tableFullName,
+                tableSchema,
+                serde,
+                serdeProperties,
+                inputFormat,
+                outputFormat,
+                location,
+                null
+        );
+    }
+
+    public static String createExternalTableSql(
+            String tableFullName,
+            TableSchema tableSchema,
+            String serde,
+            Map<String, String> serdeProperties,
+            String inputFormat,
+            String outputFormat,
+            String location,
+            Integer lifecycle
     ) {
          /*
          CREATE EXTERNAL TABLE IF NOT EXISTS mma_test.`mma_temp_table_test_rcfile_partitioned_10x1k`(
@@ -118,7 +184,11 @@ public class OdpsSqlUtils {
             sb.append("\nROW FORMAT SERDE '").append(serde).append("'");
         }
 
-        int propertiesNum = serdeProperties.size();
+        int propertiesNum = 0;
+        if (Objects.nonNull(serdeProperties)) {
+            propertiesNum = serdeProperties.size();
+        }
+
         if (propertiesNum > 0) {
             int i = 0;
             sb.append("\nWITH SERDEPROPERTIES (");
@@ -147,6 +217,10 @@ public class OdpsSqlUtils {
         sb.append("\nSTORED AS INPUTFORMAT '").append(inputFormat).append("'");
         sb.append("\nOUTPUTFORMAT '").append(outputFormat).append("'");
         sb.append("\nLOCATION '").append(location).append("'");
+
+        if (Objects.nonNull(lifecycle) && lifecycle > 0) {
+            sb.append("\nLIFECYCLE ").append(lifecycle);
+        }
 
         return sb.append(";").toString();
     }
@@ -191,11 +265,38 @@ public class OdpsSqlUtils {
 
         StringBuilder sb = new StringBuilder(String.format("SELECT COUNT(*) from %s", tableFullName));
 
-        if (Objects.nonNull(partitionValues) && partitionValues.size() > 0) {
+        if (Objects.nonNull(partitionValues) && !partitionValues.isEmpty()) {
             addSelectPartitionCondition(sb, partitionValues);
         }
 
         return sb.append(";").toString();
+    }
+
+    public static String selectCountByPtSql(String tableFullName, List<PartitionValue> partitionValues) {
+        /*
+         SELECT COUNT(*) FROM mma_test.`test_rcfile_partitioned_10x1k`
+         WHERE
+         p1='dhcLk' AND p2=9505 OR
+         p1='FfpLn' AND p2=1002;
+         */
+
+
+        if (Objects.nonNull(partitionValues) && !partitionValues.isEmpty()) {
+            String partitions = partitionValues
+                    .get(0)
+                    .getColumns()
+                    .stream()
+                    .map(MMAColumnSchema::getName)
+                    .collect(Collectors.joining(" ,"));
+
+            StringBuilder sb = new StringBuilder(String.format("SELECT %s, COUNT(*) from %s", partitions, tableFullName));
+            addSelectPartitionCondition(sb, partitionValues);
+
+            sb.append(" GROUP by ").append(partitions);
+            return sb.append(";").toString();
+        }
+
+        return String.format("SELECT COUNT(*) from %s;", tableFullName);
     }
 
     public static String insertOverwriteSql(
@@ -228,7 +329,10 @@ public class OdpsSqlUtils {
         sb.append("\nSELECT ")
                 .append(String.join(",", columns))
                 .append(" FROM ").append(sourceTable);
-        addSelectPartitionCondition(sb, partitionValues);
+
+        if (!partitionValues.isEmpty()) {
+            addSelectPartitionCondition(sb, partitionValues);
+        }
 
         return sb.append(";").toString();
     }
@@ -246,6 +350,17 @@ public class OdpsSqlUtils {
             value = "'" + value + "'";
         }
         return value;
+    }
+
+    public static String dropPartitions(String tableFullName, List<PartitionValue> partitionValues) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("ALTER TABLE ").append(tableFullName).append(" DROP IF EXISTS\n");
+        appendPartitionSpecs(sb, partitionValues, ",");
+
+        sb.append(";");
+
+        return sb.toString();
     }
 
     private static void appendPartitionSpecs(StringBuilder sb, List<PartitionValue> partitionValues, String delimiter) {

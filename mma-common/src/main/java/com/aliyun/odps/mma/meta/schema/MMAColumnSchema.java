@@ -4,7 +4,9 @@ import com.aliyun.odps.Column;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.Getter;
+import lombok.Setter;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Getter
@@ -14,17 +16,23 @@ public class MMAColumnSchema {
     private final String comment;
     private final String defaultValue;
     private final Boolean nullable;
+    private final Map<String, String> extra;
 
     public MMAColumnSchema(String name, String type, String comment) {
-        this(name, type, comment, null, null);
+        this(name, type, comment, null, null, null);
     }
 
     public MMAColumnSchema(String name, String type, String comment, String defaultValue, Boolean nullable) {
+        this(name, type, comment, defaultValue, nullable, null);
+    }
+
+    public MMAColumnSchema(String name, String type, String comment, String defaultValue, Boolean nullable, Map<String, String> extra) {
         this.name = name;
         this.type = type;
         this.comment = comment;
         this.defaultValue = defaultValue;
         this.nullable = nullable;
+        this.extra = extra;
     }
 
     public String toJson() {

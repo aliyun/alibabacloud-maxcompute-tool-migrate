@@ -9,6 +9,7 @@ declare namespace API {
         desc: string,
         name?: string,
         password?: boolean
+        editable?: boolean
     }
 
     type MMConfig = ConfigItem[];
@@ -23,6 +24,13 @@ declare namespace API {
         data?: T
     }
 
+    export enum DataSourceInitStatus  {
+        NOT_YET = "NOT_YET",
+        OK = "OK",
+        RUNNING = "RUNNING",
+        FAILED = "FAILED"
+    }
+
     type DataSource = {
         id: number,
         name: string,
@@ -31,7 +39,25 @@ declare namespace API {
         dbNum: number,
         tableNum: number,
         partitionNum: number,
+        initStatus: DataSourceInitStatus,
         config: ConfigItem[]
+    }
+
+    enum ActionStatus {
+        START= "START", OK = "OK", FAILED = "FAILED"
+    }
+
+    export enum ActionType {
+        DATASOURCE_INIT = "DATASOURCE_INIT",
+        DATASOURCE_UPDATE = "DATASOURCE_UPDATE",
+    }
+
+    type ActionLog = {
+        id: number,
+        status: ActionStatus,
+        action: string,
+        msg: string,
+        createTime: string,
     }
 
     type DbModel = {
@@ -95,7 +121,11 @@ declare namespace API {
                     "comment": string,
                     "nullable": boolean
                 }
-            ]
+            ],
+            "tableConstraints"?: [{
+                "primaryKeys"?: string[],
+                "foreignKeyConstraint"?: any
+            }]
         }
     };
 
@@ -117,6 +147,11 @@ declare namespace API {
         "sourceName": string,
     };
 
+    type Timer = {
+        type: string,
+        value: string,
+    }
+
     type Job = {
         "id": number,
         "source_name": string,
@@ -135,7 +170,17 @@ declare namespace API {
         "enable_verification": boolean,
         "createTime": string,
         "updateTime": string,
+        "timer"?: Timer,
         "config": any,
+    }
+
+    type JobBatch = {
+        id: number,
+        jobId: number
+        batchId: number,
+        status: string,
+        errMsg?: string,
+        createTime: string
     }
 
     type JobOpts = {
@@ -148,6 +193,7 @@ declare namespace API {
     type Task =     {
         "id": number,
         "jobId": number,
+        "batchId": number,
         "sourceId": number,
         "dbId": number,
         "tableId": number,
@@ -240,3 +286,4 @@ declare namespace API {
 
     type definitions_0 = null;
 }
+

@@ -1,5 +1,8 @@
 package com.aliyun.odps.mma.config;
 
+import java.util.Arrays;
+import java.util.List;
+
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.task.HivePartitionGrouping;
@@ -48,6 +51,12 @@ public class HiveConfig extends SourceConfig {
     public static String DATABASE_WHITELIST = "source.database.whitelist";
     @ConfigItem(desc = "数据库黑名单", type="list", defaultValue = "[\"default\"]")
     public static String DATABASE_BLACKLIST = "source.database.blacklist";
+    @ConfigItem(desc = "Hive UDTF 下载链接", defaultValue = "https://mma-v3.oss-cn-zhangjiakou.aliyuncs.com/udtf/hive-udtf.jar")
+    public static String HIVE_UDTF_JAR_OSS_URL = "hive.udtf.jar.oss.url";
+    @ConfigItem(desc = "Hive UDTF 名字", defaultValue = "default.odps_data_dump_multi")
+    public static String HIVE_UDTF_NAME = "hive.udtf.name";
+    @ConfigItem(desc = "Hive UDTF Class", defaultValue = "hive.com.aliyun.odps.mma.io.McDataTransmissionUDTF")
+    public static String HIVE_UDTF_CLASS = "hive.udtf.class";
 
 
     public HiveConfig() {
@@ -70,5 +79,13 @@ public class HiveConfig extends SourceConfig {
     @Override
     public SourceType getSourceType() {
         return SourceType.HIVE;
+    }
+
+    @Override
+    protected List<String> itemMasks() {
+        return Arrays.asList(
+            HiveConfig.HIVE_UDTF_NAME,
+            HiveConfig.HIVE_UDTF_CLASS
+        );
     }
 }

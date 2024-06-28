@@ -1,6 +1,7 @@
 package com.aliyun.odps.mma.mapper;
 
 import com.aliyun.odps.mma.constant.JobStatus;
+import com.aliyun.odps.mma.model.JobBatchModel;
 import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.query.JobFilter;
 import org.apache.ibatis.annotations.Param;
@@ -23,4 +24,8 @@ public interface JobMapper {
     void setFailedTasksOfJobRestart(@Param("jobId") int jobId);
     void setJobDeleted(@Param("id") int id);
     List<Map<String, Object>> getNameAndIdOfJobs();
+    void insertJobBatch(JobBatchModel jobBatch);
+    void updateJobBatchId(@Param("jobId") int jobId, @Param("batchId") int batchId);
+    List<JobBatchModel> listJobBatches(@Param("jobId") int jobId);
+    List<JobModel> listJobsWithTimer();
 }

@@ -179,6 +179,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
             logger.error("unexpected error", e);
         }
 
+        publishTaskEvent();
     }
 
     protected void withStatus(TaskStatus startStatus, TaskStatus endStatus, TaskStatus errStatus, ActionFunc func) {
@@ -217,6 +218,23 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         }
 
         task.setStatus(endStatus);
+    }
+
+    protected void withSubStatus(Enum startStatus, Enum endStatus, Enum errStatus, ActionFunc func) throws Exception {
+        withSubStatus(startStatus.toString(), endStatus.toString(), errStatus.toString(), func);
+    }
+
+    protected void withSubStatus(String startStatus, String endStatus, String errStatus, ActionFunc func) throws Exception {
+        task.setSubStatus(startStatus);
+
+        try {
+            func.run();
+        } catch (Exception e) {
+            task.setSubStatus(errStatus);
+            throw e;
+        }
+
+        task.setSubStatus(endStatus);
     }
 
     protected void updateMigrationTargetStatus(MigrationStatus status) {

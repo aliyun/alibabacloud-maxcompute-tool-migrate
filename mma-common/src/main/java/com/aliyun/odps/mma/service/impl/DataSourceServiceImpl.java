@@ -2,8 +2,10 @@ package com.aliyun.odps.mma.service.impl;
 
 import com.aliyun.odps.mma.config.SourceConfig;
 import com.aliyun.odps.mma.config.SourceConfigUtils;
+import com.aliyun.odps.mma.constant.ActionType;
 import com.aliyun.odps.mma.mapper.ConfigMapper;
 import com.aliyun.odps.mma.mapper.DataSourceMapper;
+import com.aliyun.odps.mma.model.ActionLog;
 import com.aliyun.odps.mma.model.DataSourceModel;
 import com.aliyun.odps.mma.query.SourceFilter;
 import com.aliyun.odps.mma.service.DataSourceService;
@@ -12,7 +14,6 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -107,5 +108,30 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Override
     public void updateDataSource(DataSourceModel ds) {
         this.mapper.updateDataSource(ds);
+    }
+
+    @Override
+    public void setDataSourceInitOk(int sourceId) {
+        this.mapper.setDataSourceInitOk(sourceId);
+    }
+
+    @Override
+    public void setDataSourceInitRunning(int sourceId) {
+        this.mapper.setDataSourceInitRunning(sourceId);
+    }
+
+    @Override
+    public void setDataSourceInitFailed(int sourceId) {
+        this.mapper.setDataSourceInitFailed(sourceId);
+    }
+
+    @Override
+    public void addActionLog(ActionLog actionLog) {
+        this.mapper.addActionLog(actionLog);
+    }
+
+    @Override
+    public List<ActionLog> getActionLogs(Integer sourceId, ActionType actionType) {
+        return this.mapper.getActionLogs(sourceId, actionType);
     }
 }

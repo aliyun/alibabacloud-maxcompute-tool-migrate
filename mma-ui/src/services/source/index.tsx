@@ -32,6 +32,12 @@ export async function updateSource(sourceId: number) {
     });
 }
 
+export async function runSourceInitializer(sourceId: number) {
+    return request<API.MMARes<any>>("/api/sources/" + sourceId + "/init", {
+        method: 'PUT'
+    });
+}
+
 export async function addSource(body: API.MMAConfigJson) {
     return request<API.MMARes<{ name: string, id: number }>>("/api/sources", {
         method: 'POST',
@@ -59,7 +65,7 @@ export async function getSourceConfig(sourceName: string)  {
     config.data?.forEach(m => {
         if (m.required === true) {
             m.desc += " (必填)";
-        } else {
+        } else if ((m.editable ?? true) != false) {
             m.desc += " (可选)";
         }
     });
@@ -67,6 +73,14 @@ export async function getSourceConfig(sourceName: string)  {
     return config;
 }
 
+export async function  getActionLogs(sourceId: number, actionType: string) {
+    return request<API.MMARes<API.ActionLog[]>>(`/api/sources/${sourceId}/action_logs`,
+        {
+            method: 'GET',
+            params: {'actionType': actionType}
+        }
+    )
+}
 
 export async function getSourceItems(type: string) {
     return request<API.MMARes<API.ConfigItem[]>>(`/api/sources/items/?type=${type}`, {

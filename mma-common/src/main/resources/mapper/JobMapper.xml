@@ -9,6 +9,8 @@
         <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
         <result column="update_time"  property="updateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
         <result column="config"  property="config" typeHandler="com.aliyun.odps.mma.util.JobConfigHandler" />
+        <result column="timer"  property="timer" typeHandler="com.aliyun.odps.mma.util.TimerHandler" />
+        <result column="last_batch" property="lastBatch"/>
     </resultMap>
 
     <select id="getJobById"  resultMap="jobMap">
@@ -69,7 +71,7 @@
     </select>
 
     <insert id="insertJob" parameterType="com.aliyun.odps.mma.model.JobModel">
-        insert into job (id, description, source_name, db_name, odps_project, type, status, config)
+        insert into job (id, description, source_name, db_name, odps_project, type, status, timer,  config, create_time)
         values (
                 #{id},
                 #{description},
@@ -78,8 +80,10 @@
                 #{dstOdpsProject},
                 #{type},
                 #{status},
-                #{config, typeHandler=com.aliyun.odps.mma.util.JobConfigHandler}
-                )
+                #{timer, typeHandler=com.aliyun.odps.mma.util.TimerHandler},
+                #{config, typeHandler=com.aliyun.odps.mma.util.JobConfigHandler},
+                now()
+        )
     </insert>
 
     <select id="maxJobId" resultType="Integer">
@@ -117,6 +121,25 @@
     </update>
 
     <select id="getNameAndIdOfJobs" resultType="Map">
-        select id, description from job;
+        select id, description from job
+    </select>
+
+    <insert id="insertJobBatch">
+        insert into job_batch (job_id, batch_id, status, err_msg, create_time)
+        values (#{jobId}, #{batchId}, #{status}, #{errMsg}, now())
+    </insert>
+
+    <update id="updateJobBatchId">
+        update job set last_batch=#{batchId} where id=#{jobId}
+    </update>
+
+    <select id="listJobBatches" resultType="com.aliyun.odps.mma.model.JobBatchModel">
+        select id, job_id as jobId, batch_id as batchId, status, err_msg as errMsg, create_time as createTime
+        from job_batch
+        where job_id=#{jobId}
+    </select>
+
+    <select id="listJobsWithTimer" resultMap="jobMap">
+        select * from job where timer is not null
     </select>
 </mapper>

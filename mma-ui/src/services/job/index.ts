@@ -18,6 +18,15 @@ export async function getJobs(
     )
 }
 
+export async function getJobBatches(jobId: number): Promise<API.MMARes<API.JobBatch[]>>{
+    return request<API.MMARes<API.JobBatch[]>>(
+        `/api/jobs/${jobId}/batches`,
+        {
+            method: "GET"
+        }
+    );
+}
+
 export async function getJobOptions(dsName: string, dbName: string) {
     return request<API.MMARes<API.JobOpts>>(
         "/api/jobs/options",
@@ -47,7 +56,7 @@ export async function jobAction(jobId: number, action: string) {
     });
 }
 
-export async function getJobBasicInfo() {
+export async function getJobBasicInfo(): Promise<API.MMARes<API.IdToName>> {
     return request<API.MMARes<API.IdToName>>(`/api/jobs/basic`, {
         method: 'GET',
     });

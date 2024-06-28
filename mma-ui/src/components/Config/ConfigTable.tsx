@@ -1,7 +1,26 @@
-import {ActionType, EditableProTable, FormInstance, ProColumns} from "@ant-design/pro-components";
+import {
+    ActionType,
+    EditableProTable,
+    FormInstance,
+    ProColumns, ProConfigProvider, ProForm,
+    ProRenderFieldPropsType
+} from "@ant-design/pro-components";
 import React, {useEffect, useRef, useState} from "react";
 import {Button, message} from "antd";
 import {showErrorMsg} from "@/utils/format";
+import {TimerPicker} from "@/components/TimerPicker";
+
+const valueTypeMap: Record<string, ProRenderFieldPropsType> = {
+    timer: {
+        renderFormItem(text, props) {
+            return (
+                <ProForm.Item style={{margin: "0px"}}>
+                    <TimerPicker  {...props.fieldProps} />
+                </ProForm.Item>
+            );
+        },
+    }
+};
 
 const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>>, onSave: (c: API.MMAConfigJson) => Promise<API.MMARes<any>>, afterSave?: (_?: any) => any}) => {
     const columns: ProColumns<API.ConfigItem>[] = [
@@ -14,6 +33,10 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
         {
             title: '配置值',
             dataIndex: 'value',
+            editable: (value: any, record: API.ConfigItem)  => {
+                return record.editable?? true;
+            },
+
             valueType: (config, form) => {
                 switch (config.type) {
                     case "map":
@@ -24,6 +47,8 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                         return "textarea";
                     case "password":
                         return "password";
+                    case "timer":
+                        return "timer";
                     case "int":
                     case "long":
                     default:
@@ -91,6 +116,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
     }, [props])
 
     return (
+        <ProConfigProvider valueTypeMap={valueTypeMap}>
         <EditableProTable<API.ConfigItem>
             rowKey="key"
             columns={columns}
@@ -112,7 +138,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                         let value = (item.value as string);
 
                         if (value === "") {
-                            item.value = null;
+                            item.value = [];
                         } else {
                             item.value = (item.value as string).split(/\s*,\s*/);
                         }
@@ -196,6 +222,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                 onChange: setEditableRowKeys,
             }}
         />
+        </ProConfigProvider>
     )
 };
 

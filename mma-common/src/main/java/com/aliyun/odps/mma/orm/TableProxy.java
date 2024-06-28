@@ -41,6 +41,10 @@ public class TableProxy {
         return tableModel.getDbName();
     }
 
+    public String getSchemaName() {
+        return tableModel.getSchemaName();
+    }
+
     public String getName() {
         return tableModel.getName();
     }

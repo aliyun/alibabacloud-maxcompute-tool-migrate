@@ -22,10 +22,16 @@ public class MMAConfig extends Config {
     public static String MC_AUTH_ACCESS_KEY = "mc.auth.access.key";
     @ConfigItem(desc = "maxcompute default project", required = true)
     public static String MC_DEFAULT_PROJECT = "mc.default.project";
+    @ConfigItem(desc = "maxcompute tunnel quota")
+    public static String MC_TUNNEL_QUOTA = "mc.tunnel.quota";
     @ConfigItem(desc = "要迁往的maxcompute项目列表", type = "list")
     public static String MC_PROJECTS = "mc.projects";
     @ConfigItem(desc = "数据搬迁任务最大并发量", type = "int", defaultValue = "20")
     public static String TASK_MAX_NUM = "task.max.num";
+    @ConfigItem(desc = "UDTF鉴权方式:BearerToken、AK", defaultValue = "BearerToken", enums = {"BearerToken", "AK"})
+    public static String AUTH_TYPE = "auth.type";
+    @ConfigItem(desc = "UDTF鉴权方式=AK 时，config.ini 在 HDFS 上的路径", defaultValue = "hdfs:///tmp/odps_config.ini")
+    public static String AUTH_AK_HDFS_PATH = "auth.ak.hdfs.path";
 
     public MMAConfig() {
         super();

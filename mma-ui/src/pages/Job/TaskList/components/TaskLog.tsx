@@ -59,7 +59,27 @@ export const TaskLog = (props: {task: API.Task}) => {
                             return <a href={log.msg} target="_blank">{log.msg}</a>
                         }
 
-                        return log?.msg || "--";
+                        if (! log){
+                            return "--";
+                        }
+
+                        const parts = log.msg.split("$").map((p) => {
+                            if (p.startsWith("http")) {
+                                return <a href={p} target="_blank">{p}</a>
+                            }
+
+                            return  p;
+                        })
+
+                        return log.msg.split("$")
+                            .flatMap((p) => p.split("\n"))
+                            .map((p) => {
+                                if (p.startsWith("http")) {
+                                    return <a href={p} target="_blank">{p}</a>;
+                                }
+
+                                return  <p>{p}</p>;
+                            })
                     })()}</Col>
                 </Row>
             </Timeline.Item>

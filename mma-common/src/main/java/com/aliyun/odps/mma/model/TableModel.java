@@ -15,6 +15,7 @@ public class TableModel extends ModelBase {
     private Integer id;
     private Integer dbId;
     private String dbName;
+    private String schemaName;
     private String name;
     private String type;
     private Integer lifecycle;
@@ -32,19 +33,22 @@ public class TableModel extends ModelBase {
     private int partitionsDone;
     private int partitionsFailed;
 
-    @JsonIgnore
-    public TableHasher getTableHasher() {
-        return new TableHasher(sourceId, dbName, name, dbId, id);
+    public String getNameWithSchema() {
+        if (Objects.nonNull(schema)) {
+            return schemaName + "." + name;
+        }
+
+        return name;
     }
 
     @JsonIgnore
-    public String key() {
-        return String.format("%s.%s", dbName, name);
+    public TableHasher getTableHasher() {
+        return new TableHasher(dbName, schemaName, name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dbName, name);
+        return Objects.hash(dbName, schemaName, name);
     }
 
     @Override
@@ -55,7 +59,9 @@ public class TableModel extends ModelBase {
 
         TableModel o = (TableModel) other;
 
-        return Objects.equals(this.dbName, o.dbName) && Objects.equals(this.name, ((TableModel) other).name);
+        return Objects.equals(this.dbName, o.dbName)
+                && Objects.equals(this.schemaName, o.schemaName)
+                && Objects.equals(this.name, ((TableModel) other).name);
     }
 
     @JsonIgnore

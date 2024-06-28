@@ -135,22 +135,22 @@ public class JobConfig {
         return sourceConfig.defaultTaskType();
     }
 
-    public TableName getDstOdpsTable(String srcTable, String dstOdpsProject) {
+    public TableName getDstOdpsTable(String srcTable, String dstOdpsSchema, String dstOdpsProject) {
         if (Objects.isNull(dstOdpsProject)) {
             dstOdpsProject = mmaConfig.getConfig(MMAConfig.MC_DEFAULT_PROJECT);
         }
 
         if (Objects.nonNull(this.tableMapping) && this.tableMapping.containsKey(srcTable)) {
             String dstTable = this.tableMapping.get(srcTable);
-            return new TableName(dstOdpsProject, dstTable);
+            return new TableName(dstOdpsProject, dstOdpsSchema, dstTable);
         }
 
         if (!StringUtils.isBlank(tableMappingPattern)) {
             String dstTable = tableMappingPattern.replace("${table}", srcTable);
-            return new TableName(dstOdpsProject, dstTable);
+            return new TableName(dstOdpsProject, dstOdpsSchema, dstTable);
         }
 
-        return new TableName(dstOdpsProject, srcTable);
+        return new TableName(dstOdpsProject, dstOdpsSchema, srcTable);
     }
 
     @JsonIgnore
@@ -239,22 +239,27 @@ public class JobConfig {
                     return new MergedPartitionGrouping(maxPtLevel, maxNum, grouping);
                 }
             case ODPS:
-                if (TaskType.MC2MC_VERIFY == this.taskType || TaskType.ODPS_INSERT_OVERWRITE == this.taskType) {
-                    Object maxNumObj = this.others.get("task.partition.max.num");
+                switch (this.taskType) {
+                    case MC2MC_VERIFY:
+                    case ODPS_MERGED_TRANS:
+                    case ODPS_OSS_TRANSFER:
+                        Object maxNumObj = this.others.get("task.partition.max.num");
 
-                    OdpsConfig odpsConfig = (OdpsConfig) this.sourceConfig;
-                    int maxNum = odpsConfig.getInteger(OdpsConfig.MC_TASK_PARTITION_MAX_NUM);
+                        OdpsConfig odpsConfig = (OdpsConfig) this.sourceConfig;
+                        int maxNum = odpsConfig.getInteger(OdpsConfig.MC_TASK_PARTITION_MAX_NUM);
 
-                    if (maxNumObj instanceof Integer) {
-                        maxNum = (int)maxNumObj;
-                    }
+                        if (maxNumObj instanceof Integer) {
+                            maxNum = (int)maxNumObj;
+                        }
 
-                    CommonPartitionGrouping grouping = new CommonPartitionGrouping(maxNum, -1);
-                    if (maxPtLevel < 0) {
-                        return grouping;
-                    }
+                        CommonPartitionGrouping grouping = new CommonPartitionGrouping(maxNum, -1);
+                        if (maxPtLevel < 0) {
+                            return grouping;
+                        }
 
-                    return new MergedPartitionGrouping(maxPtLevel, maxNum, grouping);
+                        return new MergedPartitionGrouping(maxPtLevel, maxNum, grouping);
+                    default:
+                        break;
                 }
             default:
                 break;

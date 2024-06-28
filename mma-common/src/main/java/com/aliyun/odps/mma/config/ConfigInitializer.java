@@ -1,6 +1,9 @@
 package com.aliyun.odps.mma.config;
 
-import com.aliyun.odps.mma.service.ConfigService;
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.Objects;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.ApplicationContext;
@@ -9,9 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 
-import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.Objects;
+import com.aliyun.odps.mma.service.ConfigService;
 
 @Configuration
 public class ConfigInitializer {
@@ -34,8 +35,7 @@ public class ConfigInitializer {
         return config;
     }
 
-    @Bean
-    @Primary
+    @Bean(name="HIVE")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public HiveConfig getHiveConfig() {
         HiveConfig hiveConfig = new HiveConfig();
@@ -43,8 +43,7 @@ public class ConfigInitializer {
         return hiveConfig;
     }
 
-    @Bean
-//    @Primary
+    @Bean(name="HIVE_OSS")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public HiveOssConfig getOssConfig() {
         HiveOssConfig ossConfig = new HiveOssConfig();
@@ -52,7 +51,7 @@ public class ConfigInitializer {
         return ossConfig;
     }
 
-    @Bean
+    @Bean(name="ODPS")
     @Primary
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public OdpsConfig getOdpsConfig() {
@@ -61,26 +60,61 @@ public class ConfigInitializer {
         return odpsConfig;
     }
 
+    @Bean(name="DATABRICKS")
+    @Primary
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public DatabricksConfig getDatabricksConfig() {
+        DatabricksConfig config = new DatabricksConfig();
+        initConfig(config);
+        return config;
+    }
+
+
+    @Bean(name="HIVE_GLUE")
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public HiveGlueConfig getHiveGlueConfig() {
+        HiveGlueConfig config = new HiveGlueConfig();
+        initConfig(config);
+        return config;
+    }
+
+//    @Bean(name="ODPS_OSS")
+//    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+//    public OdpsOssConfig getOdpsOssConfig() {
+//        OdpsOssConfig config = new OdpsOssConfig();
+//        initConfig(config);
+//
+//        return config;
+//    }
+
     private void initConfig(Config config) {
         config.setService(configService);
         Map<String, String> defaultValues = config.defaultValues;
 
         try {
             Class<?> c = config.getClass();
-            Field[] fields = c.getFields();
 
-            for (Field field: fields) {
-                if (! field.isAnnotationPresent(ConfigItem.class)) {
-                    continue;
-                }
+            // 先parent class的filed, 在本class的field，让本class filed默认值覆盖parent class field的默认值
+            Field[][] fieldsArray = new Field[][] {
+                    c.getSuperclass().getFields(),
+                    c.getDeclaredFields()
+            };
 
-                field.setAccessible(true);
+            for (Field[] fields: fieldsArray) {
+                for (Field field: fields) {
+                    if (! field.isAnnotationPresent(ConfigItem.class)) {
+                        continue;
+                    }
 
-                ConfigItem configItem = field.getAnnotation(ConfigItem.class);
-                String defaultValue = configItem.defaultValue();
-                if (! Objects.equals("", defaultValue)) {
-                    String configKey = (String) field.get(config);
-                    defaultValues.put(configKey, configItem.defaultValue());
+                    field.setAccessible(true);
+
+                    ConfigItem configItem = field.getAnnotation(ConfigItem.class);
+                    String defaultValue = configItem.defaultValue();
+                    if (! Objects.equals("", defaultValue)) {
+                        String configKey = (String) field.get(config);
+
+                        defaultValues.put(configKey, configItem.defaultValue());
+                    }
                 }
             }
         } catch (Exception e) {

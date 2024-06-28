@@ -51,7 +51,7 @@ export const SourceLoader = (props: { dataSource: API.DataSource | undefined, vi
                 setCloseable(true);
                 setError(res.message);
             })
-    }, [sourceId]);
+    }, [props.visible]);
 
     return (
         <Modal

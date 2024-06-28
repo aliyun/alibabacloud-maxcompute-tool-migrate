@@ -3,6 +3,7 @@ package com.aliyun.odps.mma.meta.schema;
 import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.constant.SourceType;
+import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.type.TypeInfo;
 
 import java.util.List;
@@ -12,16 +13,25 @@ import java.util.Objects;
 public interface OdpsSchemaAdapter {
     SourceType sourceType();
 
-    default com.aliyun.odps.TableSchema toOdpsSchema(MMATableSchema tableSchema) {
-        return toOdpsSchema(tableSchema, -1, null);
+    default void checkCompatibility(MMATableSchema tableSchema) throws SchemaAdapterError {
+        toOdpsSchema(tableSchema, -1, null);
     }
 
-    default com.aliyun.odps.TableSchema toOdpsSchema(
+    default MMAOdpsTableSchema toOdpsSchema(
             MMATableSchema mmaTableSchema,
             int maxPtLevel,
             Map<String, String> columnMapping
     ) {
-        TableSchema tableSchema = new TableSchema();
+        return toOdpsSchema(mmaTableSchema, maxPtLevel, columnMapping, false);
+    }
+
+    default MMAOdpsTableSchema toOdpsSchema(
+            MMATableSchema mmaTableSchema,
+            int maxPtLevel,
+            Map<String, String> columnMapping,
+            boolean enableTS2
+    ) {
+        MMAOdpsTableSchema tableSchema = new MMAOdpsTableSchema();
         mmaTableSchema.getColumns().forEach(columnSchema -> {
             tableSchema.addColumn(convertToOdpsColumn(columnSchema, columnMapping));
         });
@@ -41,6 +51,25 @@ public interface OdpsSchemaAdapter {
                 tableSchema.addPartitionColumn(convertToOdpsPartitionColumn(partitionSchema, columnMapping));
             });
         }
+
+        if (ListUtils.size(mmaTableSchema.getPrimaryKeys()) > 0) {
+            tableSchema.setPrimaryKeys(mmaTableSchema.getPrimaryKeys());
+            List<String> primaryKeys = mmaTableSchema.getPrimaryKeys();
+
+            tableSchema.getColumns().forEach(c -> {
+                if (primaryKeys.contains(c.getName())) {
+                    c.setNullable(false);
+                }
+            });
+        }
+
+        tableSchema.setEnableTransaction(enableTS2);
+
+//        if (Objects.nonNull(tableSchema.getEnableTransaction()) && tableSchema.getEnableTransaction()) {
+//            if (ListUtils.size(mmaTableSchema.getPrimaryKeys()) == 0) {
+//                throw new SchemaAdapterError("table with transaction enabled must have primary keys, table is" + mmaTableSchema.getName());
+//            }
+//        }
 
         return tableSchema;
     }

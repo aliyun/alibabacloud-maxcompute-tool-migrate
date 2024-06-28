@@ -1,5 +1,7 @@
 package com.aliyun.odps.mma.service;
 
+import com.aliyun.odps.mma.constant.ActionType;
+import com.aliyun.odps.mma.model.ActionLog;
 import com.aliyun.odps.mma.model.DataSourceModel;
 import com.aliyun.odps.mma.query.SourceFilter;
 
@@ -22,4 +24,9 @@ public interface DataSourceService {
     void updateLastUpdateTime(Integer id);
     void updateDSName(Integer id, String name);
     void updateDataSource(DataSourceModel ds);
+    void setDataSourceInitOk(int sourceId);
+    void setDataSourceInitRunning(int sourceId);
+    void setDataSourceInitFailed(int sourceId);
+    void addActionLog(ActionLog actionLog);
+    List<ActionLog> getActionLogs(Integer sourceId, ActionType actionType);
 }

@@ -12,6 +12,9 @@ public class TaskTypeName {
         put(TaskType.HIVE_OSS, "OSS外表");
         put(TaskType.HIVE_MERGED_TRANS, "hive UDTF合并传输");
         put(TaskType.ODPS_MERGED_TRANS, "mc跨region合并传输");
+        put(TaskType.DATABRICKS, "non-transaction table");
+        put(TaskType.DATABRICKS_UDTF, "transaction table");
+        put(TaskType.ODPS_OSS_TRANSFER, "OSS中转");
     }};
 
     public static String getName(TaskType type) {

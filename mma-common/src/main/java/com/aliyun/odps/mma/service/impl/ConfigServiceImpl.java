@@ -61,4 +61,9 @@ public class ConfigServiceImpl implements ConfigService {
     public void deleteConfig(String category, String name) {
         this.mapper.deleteConfig(category, name);
     }
+
+    @Override
+    public List<ConfigItem> getTimers() {
+        return this.mapper.getTimers();
+    }
 }

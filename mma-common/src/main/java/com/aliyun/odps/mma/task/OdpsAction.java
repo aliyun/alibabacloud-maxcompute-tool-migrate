@@ -1,6 +1,5 @@
 package com.aliyun.odps.mma.task;
 
-import com.aliyun.odps.Column;
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.OdpsException;
 import com.aliyun.odps.TableSchema;
@@ -13,6 +12,7 @@ import com.aliyun.odps.mma.orm.TaskProxy;
 import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.sql.PartitionValue;
 import com.aliyun.odps.mma.util.KeyLock;
+import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
 import com.aliyun.odps.task.SQLTask;
 
@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * 对 task 对应的某一个 table 进行操作的辅助类
@@ -81,6 +80,7 @@ public class OdpsAction {
     public void createTableIfNotExists(Map<String, String> hints) throws MMATaskInterruptException {
         String sql = OdpsSqlUtils.createTableSql(
                 task.getOdpsProjectName(),
+                task.getOdpsSchemaName(),
                 task.getOdpsTableName(),
                 task.getOdpsTableSchema(),
                 null,
@@ -183,6 +183,11 @@ public class OdpsAction {
         return getCountFuture(sql, insGetter, hints);
     }
 
+    public CompletableFuture<Map<String, Long>> selectDstCountByPt(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
+        String sql = OdpsSqlUtils.selectCountByPtSql(tableFullName, task.getDstOdpsPartitionValues());
+        return getCountByPtFuture(sql, task.getPartitionNames(), insGetter, hints);
+    }
+
     public CompletableFuture<Long> selectMergedCount(String tableFullName, Consumer<Instance> insGetter) {
         Map<String, String> hints = new HashMap<>();
         hints.put("odps.sql.allow.fullscan", "true");
@@ -217,14 +222,89 @@ public class OdpsAction {
         });
     }
 
-    public String getBearToken() throws MMATaskInterruptException {
-        return getBearToken(task.getOdpsProjectName(), task.getOdpsTableName());
+    /**
+     * @param sql  odps sql语句
+     * @param partitions 分区列表，如['pt1', 'pt2']
+     * @param insGetter 用于获取odps instance
+     * @param hints odps sql hints
+     * @return 对于分区表来说，返回诸如: key='pt1=xx/pt2=yy', value=1 格式的map
+     * 对于非分区表来说，返回: key=count, value=1格式的map
+     */
+    protected CompletableFuture<Map<String, Long>> getCountByPtFuture(
+            String sql,
+            List<String> partitions,
+            Consumer<Instance> insGetter,
+            Map<String, String> hints
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+
+                Map<String, Long> countMap = new HashMap<>();
+
+                wrapWithTryCatch(sql, () -> {
+                    Instance instance = executeSql(sql, hints);
+                    if (Objects.nonNull(insGetter)) {
+                        insGetter.accept(instance);
+                    }
+
+                    List<Record> records = SQLTask.getResult(instance, "MMAv3");
+
+                    if (ListUtils.size(partitions) == 0) {
+                        long count = 0L;
+
+                        for (Record record: records) {
+                            count += Long.parseLong(record.getString(record.getColumnCount() - 1));
+                        }
+
+                        countMap.put("count", count);
+                        return;
+                    }
+
+                    for (Record record: records) {
+                        String ptValue = "\"";
+
+                        for (int i = 0, n = partitions.size(); i < n; i ++) {
+                            ptValue += String.format("%s=%s", partitions.get(i), record.getString(i));
+
+                            if (i < n - 1) {
+                                ptValue += "/";
+                            }
+                        }
+
+                        ptValue += "\"";
+
+                        countMap.put(ptValue, Long.parseLong(record.getString(record.getColumnCount() - 1)));
+                    }
+                });
+
+                return  countMap;
+            } catch (MMATaskInterruptException e) {
+                return new HashMap<>();
+            }
+        });
     }
 
-    public String getBearToken(String projectName, String tableName) throws MMATaskInterruptException {
+    public String getBearerToken() throws MMATaskInterruptException {
+        return getBearerToken(task.getOdpsProjectName(), task.getOdpsSchemaName(), task.getOdpsTableName());
+    }
+
+    public String getBearerToken(String projectName, String schemaName, String tableName) throws MMATaskInterruptException {
         StringBuilder sb = new StringBuilder();
         wrapWithTryCatch("get bearer token", () -> {
-            sb.append(this.odpsUtils.getBearerToken(projectName, tableName));
+            sb.append(this.odpsUtils.getBearerToken(projectName, schemaName,  tableName));
+        });
+
+        return sb.toString();
+    }
+
+    public String getSuperBearerToken() throws MMATaskInterruptException {
+        return getSuperBearerToken(task.getOdpsProjectName(), task.getOdpsSchemaName(), task.getOdpsTableName());
+    }
+
+    public String getSuperBearerToken(String projectName, String schemaName, String tableName) throws MMATaskInterruptException {
+        StringBuilder sb = new StringBuilder();
+        wrapWithTryCatch("get bearer token", () -> {
+            sb.append(this.odpsUtils.getSuperBearerToken(projectName, schemaName,  tableName));
         });
 
         return sb.toString();

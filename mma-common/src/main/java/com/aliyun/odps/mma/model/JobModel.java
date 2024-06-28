@@ -1,6 +1,7 @@
 package com.aliyun.odps.mma.model;
 
 import com.aliyun.odps.mma.config.JobConfig;
+import com.aliyun.odps.mma.config.TimerConfig;
 import com.aliyun.odps.mma.constant.JobStatus;
 import com.aliyun.odps.mma.constant.JobType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,7 +15,6 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.Data;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -31,12 +31,16 @@ public class JobModel {
     String sourceName;
     @JsonProperty("db_name")
     String dbName;
+    @JsonProperty("dst_mc_schema")
+    String dstOdpsSchema;
     @JsonProperty("dst_mc_project")
     String dstOdpsProject;
     private JobStatus status = JobStatus.INIT;
     private JobType type;
     private Boolean stopped;
+    private TimerConfig timer;
     private Boolean restart;
+    private int lastBatch;
     private Boolean deleted;
     private JobConfig config;
     private Date createTime;
@@ -45,6 +49,11 @@ public class JobModel {
     // 非数据库字段
     @JsonIgnore
     private List<String> tableNames;
+
+    @JsonIgnore
+    public boolean isOldJob() {
+        return Objects.nonNull(id) && id > 0;
+    }
 
     public static class JobSerializer extends StdSerializer<JobModel> {
         protected JobSerializer() {

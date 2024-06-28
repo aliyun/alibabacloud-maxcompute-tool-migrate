@@ -132,7 +132,7 @@ export const NewPartitionJobForm = (
                 })()}
                 rules={[{ required: true, message: '请选择mc项目' }]}
             />
-
+            <ProFormText name="dst_mc_schema" label="mc schema:" placeholder="请输入mc schema名称"/>
             <ProForm.Group labelLayout='inline'>
                 <ProFormSwitch
                     labelCol={{ span: 12 }}

@@ -11,6 +11,7 @@ public class PtFilter extends QueryFilter {
     private int sourceId;
     private int dbId;
     private String dbName;
+    private String schemaName;
     private int updated = -1;
     private String tableName;
     private String value;

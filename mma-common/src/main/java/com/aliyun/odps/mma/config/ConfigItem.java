@@ -11,4 +11,6 @@ public @interface ConfigItem {
     String defaultValue() default "";
     String[] enums() default {};
     boolean required() default false;
+
+    boolean editable() default true;
 }

@@ -12,13 +12,16 @@ import java.util.Objects;
 public class TaskFilter extends QueryFilter {
     private int sourceId;
     private int jobId;
+    private int batchId;
     private List<Integer> jobIds;
     private List<Integer> taskIds;
     private String jobName;
     private String dbName;
+    private String schemaName;
     private String tableName;
     private String sourceName;
     private String odpsProject;
+    private String odpsSchema;
     private String odpsTable;
     private String status;
     private Boolean allFailedStatus;

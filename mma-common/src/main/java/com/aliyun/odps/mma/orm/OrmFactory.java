@@ -62,14 +62,14 @@ public class OrmFactory {
         return table;
     }
 
-    public MMADataSource newDataSource(String name) {
-        MMADataSource ds = appCtx.getBean(MMADataSource.class);
+    public DataSource newDataSource(String name) {
+        DataSource ds = appCtx.getBean("MMADatasource", DataSource.class);
         ds.init(name);
         return ds;
     }
 
-    public MMADataSource newDataSource(DataSourceModel dm) {
-        MMADataSource ds = appCtx.getBean(MMADataSource.class);
+    public DataSource newDataSource(DataSourceModel dm) {
+        DataSource ds = appCtx.getBean("MMADatasource", DataSource.class);
         ds.init(dm);
 
         return ds;

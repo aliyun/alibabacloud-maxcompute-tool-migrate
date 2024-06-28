@@ -17,6 +17,7 @@ public class CommonPartitionGrouping implements PartitionGrouping {
         this.maxPartitionSize = (long)maxPartitionSize * 1024 * 1024 * 1024;
     }
 
+    @Override
     public List<List<PartitionModel>> group(List<PartitionModel> partitions) {
         if (partitions.isEmpty()) {
             return Collections.emptyList();

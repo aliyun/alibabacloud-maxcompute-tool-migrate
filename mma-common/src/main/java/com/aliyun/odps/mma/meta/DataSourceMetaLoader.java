@@ -1,6 +1,10 @@
 package com.aliyun.odps.mma.meta;
 
 import com.aliyun.odps.mma.config.SourceConfig;
+import com.aliyun.odps.mma.constant.ActionStatus;
+import com.aliyun.odps.mma.constant.ActionType;
+import com.aliyun.odps.mma.constant.DSUpdateAction;
+import com.aliyun.odps.mma.execption.LoadMetaException;
 import com.aliyun.odps.mma.mapper.DbMapper;
 import com.aliyun.odps.mma.mapper.PartitionMapper;
 import com.aliyun.odps.mma.mapper.TableMapper;
@@ -11,7 +15,11 @@ import com.aliyun.odps.mma.service.DataSourceService;
 import com.aliyun.odps.mma.service.DbService;
 import com.aliyun.odps.mma.service.PartitionService;
 import com.aliyun.odps.mma.service.TableService;
+import com.aliyun.odps.mma.util.ExceptionUtils;
 import com.aliyun.odps.mma.util.TableHasher;
+import com.aliyun.odps.mma.util.id.DbIdGen;
+import com.aliyun.odps.mma.util.id.IdGenException;
+import com.aliyun.odps.mma.util.id.TableIdGen;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.ibatis.session.ExecutorType;
@@ -51,7 +59,7 @@ public class DataSourceMetaLoader {
     //  进度信息，用整数来表示小数，保存小数点后两位。也就是progress=250时，进度是2.5%
     private final AtomicInteger progress = new AtomicInteger(0);
     private Map<String, DataBaseModel> dbNameToDb;
-    private Map<String, Map<String, TableModel>> dbNameToTables;
+    private Map<TableHasher, TableModel> tableHasherToTable;
     private SourceConfig config;
     private Integer dsId;
     private DataSourceModel dataSource;
@@ -61,6 +69,8 @@ public class DataSourceMetaLoader {
     private final TableService tableService;
     private final PartitionService ptService;
     private final SqlSessionFactory sqlSessionFactory;
+    private final DbIdGen dbIdGen;
+    private final TableIdGen tableIdGen;
 
     @Autowired
     public DataSourceMetaLoader(
@@ -68,19 +78,36 @@ public class DataSourceMetaLoader {
             DbService dbService,
             TableService tableService,
             PartitionService ptService,
-            SqlSessionFactory sqlSessionFactory) {
+            SqlSessionFactory sqlSessionFactory,
+            DbIdGen dbIdGen,
+            TableIdGen tableIdGen
+
+    ) {
         this.dsService = dsService;
         this.dbService = dbService;
         this.tableService = tableService;
         this.ptService = ptService;
         this.sqlSessionFactory = sqlSessionFactory;
+        this.dbIdGen = dbIdGen;
+        this.tableIdGen = tableIdGen;
     }
 
     public void open(DataSourceModel dsModel) throws Exception {
         this.config = dsModel.getConfig();
         this.dsId = dsModel.getId();
         this.dataSource = dsModel;
-        this.loader.open(this.config);
+
+        actionLog(DSUpdateAction.CONNECT_TO_META, ActionStatus.START, "start to connect meta service");
+
+        try {
+            this.loader.open(this.config);
+        } catch (Exception e) {
+            actionLog(DSUpdateAction.CONNECT_TO_META, ActionStatus.FAILED, "%s", ExceptionUtils.getStackTrace(e));
+            throw e;
+        }
+
+        actionLog(DSUpdateAction.CONNECT_TO_META, ActionStatus.OK, "success to connect meta service");
+
         this.threadPool = Executors.newFixedThreadPool(config.getMetaApiBatch());
     }
 
@@ -90,7 +117,23 @@ public class DataSourceMetaLoader {
     }
 
     public void updateData() throws Exception {
-        this.loadData();
+        actionLog(DSUpdateAction.LOAD_META, ActionStatus.START, "start to load meta for %s", dataSource.getName());
+
+        try {
+            this.loadData();
+        } catch (LoadMetaException e) {
+            throw e;
+        } catch (Exception e) {
+            actionLog(DSUpdateAction.LOAD_META, ActionStatus.FAILED, "%s", ExceptionUtils.getStackTrace(e));
+            throw e;
+        }
+
+        actionLog(
+                DSUpdateAction.LOAD_META,
+                ActionStatus.OK,
+                "get %d db(s), %d table(s), %d partition(s)",
+                this.dataBases.size(), this.partitions.size(), this.partitions.size()
+        );
 
         String sourceName = config.getSourceName();
 
@@ -130,22 +173,20 @@ public class DataSourceMetaLoader {
         // 保存db name到db的映射，在保存新的table的时能够获取table的db_id值
         oldDatabases.forEach(dm -> this.dbNameToDb.put(dm.getName(), dm));
 
-        // 保存table name到table的映射，保存新的partition时能够获取partition的table_id, db_id值
+        // 保存table hasher到table的映射
         oldTables.forEach(tm -> {
-            String dbName = tm.getDbName();
-            String tbName = tm.getName();
-            Map<String, TableModel> tables = dbNameToTables.get(dbName);
-
-            // 重新加载数据源，db被加到黑名单时，db不会被重新从数据源中加载，这时候tables会为空
-            if (Objects.isNull(tables)) {
-                return;
-            }
-
-            tables.put(tbName, tm);
+            tableHasherToTable.put(tm.getTableHasher(), tm);
         });
 
         logger.info(
-                "try update {} dbs, {} tables, {} partitions in database",
+                "try update {} dbs, {} tables, {} partitions",
+                dbsUpdated.size(), tablesUpdated.size(), partitionUpdated.size()
+        );
+
+        actionLog(
+                DSUpdateAction.SAVE_META,
+                ActionStatus.START,
+                "start to update %d db(s), %d table(s), %d partition(s)",
                 dbsUpdated.size(), tablesUpdated.size(), partitionUpdated.size()
         );
 
@@ -168,15 +209,48 @@ public class DataSourceMetaLoader {
             }
 
             sqlSession.commit();
+        } catch (Exception e) {
+            actionLog(
+                    DSUpdateAction.SAVE_META, ActionStatus.FAILED,
+                    "failed to update meta: %s", ExceptionUtils.getStackTrace(e)
+            );
+            throw  e;
         }
 
         logger.info(
-                "success to update {} dbs, {} tables, {} partitions in database",
+                "success to update {} db(s), {} table(s), {} partition(s)",
                 dbsUpdated.size(), tablesUpdated.size(), partitionUpdated.size()
         );
 
+        actionLog(
+                DSUpdateAction.SAVE_META,
+                ActionStatus.OK,
+                "success to update %d db(s), %d table(s), %d partition(s)",
+                dbsUpdated.size(), tablesUpdated.size(), partitionUpdated.size()
+        );
+
+        actionLog(
+                DSUpdateAction.SAVE_META,
+                ActionStatus.START,
+                "start to save %d new db(s), %d new table(s), %d new partition(s)",
+                dbsNew.size(), tablesNew.size(), partitionsNew.size()
+        );
         // 保存新增的数据
-        this.saveNewData(dbsNew, tablesNew, partitionsNew);
+        try {
+            this.saveNewData(dbsNew, tablesNew, partitionsNew);
+        } catch (Exception e) {
+            actionLog(
+                    DSUpdateAction.SAVE_META, ActionStatus.FAILED,
+                    "failed to save meta: %s", ExceptionUtils.getStackTrace(e)
+            );
+            throw e;
+        }
+        actionLog(
+                DSUpdateAction.SAVE_META,
+                ActionStatus.OK,
+                "success to save %d new db(s), %d new table(s), %d new partition(s)",
+                dbsUpdated.size(), tablesUpdated.size(), partitionUpdated.size()
+        );
     }
 
     private void loadData() throws Exception {
@@ -185,6 +259,7 @@ public class DataSourceMetaLoader {
         this.partitions = new LinkedList<>(); // partitions太多了, 所以用link lis
 
         this.loadAllDbs();
+
         this.dataSource.setDbNum(this.dataBases.size());
         progress.set(100);
         logger.info("loading meta {}%", getProgress());
@@ -199,22 +274,20 @@ public class DataSourceMetaLoader {
         logger.info("load meta data ok");
 
         this.dbNameToDb = new HashMap<>(this.dataBases.size());
-        this.dbNameToTables = new HashMap<>(this.dataBases.size());
+        this.tableHasherToTable = new HashMap<>();
 
         this.dataBases.forEach(dm -> {
             dm.setSourceId(this.dsId);
             String dbName = dm.getName();
             dbNameToDb.put(dbName, dm);
-            dbNameToTables.put(dbName, new HashMap<>());
         });
 
         // 累加table的size到db
         this.tables.forEach(tm -> {
             tm.setSourceId(this.dsId);
             String dbName = tm.getDbName();
-            String tbName = tm.getName();
-            Map<String, TableModel> tables = dbNameToTables.get(dbName);
-            tables.put(tbName, tm);
+
+            tableHasherToTable.put(tm.getTableHasher(), tm);
 
             DataBaseModel dm = dbNameToDb.get(dbName);
             tm.setDbName(dm.getName());
@@ -233,10 +306,9 @@ public class DataSourceMetaLoader {
             Long numRows = pm.getNumRowsOpt().orElse(0L);
 
             String dbName = pm.getDbName();
-            String tableName = pm.getTableName();
 
             DataBaseModel dm = dbNameToDb.get(dbName);
-            TableModel tm = dbNameToTables.get(dbName).get(tableName);
+            TableModel tm = tableHasherToTable.get(pm.tableTableHasher());
 
             pm.setDbName(dm.getName());
             pm.setTableName(tm.getName());
@@ -259,11 +331,12 @@ public class DataSourceMetaLoader {
                     if (partitionColumns.size() != values.length) {
                         String errMsg = String.format(
                                 "failed to load meta data for table %s.%s: partition column num is %d, value is %s",
-                                dbName, tableName,
+                                dbName, pm.getTableNameWithSchema(),
                                 partitionColumns.size(),
                                 pmValue
                         );
-                        throw new Exception(errMsg);
+                        actionLog(DSUpdateAction.LOAD_META, ActionStatus.FAILED, "%s", errMsg);
+                        throw new LoadMetaException(errMsg);
                     }
 
                     StringBuilder sb = new StringBuilder();
@@ -290,11 +363,11 @@ public class DataSourceMetaLoader {
 
         Stream<String> dbNamesStream = dbNames.stream();
 
-        if (dbWhiteList.size() > 0) {
+        if (!dbWhiteList.isEmpty()) {
              dbNamesStream = dbNamesStream.filter(dbWhiteList::contains);
         }
 
-        if (dbBlackList.size() > 0) {
+        if (!dbBlackList.isEmpty()) {
             dbNamesStream = dbNamesStream.filter(n -> !dbBlackList.contains(n));
         }
 
@@ -318,16 +391,41 @@ public class DataSourceMetaLoader {
 
         BiFunction<String, String, Boolean> tableFilter = (dbName, tableName) -> {
             String tableFullName = String.format("%s.%s", dbName, tableName);
-            if (whiteList.size() > 0) {
-                return whiteList.contains(tableFullName);
+            if (!whiteList.isEmpty()) {
+                return whiteList.stream().anyMatch(t -> {
+                    if (t.startsWith("*.")) {
+                        return tableName.equals(t.substring("*.".length()));
+                    }
+
+                    return tableName.equals(tableFullName);
+                });
             }
 
-            return ! blackList.contains(tableFullName);
+            return blackList.stream().noneMatch(t -> {
+                if (t.startsWith("*.")) {
+                    return tableName.equals(t.substring("*.".length()));
+                }
+
+                return tableName.equals(tableFullName);
+            });
         };
 
         for(DataBaseModel db: dataBases) {
             // 获取一个db的所有table名字
             String dbName = db.getName();
+
+            // 有listTables几口的直接调用这个接口获取table列表以及每个table的详细信息
+            List<TableModel> _tables = this.loader.listTables(dbName);
+            if (Objects.nonNull(_tables)) {
+                _tables.stream().filter(t -> tableFilter.apply(dbName, t.getName())).forEach(t -> {
+                    tables.add(t);
+                });
+
+                continue;
+            }
+
+            // 没有listTables接口的，先获取table的名字，再一次调用getTable接口获取详细的
+            // table信息
             List<String> tableNames = this.loader.listTableNames(dbName);
 
             // 获取table的具体信息
@@ -339,7 +437,14 @@ public class DataSourceMetaLoader {
                     continue;
                 }
 
-                Future<TableModel> future = threadPool.submit(() -> loader.getTable(dbName, tbName));
+                Future<TableModel> future = threadPool.submit(() -> {
+                    try {
+                        return loader.getTable(dbName, tbName);
+                    } catch (Exception e) {
+                        logger.error("failed to get table {}.{}", dbName, tbName);
+                        throw e;
+                    }
+                });
                 futures.add(future);
             }
 
@@ -357,7 +462,14 @@ public class DataSourceMetaLoader {
             }
 
             Future<List<PartitionModel>> future = threadPool.submit(
-                    () -> this.loader.listPartitions(table.getDbName(), table.getName())
+                    () -> {
+                        try {
+                            return this.loader.listPartitions(table.getDbName(), table.getSchemaName(), table.getName());
+                        } catch (Exception e) {
+                            logger.error("failed to list partitions for {}.{}", table.getDbName(), table.getName());
+                            throw e;
+                        }
+                    }
             );
 
             futures.add(future);
@@ -376,8 +488,6 @@ public class DataSourceMetaLoader {
     }
 
     private static class FuturesResult<T> {
-        Logger logger = LoggerFactory.getLogger(FuturesResult.class);
-
         List<Future<T>> futures;
 
         public FuturesResult(List<Future<T>> futures) {
@@ -389,14 +499,6 @@ public class DataSourceMetaLoader {
                 T result = f.get();
                 c.accept(result);
             }
-//            futures.forEach(f -> {
-//                try {
-//                    T result = f.get();
-//                    c.accept(result);
-//                } catch (InterruptedException | ExecutionException e) {
-//                    logger.error("", e);
-//                }
-//            });
         }
     }
 
@@ -466,63 +568,53 @@ public class DataSourceMetaLoader {
                 modelId = String.format("table %s.%s", tm.getDbName(), tm.getName());
             } else if (model instanceof PartitionModel) {
                 PartitionModel pm = (PartitionModel) model;
-                modelId = String.format("partition %s.%s.%s", pm.getDbName(), pm.getTableName(), pm.getValue());
+                modelId = String.format("partition %s.%s.%s", pm.getDbName(), pm.getTableName(), pm.getDecodedValue());
             }
 
             logger.info(tpl, modelId);
         }
     }
+    private void saveNewData(List<DataBaseModel> dataBases, List<TableModel> tables, List<PartitionModel> partitions) throws IdGenException {
+        // 生成db id, 填充到db
+        for (DataBaseModel dm: dataBases) {
+            dm.setId(dbIdGen.nextId());
+        }
 
-    private void saveNewData(List<DataBaseModel> dataBases, List<TableModel> tables, List<PartitionModel> partitions) {
-        // 保存db
-        dataBases.forEach(this.dbService::insertDb);
-
-        logger.info("save {} new dbs to database", dataBases.size());
-
-        // 填充table model的db_id字段
-        tables.forEach(tm -> {
+        // 将db id填充到table, 并产生新的table id
+        for (TableModel tm: tables) {
             DataBaseModel dm = dbNameToDb.get(tm.getDbName());
             tm.setDbId(dm.getId());
-        });
+            tm.setId(tableIdGen.nextId());
+        }
 
-        //  批量保存table, 这时table里的id字段不能获取
-        tableService.batchInsertTables(tables);
+        // 填充partition的db_id, table_id
+        for (PartitionModel pm: partitions) {
+            String dbName = pm.getDbName();
 
-        // 获取table的ids
-        List<TableHasher> tableHasherList = tableService.getAllTableHasher();
-        Map<TableHasher, Integer> tableIdMap = new HashMap<>();
-        tableHasherList.forEach(tableHasher -> {
-            Integer tableId = tableHasher.getTableId();
-            tableHasher.setTableId(null);
-            tableIdMap.put(tableHasher, tableId);
-        });
+            DataBaseModel dm = dbNameToDb.get(dbName);
+            TableModel tm = tableHasherToTable.get(pm.tableTableHasher());
 
-        tables.forEach(tm -> {
-            tm.setId(null);
-            TableHasher hasher = tm.getTableHasher();
-            Integer tableId = tableIdMap.get(hasher);
-            tm.setId(tableId);
-        });
+            pm.setDbId(dm.getId());
+            pm.setTableId(tm.getId());
+        }
 
-        progress.set(7500);
+        // 启事务，insert数据
+        try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            TableMapper tableMapper = sqlSession.getMapper(TableMapper.class);
+            DbMapper dbMapper = sqlSession.getMapper(DbMapper.class);
+
+            dataBases.forEach(dbMapper::insertDb);
+            tables.forEach(tableMapper::insertTable);
+
+            sqlSession.commit();
+        }
+
+
+        logger.info("save {} new dbs to database", dataBases.size());
         logger.info("loading meta {}%", getProgress());
         logger.info("save {} new tables to database", tables.size());
 
         logger.info("start to save {} new partitions to database", partitions.size());
-
-        // 填充partition model的db_id, table_id字段
-        partitions.forEach(pm -> {
-            String dbName = pm.getDbName();
-            String tableName = pm.getTableName();
-
-            DataBaseModel dm = dbNameToDb.get(dbName);
-            TableModel tm = dbNameToTables.get(dbName).get(tableName);
-
-            pm.setDbId(dm.getId());
-            pm.setTableId(tm.getId());
-        });
-
-        // 批量把partitions插入db
         ptService.batchInsertPartitions(partitions);
         logger.info("save {} new partitions to database", partitions.size());
 
@@ -535,5 +627,22 @@ public class DataSourceMetaLoader {
 
     public float getProgress() {
         return progress.get() / (float)100.0;
+    }
+
+    private void actionLog(DSUpdateAction action, ActionStatus status, String msgTpl, Object ...args) {
+        String msg = String.format(msgTpl, args);
+        if (msg.length() > 1024) {
+            msg = msg.substring(0, 1024);
+        }
+
+        ActionLog log = ActionLog.builder()
+                .sourceId(dataSource.getId())
+                .actionType(ActionType.DATASOURCE_UPDATE)
+                .status(status)
+                .action(action.toString())
+                .msg(msg)
+                .build();
+
+        dsService.addActionLog(log);
     }
 }

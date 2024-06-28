@@ -40,4 +40,6 @@ public interface ConfigService {
     default void setLongConfig(String category, String name, long value) {
         this.setConfig(category, name, Long.toString(value));
     }
+
+    List<ConfigItem> getTimers();
 }

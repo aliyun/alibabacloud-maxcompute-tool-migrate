@@ -6,7 +6,7 @@ export async function getMMAConfig(): Promise<API.MMARes<API.MMConfig>>  {
     mmaConfig.data?.forEach(m => {
         if (m.required === true) {
             m.desc += " (必填)";
-        } else {
+        } else if ((m.editable ?? true) != false) {
             m.desc += " (可选)";
         }
     });

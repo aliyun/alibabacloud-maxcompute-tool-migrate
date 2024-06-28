@@ -114,19 +114,6 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
         executeOdpsSql(sql);
     }
 
-    protected void withSubStatus(String startStatus, String endStatus, String errStatus, ActionFunc func) throws Exception {
-        task.setSubStatus(startStatus);
-
-        try {
-            func.run();
-        } catch (Exception e) {
-            task.setSubStatus(errStatus);
-            throw e;
-        }
-
-        task.setSubStatus(endStatus);
-    }
-
     protected String createMergedTempTableSql() {
         TableSchema tableSchema = task.getOdpsTableSchema();
         List<Column> columns = tableSchema.getColumns();
@@ -143,6 +130,7 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
 
         return OdpsSqlUtils.createTableSql(
                 task.getOdpsProjectName(),
+                task.getOdpsSchemaName(),
                 getTempTableName(),
                 tempTableSchema,
                 null,

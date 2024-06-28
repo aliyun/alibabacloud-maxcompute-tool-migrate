@@ -19,6 +19,10 @@ public abstract class Config {
     protected List<ConfigItem> configItems;
     protected Map<String, String> mem;
 
+    protected List<String> itemMasks() {
+        return Collections.emptyList();
+    }
+
     public Config() {
         configItemMap = new HashMap<>();
         configItems = new ArrayList<>();
@@ -28,6 +32,7 @@ public abstract class Config {
 
     protected void initConfigItemMap(Class<? extends Config> thisC) {
         Field[] fields = thisC.getFields();
+        List<String> masks = this.itemMasks();
 
         for (Field field: fields) {
             if (!field.isAnnotationPresent(ConfigItem.class)) {
@@ -35,10 +40,15 @@ public abstract class Config {
             }
 
             ConfigItem configItem = field.getAnnotation(ConfigItem.class);
-            configItems.add(configItem);
 
             try {
                 String configKey = (String) field.get(this);
+
+                if (masks.contains(configKey)) {
+                    continue;
+                }
+
+                configItems.add(configItem);
                 configKeys.add(configKey);
                 configItemMap.put(configKey, configItem);
             } catch (Exception e) {
@@ -157,6 +167,15 @@ public abstract class Config {
         return gson.fromJson(value, new TypeToken<Map<String, String>>() {}.getType());
     }
 
+    public TimerConfig getTimer(String name) {
+        String value = getConfig(name);
+        if (Objects.isNull(value)) {
+            return new TimerConfig();
+        }
+
+        return TimerConfig.parse(value);
+    }
+
     public void setList(String name, List<String> value) {
         Gson gson = new Gson();
         String json = gson.toJson(value);
@@ -198,6 +217,9 @@ public abstract class Config {
                     case "boolean":
                         configValue = this.getBoolean(configKey);
                         break;
+                    case "timer":
+                        configValue = this.getMap(configKey);
+                        break;
                     default:
                         configValue = this.getConfig(configKey);
                         break;
@@ -212,6 +234,15 @@ public abstract class Config {
             if (configItem.required()) {
                 item.put("required", true);
             }
+
+            if (! configItem.editable()) {
+                if (Objects.isNull(configValue)) {
+                    continue;
+                }
+
+                item.put("editable", false);
+            }
+
             item.put("type", configItem.type());
             item.put("desc", configItem.desc());
             items.add(item);
@@ -311,6 +342,17 @@ public abstract class Config {
                     if (! (configValue instanceof Map)) {
                         errors.put(configKey, "is not a valid json of Map");
                     }
+                    break;
+                case "timer":
+                    if (! (configValue instanceof Map)) {
+                        errors.put(configKey, "is not a valid timer value");
+                    } else {
+                        String error = TimerConfig.verifyConfig((Map<String, String>)configValue);
+                        if (StringUtils.isNotBlank(error)) {
+                            errors.put(configKey, error);
+                        }
+                    }
+
                     break;
                 case "boolean":
                     if ((!"true".equals(configStrVal)) && (!"false".equals(configStrVal))) {

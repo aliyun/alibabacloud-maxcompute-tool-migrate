@@ -4,8 +4,6 @@ import {getDbs, getPts, getTables, resetPts} from "@/services/source";
 import React, {useState} from "react";
 import {Button, message, Popconfirm, Table} from "antd";
 import {Key, RowSelectMethod} from "antd/lib/table/interface";
-import {jobAction} from "@/services/job";
-import {NewJobForm} from "@/components/Job/NewJobForm";
 import {NewPartitionJobForm} from "@/components/Job/NewPartitionJobForm";
 
 export default (props: {db: API.DbModel}) => {
@@ -14,6 +12,10 @@ export default (props: {db: API.DbModel}) => {
     const [visible, setVisible] = useState<boolean>(false);
 
     const columns: ProColumns<API.PartitionModel>[] = [
+        {
+            title: "schema",
+            dataIndex: "schemaName",
+        },
         {
             title: "表名",
             dataIndex: "tableName",

@@ -7,7 +7,7 @@ import {
     ProDescriptionsItemProps,
     ProTable,
 } from '@ant-design/pro-components';
-import {Button, Divider, Drawer, message, Popover, Switch, Tooltip, Popconfirm, Badge} from 'antd';
+import {Button, Divider, Drawer, message, Popover, Switch, Tooltip, Popconfirm, Badge, Tabs} from 'antd';
 import React, { useRef, useState } from 'react';
 import {getJobs, jobAction} from "@/services/job";
 import {ProCoreActionType} from "@ant-design/pro-utils/lib/typing";
@@ -16,9 +16,13 @@ import {JobStatusBadgeMap, JobStatusMap} from "@/pages/Job/JobList/components/Jo
 import {PresetStatusColorType} from "antd/lib/_util/colors";
 import {McProjectSelector} from "@/components/Config/McProjectSelector";
 import {SourceSelectorByName} from "@/components/Source/SourceSelector";
+import {ActionLog} from "@/pages/Source/SourceList/components/ActionLog";
+import {JobDetail} from "@/pages/Job/JobList/components/JobDetail";
 
 export default () => {
+    const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
     const actionRef = useRef<ActionType>();
+    const [currentRow, setCurrentRow] = useState<API.Job>();
 
     const columns: ProColumns<API.Job>[] = [
          {
@@ -59,30 +63,30 @@ export default () => {
                  Partitions: {text: "多分区"},
              }
          },
-         {
-             title: "其他信息",
-             dataIndex: "config",
-             colSize: 1,
-             //valueType: 'code',
-             renderText: (text: any, record, index: number, action: ProCoreActionType) => {
-                 return JSON.stringify(record.config, null, 4);
-             },
-             //@ts-ignore
-             ellipsis: {
-                 showTitle: false,
-             },
-             render: (row, entity) => {
-                 let config = JSON.stringify(entity.config, null, 4);
-                 //return config;
-
-                 return (
-                     <Tooltip placement="topLeft" title={config}>
-                         {config}
-                     </Tooltip>
-                 )
-             },
-             search: false,
-         },
+         // {
+         //     title: "其他信息",
+         //     dataIndex: "config",
+         //     colSize: 1,
+         //     //valueType: 'code',
+         //     renderText: (text: any, record, index: number, action: ProCoreActionType) => {
+         //         return JSON.stringify(record.config, null, 4);
+         //     },
+         //     //@ts-ignore
+         //     ellipsis: {
+         //         showTitle: false,
+         //     },
+         //     render: (row, entity) => {
+         //         let config = JSON.stringify(entity.config, null, 4);
+         //         //return config;
+         //
+         //         return (
+         //             <Tooltip placement="topLeft" title={config}>
+         //                 {config}
+         //             </Tooltip>
+         //         )
+         //     },
+         //     search: false,
+         // },
          {
              title: "状态",
              dataIndex: "status",
@@ -112,6 +116,38 @@ export default () => {
                  STOPPED: {text: '停止'},
              },
          },
+        {
+            title: "定时",
+            dataIndex: "timer",
+            search: false,
+            render: (row, entity) => {
+                const timer = entity.timer;
+                if (! timer) {
+                    return "--";
+                }
+
+                let content = "";
+                switch (timer.type) {
+                    case "daily":
+                        content = `每天: ${timer.value}`
+                        break;
+                    case "hourly":
+                        content = `每小时: ${timer.value}`
+                        break
+                    default:
+                        return "--";
+                }
+
+                return (
+                    <a onClick={() => {
+                        setShowJobDetail(true);
+                        setCurrentRow(entity);
+                    }}>
+                        {content}
+                    </a>
+                );
+            }
+        },
          {
              title: "创建时间",
              dataIndex: "createTime",
@@ -206,20 +242,23 @@ export default () => {
                  search={{
                      filterType: "light"
                  }}
-                 // toolbar={{
-                 //     actions: [
-                 //         <Button
-                 //             key="key"
-                 //             type="primary"
-                 //             onClick={() => {
-                 //                 alert('add');
-                 //             }}
-                 //         >
-                 //             新建
-                 //         </Button>,
-                 //     ]
-                 // }}
              />
+
+             <Drawer
+                 open={showJobDetail}
+                 onOpenChange={setShowJobDetail}
+                 onClose={() => {
+                     setCurrentRow(undefined);
+                     setShowJobDetail(false);
+                 }}
+                 closable={false}
+             >
+                 <Tabs>
+                     <Tabs.TabPane tab="执行批次" key="job_batch">
+                         <JobDetail jobId={currentRow?.id} />
+                     </Tabs.TabPane>
+                 </Tabs>
+             </Drawer>
          </PageContainer>
      )
  }

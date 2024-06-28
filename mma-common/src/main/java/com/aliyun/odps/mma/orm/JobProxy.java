@@ -8,6 +8,7 @@ import com.aliyun.odps.mma.execption.JobConfigException;
 import com.aliyun.odps.mma.execption.JobSubmittingException;
 import com.aliyun.odps.mma.model.*;
 import com.aliyun.odps.mma.service.*;
+import com.aliyun.odps.mma.util.KeyLock;
 import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.mma.util.TableHasher;
 import com.aliyun.odps.mma.util.TableName;
@@ -68,7 +69,18 @@ public class JobProxy {
         this.dataSourceService = dataSourceService;
     }
 
-    public int submit() throws JobSubmittingException {
+    public int submit() throws Exception {
+        String dsName = jobModel.getSourceName();
+        String dbName = jobModel.getDbName();
+        String lockKey = String.format("lock_%s.%s", dsName, dbName);
+
+        try (KeyLock keyLock = new KeyLock(lockKey)) {
+            keyLock.lock();
+            return _submit();
+        }
+    }
+
+    private int _submit() throws JobSubmittingException {
         String dsName = jobModel.getSourceName();
         String dbName = jobModel.getDbName();
 
@@ -113,7 +125,7 @@ public class JobProxy {
             tables = tableService.getTablesOfDb(db.getId());
         }
 
-        if (tables.size() == 0) {
+        if (tables.isEmpty()) {
             throw new JobSubmittingException("there are no tables found");
         }
 
@@ -138,7 +150,7 @@ public class JobProxy {
         for (TaskModel task: tasks) {
             List<Integer> _partitionIds = task.getPartitions();
 
-            if (Objects.nonNull(_partitionIds) && _partitionIds.size() > 0) {
+            if (Objects.nonNull(_partitionIds) && !_partitionIds.isEmpty()) {
                 partitionIds.addAll(_partitionIds);
             } else {
                 tableIds.add(task.getTableId());
@@ -184,6 +196,10 @@ public class JobProxy {
     }
 
     private List<TaskModel> generateTasks(TableModel table, List<PartitionModel> _partitions) throws JobSubmittingException {
+        if (jobConfig.isIncrement() && jobModel.isOldJob() && !MigrationStatus.INIT.equals(table.getStatus())) {
+            return new ArrayList<>();
+        }
+
         if (Objects.isNull(_partitions)) {
             _partitions = new ArrayList<>();
         }
@@ -191,14 +207,16 @@ public class JobProxy {
         List<TaskModel> tasks = new ArrayList<>();
 
         TaskModel.TaskModelBuilder tb = TaskModel.builder();
-        TableName odpsTable = jobConfig.getDstOdpsTable(table.getName(), jobModel.getDstOdpsProject());
+        TableName odpsTable = jobConfig.getDstOdpsTable(table.getName(), jobModel.getDstOdpsSchema(), jobModel.getDstOdpsProject());
 
         tb.dbName(table.getDbName())
                 .sourceId(table.getSourceId())
                 .dbId(table.getDbId())
+                .schemaName(table.getSchemaName())
                 .tableName(table.getName())
                 .tableId(table.getId())
                 .odpsProject(odpsTable.getDbName())
+                .odpsSchema(odpsTable.getSchemaName())
                 .odpsTable(odpsTable.getName())
                 .type(jobConfig.getTaskType())
                 .status(TaskStatus.INIT);
@@ -219,7 +237,8 @@ public class JobProxy {
             partitions = new ArrayList<>();
 
             for (PartitionModel partition: _partitions) {
-                boolean isWanted = partitionFilter.filter(partition.getValue());
+                boolean isWanted = partitionFilter.filter(partition.getValue(
+                    jobConfig.getSourceConfig()));
                 Optional<String> errOpt = partitionFilter.getTypeError();
                 if (errOpt.isPresent()) {
                     throw new JobConfigException("partition_filter", errOpt.get());
@@ -230,7 +249,7 @@ public class JobProxy {
                 }
             }
 
-            if (partitions.size() == 0) {
+            if (partitions.isEmpty()) {
                 throw new JobConfigException(
                         "partition_filter",
                         "there are no partitions filter out by " + partitionFilter.getFilterExpr()
@@ -239,7 +258,17 @@ public class JobProxy {
         }
 
         if (jobConfig.isIncrement()) {
-            partitions = partitions.stream().filter(p -> MigrationStatus.DONE != p.getStatus()).collect(Collectors.toList());
+            partitions = partitions
+                    .stream()
+                    .filter(p -> {
+                        // 定时任务只迁未建立过任务的分区
+                        if (jobModel.isOldJob()) {
+                            return MigrationStatus.INIT.equals(p.getStatus());
+                        }
+
+                        return MigrationStatus.DONE != p.getStatus() && MigrationStatus.DOING != p.getStatus();
+                    })
+                    .collect(Collectors.toList());
         }
 
         // 分区表如果没有分区的话只建schema
@@ -275,7 +304,7 @@ public class JobProxy {
         // 校验是否已经有task在操作或准备操作partition
         List<Integer> partitionIds = ps.stream().map(PartitionModel::getId).collect(Collectors.toList());
         List<TaskModel> existedTasks = taskService.getRunningTasks(partitionIds);
-        if (existedTasks.size() > 0) {
+        if (!existedTasks.isEmpty()) {
             throw newException(existedTasks);
         }
 
@@ -303,12 +332,13 @@ public class JobProxy {
             List<List<PartitionModel>> ptGroups = this.jobConfig.getPartitionGrouping().group(groupOfTable);
 
             String dbName = th.getDbName();
+            String schemName = th.getSchemName();
             String tableName = th.getTableName();
-            Integer sourceId = th.getSourceId();
-            Integer dbId = th.getDbId();
-            Integer tableId = th.getTableId();
+            Integer sourceId = groupOfTable.get(0).getSourceId();
+            Integer dbId = groupOfTable.get(0).getDbId();
+            Integer tableId = groupOfTable.get(0).getTableId();
             TaskType taskType = jobConfig.getTaskType();
-            TableName odpsTable = jobConfig.getDstOdpsTable(tableName, jobModel.getDstOdpsProject());
+            TableName odpsTable = jobConfig.getDstOdpsTable(tableName, jobModel.getDstOdpsSchema(), jobModel.getDstOdpsProject());
 
             ptGroups
                     .stream()
@@ -319,9 +349,11 @@ public class JobProxy {
                         tb.dbName(dbName)
                                 .sourceId(sourceId)
                                 .dbId(dbId)
+                                .schemaName(schemName)
                                 .tableName(tableName)
                                 .tableId(tableId)
                                 .odpsProject(odpsTable.getDbName())
+                                .odpsSchema(odpsTable.getSchemaName())
                                 .odpsTable(odpsTable.getName())
                                 .type(taskType)
                                 .status(TaskStatus.INIT)
@@ -383,7 +415,20 @@ public class JobProxy {
                         .collect(Collectors.toSet())
         );
 
-        return new JobSubmittingException(String.format("There are tasks those are running or ready to run for %s", msg));
+        // TODO 创建jobBatch
+        String errMsg = String.format("There are tasks those are running or ready to run for %s", msg);
+        if (jobModel.isOldJob()) {
+            JobBatchModel jobBatch = JobBatchModel
+                    .builder()
+                    .jobId(jobModel.getId())
+                    .status(JobBatchStatus.FAILED)
+                    .errMsg(errMsg)
+                    .build();
+
+            jobService.insertJobBatch(jobBatch);
+        }
+
+        return new JobSubmittingException(errMsg);
     }
 }
 

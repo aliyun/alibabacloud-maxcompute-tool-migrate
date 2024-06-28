@@ -8,8 +8,10 @@ import java.util.List;
 public class JobFilter extends QueryFilter {
     private String sourceName;
     private String dbName;
+    private String schemaName;
     private String tableName;
     private String dstOdpsProject;
+    private String dstOdpsSchema;
     private String dstOdpsTable;
     private String ptValue;
     private int dbId;

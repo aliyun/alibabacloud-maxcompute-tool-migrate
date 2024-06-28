@@ -1,11 +1,12 @@
 package com.aliyun.odps.mma.sql;
 
 import com.aliyun.odps.mma.meta.schema.MMAColumnSchema;
+import lombok.Getter;
 
 import java.util.List;
-import java.util.function.Function;
 
 public class PartitionValue {
+    @Getter
     private final List<MMAColumnSchema> columns;
     private final String[] values;
 

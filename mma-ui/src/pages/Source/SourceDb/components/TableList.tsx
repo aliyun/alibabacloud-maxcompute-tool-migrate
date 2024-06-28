@@ -6,17 +6,28 @@ import {StatusMap} from "@/pages/Source/SourceDb/components/Status";
 import {Button, Col, Descriptions, Drawer, Row, Table, Tabs} from "antd";
 import {NewJobForm} from "@/components/Job/NewJobForm";
 import {Key, RowSelectMethod} from "antd/lib/table/interface";
-import {TaskLog} from "@/pages/Job/TaskList/components/TaskLog";
-import TaskPartitions from "@/pages/Job/TaskList/components/TaskPartitions";
+
 
 export default (props: {db: API.DbModel}) => {
     const [total, setTotal] = useState<number>(0);
-    const [visible, setVisible] = useState<boolean>(false);
+    const [newJobFormOpen, setNewJobFormOpen] = useState<boolean>(false);
     const [tables, setTables] = useState<string[]>([]);
     const [showDetail, setShowDetail] = useState<boolean>(false);
     const [currentRow, setCurrentRow] = useState<API.TableModel>()
 
     const columns: ProColumns<API.TableModel>[] = [
+        {
+            title: "schema",
+            dataIndex: "schemaName",
+            // formItemProps: {
+            //     rules: [
+            //         {
+            //             required: true,
+            //             message: '表名为必填项',
+            //         },
+            //     ],
+            // }
+        },
         {
             title: "表名",
             dataIndex: "name",
@@ -158,6 +169,26 @@ export default (props: {db: API.DbModel}) => {
                 )});
 
                 let ptTip = pts.length > 0 ? <Col span={24}><br />分区名/类型</Col>: "";
+                let constraint: any = [];
+                if (table.schema.tableConstraints) {
+                    constraint = [
+                        <Col span={24}><br />table constraint</Col>
+                    ]
+
+                    const tcList = table.schema.tableConstraints;
+
+                    for (const tc of tcList) {
+                        if (tc.primaryKeys) {
+                            constraint.push(<Col span={3}>primary keys: </Col>);
+                            constraint.push(<Col span={21}>{tc.primaryKeys?.join(", ")} </Col>);
+                        }
+
+                        if (tc.foreignKeyConstraint) {
+                            constraint.push(<Col span={5}>foreign key constraint</Col>);
+                            constraint.push(<Col span={19}>{JSON.stringify(tc.foreignKeyConstraint)}</Col>);
+                        }
+                    }
+                }
 
                 return (
                     <>
@@ -166,6 +197,7 @@ export default (props: {db: API.DbModel}) => {
                             {cols}
                             {ptTip}
                             {pts}
+                            {constraint}
                         </Row>
                     </>
                 )
@@ -232,7 +264,7 @@ export default (props: {db: API.DbModel}) => {
                             key="key"
                             type="primary"
                             onClick={() => {
-                                setVisible(true);
+                                setNewJobFormOpen(true);
                             }}
                         >
                             新建迁移任务
@@ -264,7 +296,7 @@ export default (props: {db: API.DbModel}) => {
                 />
             </Drawer>
 
-            <NewJobForm db={props.db} jobType="tables" tables={tables} visible={visible} setVisible={setVisible} />
+            <NewJobForm sourceName={props.db.sourceName} dbName={props.db.name} jobType="tables" tables={tables} open={newJobFormOpen} setOpen={setNewJobFormOpen} />
         </>
     )
 };

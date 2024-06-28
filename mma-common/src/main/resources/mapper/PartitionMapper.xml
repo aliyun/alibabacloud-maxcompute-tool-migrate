@@ -4,9 +4,10 @@
 <mapper namespace="com.aliyun.odps.mma.mapper.PartitionMapper">
     <resultMap id="partitionMap" type="com.aliyun.odps.mma.model.PartitionModel">
         <result column="source_id" property="sourceId"/>
-        <result column="db_id" property="DbId"/>
+        <result column="db_id" property="dbId"/>
         <result column="table_id" property="tableId"/>
         <result column="db_name" property="dbName"/>
+        <result column="schema_name" property="schemaName"/>
         <result column="table_name" property="tableName"/>
         <result column="num_rows" property="numRows"/>
         <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
@@ -15,7 +16,7 @@
     </resultMap>
 
     <select id="getPartitionsOfDataSource" resultMap="partitionMap">
-        select partition_model.* from partition_model join data_source on partition_model.source_id = data_source.id where data_source.name=#{sourceName}
+        select partition_model.* from partition_model join datasource on partition_model.source_id = datasource.id where datasource.name=#{sourceName}
     </select>
 
     <select id="getPartitionsByDsId" resultMap="partitionMap">
@@ -81,15 +82,15 @@
 <!--    <insert id="insertPartition" parameterType="com.aliyun.odps.mma.model.PartitionModel" useGeneratedKeys="true" keyProperty="id" keyColumn="id">-->
     <insert id="insertPartition" parameterType="com.aliyun.odps.mma.model.PartitionModel">
         insert into partition_model
-       (source_id, db_id, table_id, db_name, table_name, value,
+       (source_id, db_id, table_id, db_name, schema_name, table_name, value,
         status,
-        size, num_rows, last_ddl_time
+        size, num_rows, last_ddl_time, create_time
         )
         values
        (
-        #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{tableName}, #{value},
+        #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{schemaName}, #{tableName}, #{value},
         #{status},
-        #{size}, #{numRows}, #{lastDdlTime}
+        #{size}, #{numRows}, #{lastDdlTime}, now()
         )
     </insert>
 
@@ -152,12 +153,12 @@
     </update>
 
     <select id="getPts" resultMap="partitionMap" parameterType="com.aliyun.odps.mma.query.PtFilter">
-        select partition_model.*, data_source.name as sourceName from partition_model join data_source on
-        partition_model.source_id = data_source.id
+        select partition_model.*, datasource.name as sourceName from partition_model join datasource on
+        partition_model.source_id = datasource.id
 
         <where>
             <if test="sourceId > 0">
-                data_source.id=#{sourceId}
+                datasource.id=#{sourceId}
             </if>
 
             <if test="dbId > 0">
@@ -166,6 +167,10 @@
 
             <if test="dbName != null">
                 and partition_model.db_name like CONCAT('%', #{dbName}, '%')
+            </if>
+
+            <if test="schemaName != null">
+                and partition_model.schema_name like CONCAT('%', #{schemaName}, '%')
             </if>
 
             <if test="tableName != null">
@@ -217,6 +222,10 @@
 
             <if test="dbName != null">
                 and db_name like CONCAT('%', #{dbName}, '%')
+            </if>
+
+            <if test="schemaName != null">
+                and schema_name like CONCAT('%', #{schemaName}, '%')
             </if>
 
             <if test="tableName != null">

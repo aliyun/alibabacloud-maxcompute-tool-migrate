@@ -4,6 +4,9 @@ import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.task.OdpsPartitionGrouping;
 import com.aliyun.odps.mma.task.PartitionGrouping;
+import com.aliyun.odps.mma.util.StringUtils;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilder;
 
 import java.util.List;
 
@@ -34,6 +37,15 @@ public class OdpsConfig extends SourceConfig {
     public static String COPYTASK_INS_NUM = "copytask.ins.num";
     @ConfigItem(desc = "coppytask direction, 仅用于\"跨region项目迁移\"", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
     public static String COPYTASK_DIRECTION = "copytask.direction";
+    @ConfigItem(desc = "oss endpoint internal, use in mc sql", required = true)
+    public static final String OSS_ENDPOINT_INTERNAL = "oss.endpoint.internal";
+    @ConfigItem(desc = "oss endpoint external, use in mma if mma can not use internal endpoint", required = true)
+    public static final String OSS_ENDPOINT_EXTERNAL = "oss.endpoint.external";@ConfigItem(desc = "oss bucket", required = true)
+    public static final String OSS_BUCKET = "oss.bucket";
+    @ConfigItem(desc = "oss access id", required = true)
+    public static final String OSS_AUTH_ACCESS_ID = "oss.auth.access.id";
+    @ConfigItem(desc = "oss access key", required = true, type = "password")
+    public static final String OSS_AUTH_ACCESS_KEY = "oss.auth.access.key";
     @ConfigItem(desc = "maxcompute 迁移任务sql参数, 仅用于\"同region项目迁移\"", type = "map", defaultValue = "{\n    " +
             "\"odps.sql.hive.compatible\": \"true\"" +
             "\n}")
@@ -63,5 +75,27 @@ public class OdpsConfig extends SourceConfig {
 
     public List<String> getProjects() {
         return getList(MC_PROJECTS);
+    }
+
+    public String getOssPathOfExternalTable(String dbName, String schemaName, String tableName) {
+        String endpoint = this.getConfig(OSS_ENDPOINT_INTERNAL);
+        String accessId = this.getConfig(OSS_AUTH_ACCESS_ID);
+        String accessKey = this.getConfig(OSS_AUTH_ACCESS_KEY);
+        String bucket = this.getConfig(OSS_BUCKET);
+
+        DefaultUriBuilderFactory df = new DefaultUriBuilderFactory();
+        UriBuilder ub =  df.builder();
+        ub.scheme("oss");
+        ub.host(endpoint);
+        ub.userInfo(accessId + ":" + accessKey);
+
+
+        if (StringUtils.isBlank(schemaName)) {
+            ub.pathSegment(bucket, dbName, tableName);
+        } else {
+            ub.pathSegment(bucket, dbName, schemaName, tableName);
+        }
+
+        return ub.build().toString();
     }
 }

@@ -4,9 +4,9 @@ import {
     ProTable,
     ProDescriptions,
     ProDescriptionsItemProps,
-    ProList, ActionType, ProFormInstance
+    ProList, ActionType, ProFormInstance, ProFormSelect
 } from "@ant-design/pro-components";
-import {getTaskLog, getTasks, getTaskTypeMap} from "@/services/job";
+import {getJobBasicInfo, getTaskLog, getTasks, getTaskTypeMap} from "@/services/job";
 import React, {useEffect, useRef, useState} from "react";
 import {Badge, Drawer, Tabs, Popconfirm} from "antd";
 import {PresetStatusColorType} from "antd/lib/_util/colors";
@@ -28,15 +28,43 @@ export default () => {
     const [params, _] = useSearchParams();
     const actionRef = useRef<ActionType>();
     const formRef = useRef<ProFormInstance>();
+    const [jobIdToName, setJobIdToName] = useState<API.IdToName>({})
 
     let jobId = params.get("jobId")
+    let batchId = params.get("batchId")
     let taskTypeMap: Record<string, string> = {};
 
     useEffect(() => {
         getTaskTypeMap().then((res) => {
             taskTypeMap = res.data ?? {};
+        });
+
+        getJobBasicInfo().then((res) => {
+            const data = res?.data || {};
+            setJobIdToName(data);
         })
-    })
+    }, [])
+
+    const request = async (params, sort, filter) => {
+        if (params?.tableName != undefined) {
+            setSearchTable(true);
+        } else {
+            setSearchTable(false);
+        }
+
+
+        if (jobId != null && params.jobId == null) {
+            params.jobId = jobId;
+        }
+
+        if (batchId != null && params.batchId == null) {
+            params.batchId = batchId;
+        }
+
+        let res = await getTasks(params, sort, filter);
+        setTotal(res?.total || 0);
+        return res;
+    };
 
     const columns: ProColumns<API.Task>[] = [
         {
@@ -49,8 +77,21 @@ export default () => {
             dataIndex: "jobName",
             key: "jobId",
             renderFormItem: (item, { type, defaultRender, ...rest }, form) => {
-                return <JobSelector initialValue={jobId || ""} />;
+                return (
+                    <ProFormSelect
+                        showSearch
+                        name="jobId"
+                        valueEnum={jobIdToName}
+                        initialValue={jobId}
+                    />
+                )
             }
+        },
+        {
+            title: "批次",
+            dataIndex: "batchId",
+            valueType: "digit",
+            initialValue: batchId
         },
         {
             title: "数据源",
@@ -168,21 +209,7 @@ export default () => {
                 actionRef={actionRef}
                 formRef={formRef}
                 columns={columns}
-                request={async (params, sort, filter) => {
-                    if (params?.tableName != undefined) {
-                        setSearchTable(true);
-                    } else {
-                        setSearchTable(false);
-                    }
-
-                    if (jobId != null) {
-                        params.jobId = jobId;
-                    }
-
-                    let res = await getTasks(params, sort, filter);
-                    setTotal(res?.total || 0);
-                    return res;
-                }}
+                request={request}
                 postData={(tasks: API.Task[]) => {
                     for (let task of tasks) {
                         task.type = taskTypeMap[task.type]

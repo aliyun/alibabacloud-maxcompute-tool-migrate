@@ -29,4 +29,8 @@
     <delete id="deleteConfig">
         delete from config where category=#{category} and name=#{name}
     </delete>
+
+    <select id="getTimers" resultType="com.aliyun.odps.mma.model.ConfigItem">
+        select category, value from config where name='meta.timer';
+    </select>
 </mapper>

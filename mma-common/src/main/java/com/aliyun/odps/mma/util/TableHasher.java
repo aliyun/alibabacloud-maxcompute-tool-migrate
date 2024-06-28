@@ -8,28 +8,24 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 public class TableHasher {
-    private Integer sourceId;
     private String dbName;
+    private String schemName;
     private String tableName;
-    private Integer dbId;
-    private Integer tableId;
 
-    public TableHasher(Integer sourceId, String dbName, String tableName, Integer dbId, Integer tableId) {
-        this.sourceId = sourceId;
+    public TableHasher(String dbName, String schemName, String tableName) {
         this.dbName = dbName;
+        this.schemName = schemName;
         this.tableName = tableName;
-        this.dbId = dbId;
-        this.tableId = tableId;
     }
 
     @Override
     public String toString() {
-        return String.format("%s.%s", dbName, tableName);
+        return String.format("%s.%s.%s", dbName, schemName, tableName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sourceId, dbName, tableName);
+        return Objects.hash(dbName, schemName, tableName);
     }
 
     @Override
@@ -40,6 +36,8 @@ public class TableHasher {
 
         TableHasher ob = (TableHasher) other;
 
-        return Objects.equals(this.sourceId, ob.sourceId) && Objects.equals(this.dbName, ob.dbName) && Objects.equals(this.tableName, ob.tableName);
+        return Objects.equals(this.dbName, ob.dbName)
+                && Objects.equals(this.schemName, ob.schemName)
+                && Objects.equals(this.tableName, ob.tableName);
      }
 }

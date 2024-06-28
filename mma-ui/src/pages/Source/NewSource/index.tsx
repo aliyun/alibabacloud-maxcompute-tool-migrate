@@ -9,12 +9,13 @@ import {
 } from "@ant-design/pro-components";
 import {addSource, getSource, getSourceItems, getSourceTypes} from "@/services/source";
 import {useEffect, useRef, useState} from "react";
-import {message} from "antd";
 import {SourceLoadingProgress} from "@/components/Source/SourceLoadingProgress";
 import {showErrorMsg} from "@/utils/format";
 import * as React from "react";
 import {history} from "umi";
 import {SOURCES_ROUTE} from "@/constant";
+import {message, Form} from "antd";
+import {ProFormTimerPicker, TimerPicker} from "@/components/TimerPicker";
 
 export default () => {
     const formRef = useRef<ProFormInstance>();
@@ -192,7 +193,7 @@ const SourceConfigForm = (props: {sourceType: string, configItems: API.ConfigIte
                     {...itemProps}
                 />;
             case "list":
-                rules.push({pattern: /^([\w\\.]+\s*,\s*)*([\w\\.]+)$/, message: '该项值为列表，值之间请以","分割'});
+                rules.push({pattern: /^([\w\\*\\.]+\s*,\s*)*([\w\\*\\.]+)$/, message: '该项值为列表，值之间请以","分割'});
 
                 return <ProFormTextArea
                     {...itemProps}
@@ -203,6 +204,8 @@ const SourceConfigForm = (props: {sourceType: string, configItems: API.ConfigIte
                 return <ProFormDigit {...itemProps}/>;
             case "password":
                 return <ProFormText.Password  {...itemProps}/>
+            case "timer":
+                return <ProFormTimerPicker name={itemProps.name} label={itemProps.label} />
             default:
                 return <ProFormText {...itemProps} disabled={config.key == "type"} />;
         }
