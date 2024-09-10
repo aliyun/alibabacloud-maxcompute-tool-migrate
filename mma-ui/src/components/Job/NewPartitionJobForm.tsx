@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {
     ProFormInstance,
     ModalForm,
@@ -10,6 +10,10 @@ import {
 import {getJobOptions, submitJob} from "@/services/job";
 import {nowTime, showErrorMsg} from "@/utils/format";
 import {message} from "antd";
+import {fm} from "@/components/i18n";
+import {useIntl} from "umi";
+import type {CaptFieldRef} from "@ant-design/pro-form/es/components/Captcha";
+import {getLocale} from "@@/exports";
 
 export const NewPartitionJobForm = (
     props: {
@@ -21,6 +25,8 @@ export const NewPartitionJobForm = (
 ) => {
     const [jobOpts, setJobOpts] = useState<API.JobOpts>();
     const formRef = useRef<ProFormInstance>();
+    const intl = useIntl();
+    const inputRef = useRef<CaptFieldRef | null | undefined>();
 
     useEffect(() => {
         if (props.db == undefined) {
@@ -41,19 +47,22 @@ export const NewPartitionJobForm = (
         tableEnum[table] = table;
     }
 
+    let labelCol = 6;
+    if ((getLocale() ?? 'zh-CN') == 'zh-CN') {
+        labelCol = 3;
+    }
+
     let ptValues = props.partitions.map(p => `${p.tableName}.${p.value}`).join("\n");
 
     return (
         <ModalForm<Record<string, any>>
-            title={"新建迁移任务"}
-            visible={props.visible}
-            onVisibleChange={props.setVisible}
+            title={fm(intl, "components.Job.NewJobForm.title", "新建迁移任务")}
+            open={props.visible}
+            onOpenChange={props.setVisible}
             layout={"horizontal"}
             grid={true}
-            // rowProps={{
-            //     gutter: [16, 0],
-            // }}
-            labelCol={{ span: 3 }}
+            labelCol={{span: labelCol}}
+            colProps={{span: 23}}
             labelAlign="left"
             formRef={formRef}
             onFinish={async (values) => {
@@ -86,7 +95,7 @@ export const NewPartitionJobForm = (
                 jobJson["increment"] = false;
                 jobJson["partitions"] = props.partitions.map(p => p.id);
 
-                let hide = message.loading("提交迁移任务中...")
+                const hide = message.loading(fm(intl, "components/Job/NewJobForm.submitting", "提交迁移任务中..."))
 
                 submitJob(jobJson as API.Job)
                     .then((res) => {
@@ -106,97 +115,112 @@ export const NewPartitionJobForm = (
                     });
             }}
         >
-            <ProFormText name="description" label="名称:" placeholder="请输入名称" rules={[{ required: true, message: '请输入名称' }]} />
-            <ProFormText name="source_name" label="数据源:" placeholder="请输入名称" initialValue={props.db?.sourceName} disabled />
-            <ProFormText name="db_name" label="库名:" placeholder="请输入名称" initialValue={props.db?.name} disabled />
-            <ProFormSelect
-                colProps={{span: 24}}
-                label="任务类型:"
-                name="task_type"
-                initialValue={jobOpts?.defaultTaskType}
-                valueEnum={jobOpts?.taskTypes}
-                rules={[{ required: true, message: '请选择任务类型' }]}
+            <ProFormText name="description"
+                         label={fm(intl, "components.Job.NewJobForm.name", "名称:")}
+                         placeholder={fm(intl, "components.Job.NewJobForm.namePlaceholder", "请输入名称")}
+                         rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.namePlaceholder","请输入名称") }]}
+                         fieldRef={inputRef}
+            />
+            <ProFormText
+                name="source_name"
+                label={fm(intl, "components.Job.NewJobForm.datasource", "数据源:")}
+                initialValue={props.db?.sourceName}
+                disabled
+            />
+            <ProFormText
+                name="db_name"
+                label={fm(intl, "components.Job.NewJobForm.dbName", "库名:")}
+                initialValue={props.db?.name}
+                disabled
             />
             <ProFormSelect
-                colProps={{span: 24}}
-                label="mc项目:"
+                label={fm(intl, "components.Job.NewJobForm.taskType", "任务类型:")}
+                name="task_type"
+                valueEnum={jobOpts?.taskTypes}
+                rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.selectTaskType",'请选择任务类型') }]}
+            />
+            <ProFormSelect
+                label={fm(intl, "components.Job.NewJobForm.mcProject", "MC项目:")}
                 name="dst_mc_project"
                 valueEnum={ (() => {
-                    let enums: Record<string, string> = {};
+                    const enums: Record<string, string> = {};
 
-                    for (let mcProject of jobOpts?.dstMcProjects || [] ) {
+                    for (const mcProject of jobOpts?.dstMcProjects || [] ) {
                         enums[mcProject] = mcProject;
                     }
 
                     return enums;
                 })()}
-                rules={[{ required: true, message: '请选择mc项目' }]}
+                rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.selectMcProject",'请选择Mc项目')  }]}
             />
             <ProFormText name="dst_mc_schema" label="mc schema:" placeholder="请输入mc schema名称"/>
-            <ProForm.Group labelLayout='inline'>
-                <ProFormSwitch
-                    labelCol={{ span: 12 }}
-                    //colProps={{ md: 12, xl: 8 }}
-                    colProps={{ span: 6 }}
-                    initialValue={false}
-                    label="合并分区"
-                    name="merge_partition_enabled"
-                />
+            {/*<ProForm.Group labelLayout='inline'>*/}
+            {/*    <ProFormSwitch*/}
+            {/*        labelCol={{ span: 12 }}*/}
+            {/*        //colProps={{ md: 12, xl: 8 }}*/}
+            {/*        colProps={{ span: 6 }}*/}
+            {/*        initialValue={false}*/}
+            {/*        label="合并分区"*/}
+            {/*        name="merge_partition_enabled"*/}
+            {/*    />*/}
 
-                <ProFormDependency name={['merge_partition_enabled']}>
-                    {({ merge_partition_enabled }) => {
-                        if (merge_partition_enabled) {
-                            return (
-                                <ProFormDigit
-                                    labelCol={{ span: 12 }}
-                                    colProps={{ span: 8 }}
-                                    label="最大分区层数"
-                                    name="max_partition_level"
-                                    min={0}
-                                    max={10}
-                                    fieldProps={{ precision: 0 }}
-                                    width="xs"
-                                />
-                            )
-                        } else {
-                            return <></>
-                        }
-                    }}
-                </ProFormDependency>
-            </ProForm.Group>
+            {/*    <ProFormDependency name={['merge_partition_enabled']}>*/}
+            {/*        {({ merge_partition_enabled }) => {*/}
+            {/*            if (merge_partition_enabled) {*/}
+            {/*                return (*/}
+            {/*                    <ProFormDigit*/}
+            {/*                        labelCol={{ span: 12 }}*/}
+            {/*                        colProps={{ span: 8 }}*/}
+            {/*                        label="最大分区层数"*/}
+            {/*                        name="max_partition_level"*/}
+            {/*                        min={0}*/}
+            {/*                        max={10}*/}
+            {/*                        fieldProps={{ precision: 0 }}*/}
+            {/*                        width="xs"*/}
+            {/*                    />*/}
+            {/*                )*/}
+            {/*            } else {*/}
+            {/*                return <></>*/}
+            {/*            }*/}
+            {/*        }}*/}
+            {/*    </ProFormDependency>*/}
+            {/*</ProForm.Group>*/}
 
             <ProFormSwitch
-                colProps={{
-                    span: 24,
-                }}
                 initialValue={true}
-                label="开启校验"
+                label={fm(intl, "components.Job.NewJobForm.enableVerification", "开启校验")}
                 name="enable_verification"
             />
             <ProFormSwitch
-                colProps={{
-                    span: 24,
-                }}
                 initialValue={false}
-                label="只迁schema"
+                label={fm(intl, "components.Job.NewJobForm.onlySchema", "只迁schema")}
                 name="schema_only"
             />
             <ProFormTextArea
                 name="ptValues"
-                label="partition列表"
+                label={fm(intl, "components.Job.NewJobForm.partitionList", "Partition列表")}
                 initialValue={ptValues}
                 disabled
             />
-            <ProFormList name="table_mapping" label="表名映射">
+            <ProFormList name="table_mapping" label={fm(intl, "components.Job.NewJobForm.tableMapping", "表名映射")}>
                 <ProFormGroup key="group">
-                    <ProFormSelect showSearch   name="srcTable" valueEnum={tableEnum} colProps={{span: 10}} placeholder="请输入源表" />
-                    <ProFormText name="dstTable"  colProps={{span: 10}} placeholder="请输入目的表" />
+                    <ProFormSelect
+                        showSearch
+                        name="srcTable" valueEnum={tableEnum}
+                        placeholder={fm(intl, "components.Job.NewJobForm.inputSrcTable", "请输入源表")}
+                        colProps={{span: 10}}
+                    />
+                    <ProFormText
+                        name="dstTable"
+                        placeholder={fm(intl, "components.Job.NewJobForm.inputDstTable", "请输入目的表")}
+                        colProps={{span: 10}}
+                    />
                 </ProFormGroup>
             </ProFormList>
-            <ProFormList name="column_mapping" label="列名映射">
+            <ProFormList name="column_mapping" label={fm(intl, "components.Job.NewJobForm.ColumnMapping", "列名映射")}>
                 <ProFormGroup key="group">
-                    <ProFormText name="srcColumn"  colProps={{span: 10}} placeholder="请输入源列名" />
-                    <ProFormText name="dstColumn"  colProps={{span: 10}} placeholder="请输入目的列名" />
+                    <ProFormText name="srcColumn" placeholder={fm(intl, "components.Job.NewJobForm.srcColumn", "请输入源列名")} colProps={{span: 10}}  />
+                    <ProFormText name="dstColumn" placeholder={fm(intl, "components.Job.NewJobForm.dstColumn", "请输入目的列名")} colProps={{span: 10}}  />
                 </ProFormGroup>
             </ProFormList>
         </ModalForm>

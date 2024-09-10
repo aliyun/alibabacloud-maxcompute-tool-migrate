@@ -1,28 +1,30 @@
-import {QuestionCircleOutlined} from '@ant-design/icons';
 import type {ProColumns} from '@ant-design/pro-components';
 import {ActionType, PageContainer, ProTable, TableDropdown} from '@ant-design/pro-components';
 import {Button, Drawer, message, Tabs, Modal, Dropdown} from 'antd';
-import {getLoadingMetaProgress, getSources, runSourceInitializer, updateSource} from "@/services/source";
-import {Link} from "umi";
+import {getSources, runSourceInitializer, updateSource} from "@/services/source";
+import {Link, useIntl} from "umi";
 import React, {useRef, useState} from "react";
 import {SourceLoader} from "@/pages/Source/SourceList/components/SourceLoader";
 import {SOURCES_ROUTE, SOURCES_NEW} from "@/constant";
 import {ActionLog} from "@/pages/Source/SourceList/components/ActionLog";
-import {API} from "@/services/typings";
+import {FMSpan, FM, fm} from "@/components/i18n";
 
 export default () => {
     const aRef = useRef<ActionType>();
-    const [visible, setVisible] = useState(false);
-    const [currentRow, setCurrentRow] = useState<API.DataSource>({});
+    const [progressVisible, setProgressVisible] = useState(false);
+    const [currentRow, setCurrentRow] = useState<API.DataSource>();
     const [loading, setLoading] = useState<Record<number, boolean>>({});
     const [showDetail, setShowDetail] = useState<boolean>(false);
     const [showConfirmInit, setShowConfirmInit] = useState<boolean>(false);
     const [showConfirmUpdate, setShowConfirmUpdate] = useState<boolean>(false);
     const [sourceDetailKey, setSourceDetailKey] = useState<string>("init_log");
+    const [loaderId, setLoaderId] = useState<number>(0);
+
+    const intl = useIntl();
 
     const columns: ProColumns<API.DataSource>[] = [
         {
-            title: '数据源名',
+            title: FM("pages.Source.SourceList.sourceName", "名称"),
             dataIndex: 'name',
             render: (_, entity ) => <Link to={SOURCES_ROUTE + "/" + entity.name}>{_}</Link>,
             formItemProps: {
@@ -32,23 +34,23 @@ export default () => {
             },
         },
         {
-            title: '类型',
+            title: FM("pages.Source.SourceList.type", "类型"),
             dataIndex: 'type',
         },
         {
-            title: 'db数',
+            title: FM("pages.Source.SourceList.dbNum", "db数"),
             dataIndex: 'dbNum',
         },
         {
-            title: 'table数',
+            title: FM("pages.Source.SourceList.tableNum", "table数"),
             dataIndex: 'tableNum',
         },
         {
-            title: 'partition数',
+            title: FM("pages.Source.SourceList.partitionNum", "partition数"),
             dataIndex: 'partitionNum',
         },
         {
-            title: '初始化',
+            title: FM("pages.Source.SourceList.initStatus", "初始化"),
             dataIndex: 'initStatus',
             render: (row: any, entity: API.DataSource) => {
                 if (entity.initStatus == "NOT_YET") {
@@ -69,7 +71,7 @@ export default () => {
             }
         },
         {
-            title: "最新更新",
+            title: FM("pages.Source.SourceList.lastUpdateTime", "最新更新"),
             dataIndex: 'lastUpdateTime',
             valueType: 'dateTime',
             render: (row: any, entity: API.DataSource) => {
@@ -87,7 +89,7 @@ export default () => {
             }
         },
         {
-            title: '操作',
+            title: FM("pages.Source.SourceList.operation", "操作"),
             width: '164px',
             key: 'option',
             valueType: 'option',
@@ -102,7 +104,7 @@ export default () => {
                         }}
                         style={{padding: "0px"}}
                     >
-                        更新
+                        <FMSpan id="pages.Source.SourceList.update" defaultMessage="更新" />
                     </Button>,
                 ];
 
@@ -119,7 +121,7 @@ export default () => {
                             }}
                             style={{padding: "0px"}}
                         >
-                            初始化
+                            <FMSpan id="pages.Source.SourceList.init" defaultMessage="初始化" />
                         </Button>
                     );
                 }
@@ -147,14 +149,16 @@ export default () => {
                             type="primary"
                             to={SOURCES_NEW}
                         >
-                            <Button type="primary">添加数据源</Button>
+                            <Button type="primary">
+                                <FMSpan id="pages.Source.SourceList.addSource" defaultMessage="添加数据源" />
+                            </Button>
                         </Link>,
                     ]
                 }}
             />
             <Drawer
                 width={1000}
-                visible={showDetail}
+                open={showDetail}
                 onClose={() => {
                     setCurrentRow(undefined);
                     setShowDetail(false);
@@ -164,10 +168,10 @@ export default () => {
                 {currentRow?.id && (
                     <>
                         <Tabs defaultActiveKey={sourceDetailKey}>
-                            <Tabs.TabPane tab="执行过程" key="init_log">
+                            <Tabs.TabPane tab={fm(intl, "pages.Source.SourceList.initLog", "初始化日志")} key="init_log">
                                 <ActionLog sourceId={currentRow.id} actionType={"DATASOURCE_INIT"} />
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="更新日志" key="update_log">
+                            <Tabs.TabPane tab={fm(intl, "pages.Source.SourceList.updateLog", "元数据更新日志")} key="update_log">
                                 <ActionLog sourceId={currentRow.id} actionType={"DATASOURCE_UPDATE"} />
                             </Tabs.TabPane>
                         </Tabs>
@@ -176,7 +180,7 @@ export default () => {
             </Drawer>
             <Modal
                 title="确认运行"
-                visible={showConfirmInit}
+                open={showConfirmInit}
                 onOk={async () => {
                     setShowConfirmInit(false);
 
@@ -202,12 +206,15 @@ export default () => {
                     setShowConfirmInit(false);
                 }}
             >
-                {(currentRow?.initStatus == "OK" && "该数据源已经已经运行过初始化, 请确认是否重新运行初始化") || ""}
+                {(
+                    currentRow?.initStatus == "OK" &&
+                    fm(intl, "pages.Source.SourceList.warnTip", "该数据源已经已经运行过初始化, 请确认是否重新运行初始化")
+                ) || ""}
             </Modal>
 
             <Modal
-                title={"确认运行"}
-                visible={showConfirmUpdate}
+                title={fm(intl, "pages.Source.SourceList.modalTitle", "确认")}
+                open={showConfirmUpdate}
                 onOk={() => {
                     setShowConfirmUpdate(false);
 
@@ -219,7 +226,8 @@ export default () => {
                     newLoading[currentRow.id] = true;
                     setLoading(newLoading);
 
-                    setVisible(true);
+                    setProgressVisible(true);
+                    setLoaderId(loaderId + 1);
 
                     newLoading = {...loading};
                     newLoading[currentRow.id] = false;
@@ -227,9 +235,9 @@ export default () => {
                 }}
                 onCancel={() => setShowConfirmUpdate(false)}
             >
-                {"是否运行元数据更新"}
+                <FMSpan id="pages.Source.SourceList.sureToUpdateMeta" defaultMessage="是否更新元数据" />
             </Modal>
-            <SourceLoader dataSource={currentRow} visible={visible} onCancel={() => {setVisible(false)}} />
+            <SourceLoader dataSource={currentRow} visible={progressVisible} setVisible={setProgressVisible} loaderId={loaderId} />
         </PageContainer>
     );
 };

@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class OdpsTenantGetter {
-    static Logger logger = LoggerFactory.getLogger(OdpsTenantGetter.class);
+    private static final Logger logger = LoggerFactory.getLogger(OdpsTenantGetter.class);
     static ConcurrentMap<String, String> cache = new ConcurrentHashMap<>();
 
     public static String getTenantId(Odps odps) {

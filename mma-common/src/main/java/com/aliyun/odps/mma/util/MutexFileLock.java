@@ -14,10 +14,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.concurrent.TimeUnit;
 
 public class MutexFileLock implements AutoCloseable {
-    Logger logger = LoggerFactory.getLogger(MutexFileLock.class);
+    private static final Logger logger = LoggerFactory.getLogger(MutexFileLock.class);
 
-    Path path;
-    FileLock fileLock;
+    private Path path;
+    private FileLock fileLock;
 
     public MutexFileLock(Path path) {
         this.path = path;

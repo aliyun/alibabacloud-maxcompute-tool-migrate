@@ -1,85 +1,80 @@
 import {ProColumns, ProTable, ProDescriptions} from "@ant-design/pro-components";
-import type { ActionType, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {Card, Descriptions, Drawer, Switch} from "antd";
 import {getDbs, getPts} from "@/services/source";
 import {formatSize} from "@/utils/format";
-import {Link} from "umi";
+import {Link, useIntl} from "umi";
 import React, {useState} from "react";
 import {NewJobForm} from "@/components/Job/NewJobForm";
 import {SOURCES_ROUTE} from "@/constant";
+import {FMSpan, fm, FM} from "@/components/i18n";
 
 export default (props?: { source?: API.DataSource }) => {
     const ds = props?.source;
     const [currentDb, setCurrentDb] = useState<API.DbModel>();
     const [newJobFormOpen, setNewJobFormOpen] = useState<boolean>(false);
     const [total, setTotal] = useState<number>(0);
+    const intl = useIntl();
 
     const columns: ProColumns<API.DbModel>[] = [
         {
-            title: "数据源",
-            dataIndex: "sourceName",
-            hideInTable: ds?.id != undefined,
-            hideInSearch: ds?.id != undefined,
-        },
-        {
-            title: "库名",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.name", "库名"),
             dataIndex: 'name',
             render: (dom, entity) => {
                 return (<Link to={`${SOURCES_ROUTE}/${ds?.name}/${entity.name}?sourceId=${ds?.id}&dbId=${entity.id}`}>{entity.name}</Link>);
             }
         },
         {
-            title: "table总数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.tables", "table总数"),
             search: false,
             dataIndex: "tables",
         },
         {
-            title: "迁移完成table数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.tablesDone", "迁移完成table数"),
             search: false,
             dataIndex: "tablesDone",
         },
         {
-            title: "有错误的table数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.tablesFailed", "有错误的table数"),
             search: false,
             dataIndex: "tablesFailed",
             hideInTable: true
         },
         {
-            title: "部分完成table数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.tablesPartDone", "部分完成table数"),
             search: false,
             dataIndex: "tablesPartDone",
             hideInTable: true
         },
         {
-            title: "正在迁移table数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.tablesDoing", "正在迁移table数"),
             search: false,
             dataIndex: "tablesDoing",
             hideInTable: true
         },
         {
-            title: "分区总数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.partitions", "分区总数"),
             search: false,
             dataIndex: 'partitions',
         },
         {
-            title: "迁移完成分区数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.partitionsDone", "迁移完成分区数"),
             search: false,
             dataIndex: 'partitionsDone',
         },
         {
-            title: "出错的分区数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.partitionsFailed", "出错的分区数"),
             search: false,
             dataIndex: "partitionsFailed",
             hideInTable: true
         },
         {
-            title: "正在迁移分区数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.partitionsDoing", "正在迁移分区数"),
             search: false,
             dataIndex: "partitionsDoing",
             hideInTable: true
         },
         {
-            title: "大小",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.size", "大小"),
             dataIndex: 'size',
             render: (_, entity) => {
                 if (entity.size === undefined || entity.size === 0) {
@@ -95,7 +90,7 @@ export default (props?: { source?: API.DataSource }) => {
             }
         },
         {
-            title: "行数",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.rows", "行数"),
             dataIndex: 'numRows',
             render: (_, entity) => {
                 if (entity.numRows === undefined || entity.numRows === 0) {
@@ -111,26 +106,28 @@ export default (props?: { source?: API.DataSource }) => {
             }
         },
         {
-            title: "状态",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.status", "状态"),
             dataIndex: 'status',
             valueType: 'select',
             valueEnum: {
-                INIT: {text: '未迁移'},
-                DONE: {text: '完成'},
-                DOING: {text: '迁移中'},
-                FAILED: {text: '部分完成，有失败'},
-                PART_DONE: {text: '部分完成'},
+                INIT: {text: fm(intl, "pages.Source.SourceDetail.components.DbList.statsInit", "未迁移")},
+                DONE: {text: fm(intl, "pages.Source.SourceDetail.components.DbList.statsDone", "完成")},
+                DOING: {text: fm(intl, "pages.Source.SourceDetail.components.DbList.statusDoing", "迁移中")},
+                FAILED: {text: fm(intl, "pages.Source.SourceDetail.components.DbList.statusFailed", "部分完成，有失败")},
+                PART_DONE: {text: fm(intl, "pages.Source.SourceDetail.components.DbList.statusPartDone", "部分完成")},
             },
             filters: true,
         },
         {
-            title: "操作",
+            title: fm(intl, "pages.Source.SourceDetail.components.DbList.operation", "操作"),
             render: (row, entity) => {
                 return [
                     <a key={1} onClick={() => {
                         setNewJobFormOpen(true);
                         setCurrentDb(entity);
-                    }}>迁移</a>
+                    }}>
+                        <FMSpan id="pages.Source.SourceDetail.components.DbList.migration" defaultMessage="迁移" />
+                    </a>
                 ]
             },
             search: false,
@@ -166,10 +163,10 @@ export default (props?: { source?: API.DataSource }) => {
                     return (
                         <Card>
                             <Descriptions size="small" column={3}>
-                                <Descriptions.Item key={1} label="数据库">{ds.dbNum}</Descriptions.Item>
-                                <Descriptions.Item key={2}  label="表">{ds.tableNum}</Descriptions.Item>
-                                <Descriptions.Item key={3}  label="分区">{ds.partitionNum}</Descriptions.Item>
-                                <Descriptions.Item key={4}  label="最新更新时间">{ds.lastUpdateTime}</Descriptions.Item>
+                                <Descriptions.Item key={1} label={fm(intl, "pages.Source.SourceDetail.components.DbList.dbs", "数据库")}>{ds.dbNum}</Descriptions.Item>
+                                <Descriptions.Item key={2}  label={fm(intl, "pages.Source.SourceDetail.components.DbList.tables", "表")}>{ds.tableNum}</Descriptions.Item>
+                                <Descriptions.Item key={3}  label={fm(intl, "pages.Source.SourceDetail.components.DbList.partitions", "分区")}>{ds.partitionNum}</Descriptions.Item>
+                                <Descriptions.Item key={4}  label={fm(intl, "pages.Source.SourceDetail.components.DbList.lastUpdateTime", "最新更新时间")}>{ds.lastUpdateTime}</Descriptions.Item>
                             </Descriptions>
                         </Card>
                     );

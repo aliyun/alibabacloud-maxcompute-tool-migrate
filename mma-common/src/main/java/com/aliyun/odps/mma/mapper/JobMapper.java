@@ -22,6 +22,7 @@ public interface JobMapper {
     void resetJobStop(@Param("id") int id);
     void setJobRestart(@Param("id") int id);
     void setFailedTasksOfJobRestart(@Param("jobId") int jobId);
+    void setTerminatedTasksOfJobRestart(@Param("jobId") int jobId);
     void setJobDeleted(@Param("id") int id);
     List<Map<String, Object>> getNameAndIdOfJobs();
     void insertJobBatch(JobBatchModel jobBatch);

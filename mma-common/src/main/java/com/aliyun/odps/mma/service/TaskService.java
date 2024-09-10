@@ -26,6 +26,7 @@ public interface TaskService {
     void batchSetTaskStop(List<Integer> taskIds);
     void resetRestart(int id);
     void restart(int id);
+    void reset(int id);
     void restartAllTerminated();
     List<TaskLog> getTaskLogs(int id);
     TableModel getTableOfTask(int tableId);

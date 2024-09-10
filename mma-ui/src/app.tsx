@@ -6,6 +6,8 @@ import {Breadcrumb, BreadcrumbProps} from "antd";
 import {checkConfigStatus} from "@/services/config"
 import { history } from '@umijs/max';
 import type { RunTimeLayoutConfig } from '@umijs/max';
+import {SelectLang} from "@/SelectLang";
+import {setLocale} from "umi";
 
 const configPath = '/config';
 
@@ -14,6 +16,10 @@ const configPath = '/config';
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://next.umijs.org/docs/api/runtime-config#getinitialstate
 export async function getInitialState(): Promise<{ inited: boolean}> {
+    const search = window.location.search;
+    const urlParams = new URLSearchParams(search);
+    setLocale(urlParams.get("lang") ?? "zh-CN");
+
     let res = await checkConfigStatus();
 
     let inited = res.data?.inited ?? false;
@@ -29,11 +35,8 @@ export async function getInitialState(): Promise<{ inited: boolean}> {
 export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) => {
     return {
         logo:  <AliyunOutlined/>,
-        menu: {
-            locale: false,
-        },
-        rightContentRender: false,
-        contentWidth: "Fluid",
+        actionsRender: () => [<SelectLang key="SelectLang" />],
+        layout: "top",
         disableContentMargin: true,
         onPageChange: () => {
             const { location } = history;
@@ -72,3 +75,4 @@ const MMAProBreadcrumb: React.FC<BreadcrumbProps> = (props) => {
       </div>
   );
 };
+

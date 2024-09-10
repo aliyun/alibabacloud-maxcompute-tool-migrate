@@ -5,9 +5,9 @@ import {useEffect, useState} from "react";
 import {getSource, getSourceByName, getSourceConfig, updateSourceConfig} from "@/services/source";
 import DbList from "./components/DbList";
 import ConfigTable from "@/components/Config/ConfigTable";
-import {SourceLoader} from "@/pages/Source/SourceList/components/SourceLoader";
 import {SourceLoadingProgress} from "@/components/Source/SourceLoadingProgress";
-import {message} from "antd";
+import {FMSpan, fm} from "@/components/i18n";
+import {useIntl} from "umi";
 
 const SourceDetail = (props: { source?: API.DataSource, tabKey?: string }) => {
     let source = props.source;
@@ -18,7 +18,7 @@ const SourceDetail = (props: { source?: API.DataSource, tabKey?: string }) => {
     let Detail = () => {
         if (source === undefined) {
             return(
-                <div>"请刷新页面"</div>
+                <div><FMSpan id="pages.Source.SourceDetail.refresh" defaultMessage="请刷新页面" /></div>
             )
         }
 
@@ -53,6 +53,7 @@ export default () => {
     const params = useParams();
     const [source, setSource] = useState<API.DataSource>();
     const [tabKey, setTabKey] = useState("data");
+    const intl = useIntl();
 
     useEffect(() => {
         getSourceByName(params?.name || "0", true)
@@ -66,11 +67,11 @@ export default () => {
             }}
             tabList={[
                 {
-                    tab: '数据信息',
+                    tab: fm(intl, "pages.Source.SourceDetail.data", '数据信息'),
                     key: 'data',
                 },
                 {
-                    tab: '配置信息',
+                    tab: fm(intl, "pages.Source.SourceDetail.config", '配置信息'),
                     key: 'config',
                 },
             ]}

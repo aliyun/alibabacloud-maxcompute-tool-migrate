@@ -1,6 +1,7 @@
 package com.aliyun.odps.mma.task;
 
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
+import com.aliyun.odps.mma.execption.VerificationFailed;
 import com.aliyun.odps.mma.orm.TaskProxy;
 
 import java.util.Map;
@@ -10,24 +11,24 @@ import java.util.stream.Collectors;
 
 public class VerificationAction {
     public static void countResultCompare(String srcName, long srcCnt, String destName, long destCnt, TaskProxy task)
-            throws MMATaskInterruptException {
+            throws VerificationFailed {
         String action = String.format("compare %s and %s count", srcName, destName);
         String errMsg = String.format("%s Count: %d, %s Count: %d", srcName, srcCnt, destName, destCnt);
         if (srcCnt == -1 || destCnt == -1) {
             task.error(action, errMsg);
-            throw new MMATaskInterruptException();
+            throw new VerificationFailed();
         }
 
         if (srcCnt != destCnt) {
             task.error(action, errMsg);
-            throw new MMATaskInterruptException();
+            throw new VerificationFailed();
         }
 
         task.log("select count", String.format("src: %d, dsc: %d", srcCnt, destCnt));
     }
 
     public static void countByPtResultCompare(String srcName, Map<String, Long> srcCount, String destName, Map<String, Long> dstCount, TaskProxy task)
-            throws MMATaskInterruptException {
+            throws VerificationFailed {
         String action = String.format("compare %s and %s count", srcName, destName);
 
         Set<String> srcKeys = srcCount.keySet();
@@ -57,7 +58,7 @@ public class VerificationAction {
             task.log(action, sb.toString());
         } else {
             task.error(action, sb.toString());
-            throw new MMATaskInterruptException();
+            throw new VerificationFailed();
         }
     }
 }

@@ -3,17 +3,20 @@ import {downloadTaskLog, getTaskLog} from "@/services/job";
 import {message, Timeline, Row, Col, Badge, Button} from "antd";
 import {TaskStatusBadgeMap, TaskStatusMap} from "@/pages/Job/TaskList/components/TaskUtil";
 import {PresetStatusColorType} from "antd/lib/_util/colors";
+import {getLocale, useIntl} from "umi";
+import {FMSpan, FM, fm} from "@/components/i18n";
 
 export const TaskLog = (props: {task: API.Task}) => {
-    let [taskLogs, setTaskLogs] = useState<API.TaskLog[]>([]);
+    const [taskLogs, setTaskLogs] = useState<API.TaskLog[]>([]);
+    const intl = useIntl();
 
-    let logGetter = () => {
+    const logGetter = () => {
         getTaskLog(props.task.id)
             .then((res) => {
                 setTaskLogs(res.data || [])
             })
             .catch(() => {
-                message.error("加载子任务log失败", 5);
+                message.error(fm(intl, "pages.Job.TaskList.TaskLog", "加载子任务log失败"), 5);
             });
     }
 
@@ -30,11 +33,11 @@ export const TaskLog = (props: {task: API.Task}) => {
         return(
             <Timeline.Item key={log.id} color={TaskStatusColorMap[log.status]}>
                 <Row gutter={[0, 5]}>
-                    <Col span={1}>时间:</Col>
+                    <Col span={1}><FMSpan id="pages.Job.TaskList.TaskLog.time" defaultMessage="时间:" /></Col>
                     <Col>{log.createTime}</Col>
                 </Row>
                 <Row>
-                    <Col span={1}>状态:</Col>
+                    <Col span={2}><FMSpan id="pages.Job.TaskList.TaskLog.status" defaultMessage="状态:" /></Col>
                     <Col>
                         <Badge
                             status={TaskStatusBadgeMap[log.status] as PresetStatusColorType}
@@ -43,7 +46,7 @@ export const TaskLog = (props: {task: API.Task}) => {
                     </Col>
                 </Row>
                 <Row>
-                    <Col span={1}>动作:</Col>
+                    <Col span={2}><FMSpan id="pages.Job.TaskList.TaskLog.action" defaultMessage="动作:" /></Col>
                     <Col>{(()=>{
                         if (log?.action.startsWith("http")) {
                             return <a href={log.action}>{log.action}</a>
@@ -53,23 +56,11 @@ export const TaskLog = (props: {task: API.Task}) => {
                     })()}</Col>
                 </Row>
                 <Row>
-                    <Col span={1}>结果:</Col>
+                    <Col span={2}><FMSpan id="pages.Job.TaskList.TaskLog.result" defaultMessage="结果:" /></Col>
                     <Col>{(()=>{
-                        if (log?.msg.startsWith("http")) {
-                            return <a href={log.msg} target="_blank">{log.msg}</a>
-                        }
-
                         if (! log){
                             return "--";
                         }
-
-                        const parts = log.msg.split("$").map((p) => {
-                            if (p.startsWith("http")) {
-                                return <a href={p} target="_blank">{p}</a>
-                            }
-
-                            return  p;
-                        })
 
                         return log.msg.split("$")
                             .flatMap((p) => p.split("\n"))
@@ -89,12 +80,12 @@ export const TaskLog = (props: {task: API.Task}) => {
     return (
         <Row justify={items.length > 0 ? "end": ""}>
             <Col>
-                {items.length > 0 ? <a href={`/api/tasks/${props.task.id}/logs`}>下载日志</a> : ""}
+                {items.length > 0 ? <a href={`/api/tasks/${props.task.id}/logs?lang=${getLocale()}`}><FMSpan id="pages.Job.TaskList.TaskLog.downloadLog" defaultMessage="下载日志"/></a> : ""}
             </Col>
 
             <Col span={24}>
                 <Timeline>
-                    {items.length > 0 ? items : <span>无执行日志</span>}
+                    {items.length > 0 ? items : <span><FMSpan id="pages.Job.TaskList.TaskLog.noLog" defaultMessage="无执行日志"/></span>}
                 </Timeline>
             </Col>
         </Row>

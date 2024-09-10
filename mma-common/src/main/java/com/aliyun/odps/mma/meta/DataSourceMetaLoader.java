@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class DataSourceMetaLoader {
-    Logger logger = LoggerFactory.getLogger(DataSourceMetaLoader.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataSourceMetaLoader.class);
 
     @Setter
     private MetaLoader loader;
@@ -174,9 +174,7 @@ public class DataSourceMetaLoader {
         oldDatabases.forEach(dm -> this.dbNameToDb.put(dm.getName(), dm));
 
         // 保存table hasher到table的映射
-        oldTables.forEach(tm -> {
-            tableHasherToTable.put(tm.getTableHasher(), tm);
-        });
+        oldTables.forEach(tm -> tableHasherToTable.put(tm.getTableHasher(), tm));
 
         logger.info(
                 "try update {} dbs, {} tables, {} partitions",
@@ -391,13 +389,14 @@ public class DataSourceMetaLoader {
 
         BiFunction<String, String, Boolean> tableFilter = (dbName, tableName) -> {
             String tableFullName = String.format("%s.%s", dbName, tableName);
+
             if (!whiteList.isEmpty()) {
                 return whiteList.stream().anyMatch(t -> {
                     if (t.startsWith("*.")) {
                         return tableName.equals(t.substring("*.".length()));
                     }
 
-                    return tableName.equals(tableFullName);
+                    return t.equals(tableFullName);
                 });
             }
 
@@ -406,7 +405,7 @@ public class DataSourceMetaLoader {
                     return tableName.equals(t.substring("*.".length()));
                 }
 
-                return tableName.equals(tableFullName);
+                return t.equals(tableFullName);
             });
         };
 
@@ -417,9 +416,7 @@ public class DataSourceMetaLoader {
             // 有listTables几口的直接调用这个接口获取table列表以及每个table的详细信息
             List<TableModel> _tables = this.loader.listTables(dbName);
             if (Objects.nonNull(_tables)) {
-                _tables.stream().filter(t -> tableFilter.apply(dbName, t.getName())).forEach(t -> {
-                    tables.add(t);
-                });
+                _tables.stream().filter(t -> tableFilter.apply(dbName, t.getName())).forEach(t -> tables.add(t));
 
                 continue;
             }
@@ -488,7 +485,7 @@ public class DataSourceMetaLoader {
     }
 
     private static class FuturesResult<T> {
-        List<Future<T>> futures;
+        private List<Future<T>> futures;
 
         public FuturesResult(List<Future<T>> futures) {
             this.futures = futures;
@@ -503,7 +500,7 @@ public class DataSourceMetaLoader {
     }
 
     private static class CalUpdate<T extends ModelBase> {
-        Logger logger = LoggerFactory.getLogger(CalUpdate.class);
+        private static final Logger logger = LoggerFactory.getLogger(CalUpdate.class);
 
         private void calUpdatedAndNew(
                 List<T> newModels, List<T> oldModels,
@@ -539,9 +536,17 @@ public class DataSourceMetaLoader {
                 boolean isUpdated = sizeUpdated || numRowsUpdated || lastDdlTimeUpdated;
 
                 if (oldModel instanceof TableModel) {
-                    if (!Objects.equals(((TableModel) newModel).getSchema(), ((TableModel) oldModel).getSchema())) {
+                    TableModel oldTable = (TableModel) oldModel;
+                    TableModel newTable = (TableModel) newModel;
+
+                    if ( !Objects.equals(newTable.getSchema(), oldTable.getSchema()) ) {
                         isUpdated = true;
-                        log("table schema of {} is updated", oldModel);
+                        log("table schema of {} is updated", oldTable);
+                    }
+
+                    if ( !Objects.equals(newTable.getLifecycle(), oldTable.getLifecycle()) ) {
+                        isUpdated = true;
+                        log("table lifecycle of {} is updated", oldTable);
                     }
                 }
 
@@ -551,7 +556,11 @@ public class DataSourceMetaLoader {
                     oldModel.setLastDdlTime(newModel.getLastDdlTime());
 
                     if (oldModel instanceof TableModel) {
-                        ((TableModel) oldModel).setSchema(((TableModel) newModel).getSchema());
+                        TableModel oldTable = (TableModel) oldModel;
+                        TableModel newTable = (TableModel) newModel;
+
+                        oldTable.setSchema(newTable.getSchema());
+                        oldTable.setLifecycle(newTable.getLifecycle());
                     }
 
                     modelsUpdated.add(oldModel);

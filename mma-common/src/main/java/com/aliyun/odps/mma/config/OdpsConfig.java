@@ -37,14 +37,15 @@ public class OdpsConfig extends SourceConfig {
     public static String COPYTASK_INS_NUM = "copytask.ins.num";
     @ConfigItem(desc = "coppytask direction, 仅用于\"跨region项目迁移\"", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
     public static String COPYTASK_DIRECTION = "copytask.direction";
-    @ConfigItem(desc = "oss endpoint internal, use in mc sql", required = true)
+    @ConfigItem(desc = "oss internal endpoint")
     public static final String OSS_ENDPOINT_INTERNAL = "oss.endpoint.internal";
-    @ConfigItem(desc = "oss endpoint external, use in mma if mma can not use internal endpoint", required = true)
-    public static final String OSS_ENDPOINT_EXTERNAL = "oss.endpoint.external";@ConfigItem(desc = "oss bucket", required = true)
+    @ConfigItem(desc = "oss external endpoint" )
+    public static final String OSS_ENDPOINT_EXTERNAL = "oss.endpoint.external";
+    @ConfigItem(desc = "oss bucket")
     public static final String OSS_BUCKET = "oss.bucket";
-    @ConfigItem(desc = "oss access id", required = true)
+    @ConfigItem(desc = "oss access id")
     public static final String OSS_AUTH_ACCESS_ID = "oss.auth.access.id";
-    @ConfigItem(desc = "oss access key", required = true, type = "password")
+    @ConfigItem(desc = "oss access key", type = "password")
     public static final String OSS_AUTH_ACCESS_KEY = "oss.auth.access.key";
     @ConfigItem(desc = "maxcompute 迁移任务sql参数, 仅用于\"同region项目迁移\"", type = "map", defaultValue = "{\n    " +
             "\"odps.sql.hive.compatible\": \"true\"" +

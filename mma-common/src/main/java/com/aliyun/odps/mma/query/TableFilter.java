@@ -12,6 +12,7 @@ public class TableFilter extends QueryFilter {
     private int dbId;
     private String dbName;
     private String schemaName;
+    private int updated = -1;
     private String name;
     private String type;
     private String hasPartitions;

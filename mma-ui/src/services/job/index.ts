@@ -2,6 +2,7 @@ import { request } from "@umijs/max";
 import {paramsSerializer} from "@/utils/format";
 import {SortOrder} from "antd/lib/table/interface";
 import React from "react";
+import {getLocale} from "umi";
 
 export async function getJobs(
     params: any & { pageSize?: number; current?: number; keyword?: string },
@@ -35,6 +36,7 @@ export async function getJobOptions(dsName: string, dbName: string) {
             params: {
                 ds_name: dsName,
                 db_name: dbName,
+                lang: getLocale()
             }
         }
     )
@@ -110,6 +112,13 @@ export async function getTaskTypeMap() {
         '/api/tasks/typeNames',
         {
             method: "GET",
+            params: {lang: getLocale()}
         }
     )
+}
+
+export async function taskAction(taskId: number, action: string) {
+    return request<API.MMARes<any>>(`/api/tasks/${taskId}?action=${action}`, {
+        method: 'PUT',
+    });
 }

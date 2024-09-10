@@ -1,9 +1,12 @@
 import {useEffect, useState} from "react";
 import {getTaskPartitions} from "@/services/job";
 import {message, Descriptions, Badge } from "antd";
+import {useIntl} from "umi";
+import {fm} from "@/components/i18n";
 
 export default (props: {task: API.Task}) => {
-    let [ptList, setPtList] = useState<API.PartitionModel[]>([]);
+    const [ptList, setPtList] = useState<API.PartitionModel[]>([]);
+    const intl = useIntl();
 
     useEffect(()=> {
         getTaskPartitions(props.task.id)
@@ -11,7 +14,7 @@ export default (props: {task: API.Task}) => {
                 setPtList(res?.data || []);
             })
             .catch(() => {
-                message.error("加载子任务分区失败", 5);
+                message.error( fm(intl, "pages.Job.TaskList.TaskPartitions.failedMsg", "加载子任务分区失败"), 5);
             });
     }, [props])
 
@@ -22,12 +25,12 @@ export default (props: {task: API.Task}) => {
 
     return (
         <Descriptions title="User Info" bordered column={2}>
-            <Descriptions.Item label="数据源">{task.sourceName}</Descriptions.Item>
-            <Descriptions.Item label="源数据库">{task.dbName}</Descriptions.Item>
-            <Descriptions.Item label="源表">{task.tableName}</Descriptions.Item>
-            <Descriptions.Item label="目的项目">{task.odpsProject}</Descriptions.Item>
-            <Descriptions.Item label="目的表">{task.odpsTable}</Descriptions.Item>
-            <Descriptions.Item label="分区">
+            <Descriptions.Item label={fm(intl, "pages.Job.TaskList.TaskPartitions.datasource", "数据源")}>{task.sourceName}</Descriptions.Item>
+            <Descriptions.Item label={fm(intl, "pages.Job.TaskList.TaskPartitions.sourceDb", "源数据库")}>{task.dbName}</Descriptions.Item>
+            <Descriptions.Item label={fm(intl, "pages.Job.TaskList.TaskPartitions.sourceTable", "源表")}>{task.tableName}</Descriptions.Item>
+            <Descriptions.Item label={fm(intl, "pages.Job.TaskList.TaskPartitions.dstProject", "目的项目")}>{task.odpsProject}</Descriptions.Item>
+            <Descriptions.Item label={fm(intl, "pages.Job.TaskList.TaskPartitions.dstTable", "目的表")}>{task.odpsTable}</Descriptions.Item>
+            <Descriptions.Item label={fm(intl, "pages.Job.TaskList.TaskPartitions.partitions", "分区")}>
                 {ptElements}
             </Descriptions.Item>
         </Descriptions>

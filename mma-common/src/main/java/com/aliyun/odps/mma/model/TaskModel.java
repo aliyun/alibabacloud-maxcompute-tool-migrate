@@ -34,6 +34,7 @@ public class TaskModel {
     private boolean stopped;
     private boolean restart;
     private Integer retriedTimes = 0;
+    private boolean running;
     private Date startTime;
     private Date endTime;
     private Date createTime;

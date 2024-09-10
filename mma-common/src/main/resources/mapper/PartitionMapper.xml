@@ -23,6 +23,14 @@
         select * from partition_model where source_id=#{sourceId}
     </select>
 
+    <select id="getPartitionsBasicByDsId" resultMap="partitionMap">
+        select id, db_name, table_name, schema_name, value, size, num_rows, last_ddl_time, status
+        from partition_model
+        where source_id=#{sourceId} and id > #{marker}
+        order by id
+        limit 0, #{maxItem}
+    </select>
+
     <select id="getPartitionsOfTable" resultMap="partitionMap">
         select * from partition_model where table_id=#{tableId}
     </select>
@@ -41,7 +49,7 @@
     </select>
 
     <select id="getPartitionsOfTablesBasic" resultMap="partitionMap">
-        select id, table_id, size, value, status from partition_model
+        select id, table_id, size, value, status, updated from partition_model
         <where>
             <foreach item="item" index="index" collection="tableIds" open="table_id in (" separator="," close=")">
                 #{item}
@@ -102,7 +110,8 @@
             size=#{size},
             num_rows=#{numRows},
             last_ddl_time=#{lastDdlTime},
-            updated=true
+            updated=true,
+            update_time=now()
         where id=#{id}
     </update>
 

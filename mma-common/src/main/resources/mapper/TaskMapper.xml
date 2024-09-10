@@ -90,7 +90,7 @@
             </if>
 
             <if test="running > 0">
-                and task.stopped = 0 and task.status in ('SCHEMA_DOING', 'DATA_DOING', 'VERIFICATION_DOING', 'SCHEMA_DONE', 'DATA_DONE')
+                and task.stopped = 0 and task.running = 1
             </if>
         </where>
 
@@ -178,7 +178,7 @@
             </if>
 
             <if test="running > 0">
-                and stopped = 0 and status in ('SCHEMA_DOING', 'DATA_DOING', 'VERIFICATION_DOING', 'SCHEMA_DONE', 'DATA_DONE')
+                and stopped = 0 and running = 1
             </if>
         </where>
     </select>
@@ -193,6 +193,9 @@
             task
         set
             status=#{status}
+            <if test="status.toString().endsWith('FAILED') or status.toString() == 'DONE'">
+                ,running=0
+            </if>
         where id=#{id};
     </update>
 
@@ -205,7 +208,7 @@
     </update>
 
     <update id="setTaskStart">
-        update task set start_time=current_timestamp() where id=#{id}
+        update task set start_time=current_timestamp(), running=1 where id=#{id}
     </update>
 
     <update id="setTaskEnd">
@@ -213,16 +216,17 @@
             task
         set
             status='DONE',
+            running=0,
             end_time=current_timestamp()
         where id=#{id};
     </update>
 
     <update id="setTaskStop">
-        update task set stopped=1 where id=#{id}
+        update task set stopped=1, running=0 where id=#{id}
     </update>
 
     <update id="batchSetTaskStop">
-        update task set stopped=1
+        update task set stopped=1, running=0
 
         <where>
             <foreach item="id" index="index" collection="ids" open="id in (" separator="," close=")">
@@ -239,14 +243,18 @@
         update task set restart=1, start_time=null  where id=#{id}
     </update>
 
+    <update id="reset">
+        update task set status='INIT', sub_status='', start_time=null where id=#{id}
+    </update>
+
     <update id="restartAllTerminated">
         update
             task
         set restart=true, start_time=null
---         where status not in ('INIT', 'DONE', 'SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED')
-        where status != 'INIT' and status != 'DONE' and status != 'SCHEMA_FAILED' and status != 'DATA_FAILED' and status != 'VERIFICATION_FAILED'
+--        where status != 'INIT' and status != 'DONE' and status != 'SCHEMA_FAILED' and status != 'DATA_FAILED' and status != 'VERIFICATION_FAILED'
+        where running=1
          and stopped=0
-         and deleted=0;
+         and deleted=0
     </update>
 
     <select id="getTaskById" resultMap="taskMap">
@@ -291,7 +299,7 @@
 
         <select id="getTasksAvailable" resultMap="taskMap">
             select task.* from task join job on task.job_id=job.id
-            where (task.status='INIT' or task.restart=1) and task.stopped=0 and task.deleted=0 and job.stopped=0 and job.deleted=0
+            where (task.status='INIT' or task.restart=1) and job.stopped=0 and job.deleted=0 and task.stopped=0 and task.deleted=0
             order by task.restart desc, task.job_id limit #{limit}
         </select>
 
@@ -351,8 +359,9 @@
         </where>
     </select>
 
+<!--  update task set stopped=1, running=0 where job_id=#{jobId} and status != 'INIT' and status != 'DONE';-->
     <update id="setTasksStopByJobId">
-        update task set stopped=1 where job_id=#{jobId} and status != 'INIT' and status != 'DONE';
+        update task set running=0 where job_id=#{jobId} and running=1
     </update>
 
     <select id="getPartitionNumOfTask"  resultType="java.lang.Integer">

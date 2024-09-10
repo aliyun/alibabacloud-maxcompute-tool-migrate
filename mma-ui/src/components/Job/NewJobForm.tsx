@@ -14,12 +14,16 @@ import {getJobOptions, submitJob} from "@/services/job";
 import {InputRef, message} from "antd";
 import {showErrorMsg} from "@/utils/format";
 import {ProFormTimerPicker} from "@/components/TimerPicker";
+import {getLocale, useIntl} from "umi";
+import {FMSpan, FM, fm} from "@/components/i18n";
+import {IntlShape} from "react-intl";
+import type {CaptFieldRef} from "@ant-design/pro-form/es/components/Captcha";
 
 export const NewJobForm = (
     {open, setOpen, sourceName, dbName, jobType, tables}:
         {
             open: boolean,
-            setOpen: (boolean) => void,
+            setOpen: (b: boolean) => void,
             sourceName: string,
             dbName: string,
             jobType: string,
@@ -28,9 +32,10 @@ export const NewJobForm = (
 ) => {
     const [jobOpts, setJobOpts] = useState<API.JobOpts>();
     const formRef = useRef<ProFormInstance>();
-    const inputRef = useRef<InputRef>();
+    const inputRef = useRef<CaptFieldRef | null | undefined>();
+    const [visible, setVisible] = useState<boolean>(open);
+    const intl = useIntl();
 
-    console.log("tables", tables);
     formRef.current?.resetFields();
 
     useEffect(() => {
@@ -45,7 +50,11 @@ export const NewJobForm = (
         tableEnum[table] = table;
     }
 
-    const labelCol = 3;
+    let labelCol = 6;
+    if ((getLocale() ?? 'zh-CN') == 'zh-CN') {
+        labelCol = 3;
+    }
+
     const onFinish = async (values) => {
         const jobJson = {} as (Record<string, any>);
         Object.assign(jobJson, values);
@@ -105,7 +114,7 @@ export const NewJobForm = (
         jobJson["type"] = jobType;
         "whiteOrBlackList" in jobJson && delete jobJson["whiteOrBlackList"];
 
-        const hide = message.loading("提交迁移任务中...")
+        const hide = message.loading(fm(intl, "components/Job/NewJobForm.submitting", "提交迁移任务中..."))
         submitJob(jobJson as API.Job)
             .then((res) => {
                 if (res.success) {
@@ -124,16 +133,17 @@ export const NewJobForm = (
             });
     }
 
+    // @ts-ignore
     inputRef.current?.focus();
 
     return (
         <ModalForm<Record<string, any>>
-            title="新建迁移任务"
+            title={fm(intl, "components.Job.NewJobForm.title", "新建迁移任务")}
             layout="horizontal"
             grid={true}
             labelCol={{span: labelCol}}
             colProps={{span: 23}}
-            labelAlign="right"
+            labelAlign="left"
             rowProps={{
                 gutter: [16, 16],
             }}
@@ -142,19 +152,29 @@ export const NewJobForm = (
             open={open}
             onOpenChange={setOpen}
         >
-            <ProFormText name="description" label="名称:" placeholder="请输入名称"  rules={[{ required: true, message: '请输入名称' }]} fieldRef={inputRef} />
-            <ProFormText name="source_name" label="数据源:" placeholder="请输入名称" initialValue={sourceName} disabled />
-            <ProFormText name="db_name" label="库名:" placeholder="请输入名称" initialValue={dbName} disabled />
+            <ProFormText name="description"
+                         label={fm(intl, "components.Job.NewJobForm.name", "名称:")}
+                         placeholder={fm(intl, "components.Job.NewJobForm.namePlaceholder", "请输入名称")}
+                         rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.namePlaceholder","请输入名称") }]}
+                         fieldRef={inputRef}
+            />
+            <ProFormText name="source_name"
+                         label={fm(intl, "components.Job.NewJobForm.datasource", "数据源:")}
+                         initialValue={sourceName}
+                         disabled
+            />
+            <ProFormText name="db_name"
+                         label={fm(intl, "components.Job.NewJobForm.dbName", "库名:")}
+                         initialValue={dbName}
+                         disabled />
             <ProFormSelect
-
-                label="任务类型:"
+                label={fm(intl, "components.Job.NewJobForm.taskType", "任务类型:")}
                 name="task_type"
                 valueEnum={jobOpts?.taskTypes}
-                rules={[{ required: true, message: '请选择任务类型' }]}
+                rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.selectTaskType",'请选择任务类型') }]}
             />
             <ProFormSelect
-
-                label="MC项目:"
+                label={fm(intl, "components.Job.NewJobForm.mcProject", "MC项目:")}
                 name="dst_mc_project"
                 valueEnum={ (() => {
                     const enums: Record<string, string> = {};
@@ -165,36 +185,46 @@ export const NewJobForm = (
 
                     return enums;
                 })()}
-                rules={[{ required: true, message: '请选择mc项目' }]}
+                rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.selectMcProject",'请选择Mc项目')  }]}
             />
-            <ProFormText name="dst_mc_schema" label="MC Schema:" placeholder="请输入mc schema名称"/>
-            <JobTypeRender tables={tables} jobType={jobType} labelCol={labelCol} />
+            <ProFormText
+                name="dst_mc_schema"
+                label={fm(intl, "components.Job.NewJobForm.mcSchema", "MC Schema:")}
+                placeholder={fm(intl, "components.Job.NewJobForm.mcSchemaPlaceholder", "请输入mc schema名称")}
+            />
+            <JobTypeRender tables={tables} jobType={jobType} labelCol={labelCol} intl={intl}/>
 
             <ProFormSwitch
 
                 initialValue={true}
-                label="只迁新分区"
+                label={fm(intl, "components.Job.NewJobForm.onlyNewPt", "只迁新分区")}
                 name="increment"
             />
 
-            <ProFormTimerPicker label="定时执行" name="timer" />
+            <ProFormTimerPicker label={fm(intl, "components.Job.NewJobForm.timer", "定时执行")} name="timer" />
+
+            <ProFormSwitch
+                initialValue={false}
+                label={fm(intl, "components.Job.NewJobForm.onlySchema", "只迁schema")}
+                name="schema_only"
+            />
 
             <ProFormSwitch
 
                 initialValue={true}
-                label="开启校验"
+                label={fm(intl, "components.Job.NewJobForm.enableVerification", "开启校验")}
                 name="enable_verification"
             />
 
             <ProFormDependency name={['task_type']}>
                 {({task_type}) => {
-                    if (task_type != 'ODPS') {
+                    if (task_type != 'ODPS' && task_type != "BIGQUERY") {
                         return (
                             <ProForm.Group>
                                 <ProFormSwitch
                                     //colProps={{ md: 12, xl: 8 }}
                                     initialValue={false}
-                                    label="合并分区"
+                                    label={fm(intl, "components.Job.NewJobForm.mergePt", "合并分区")}
                                     name="merge_partition_enabled"
                                 />
 
@@ -203,7 +233,7 @@ export const NewJobForm = (
                                         if (merge_partition_enabled) {
                                             return (
                                                 <ProFormDigit
-                                                    label="最大分区层数"
+                                                    label={fm(intl, "components.Job.NewJobForm.maxPtLevel", "最大分区层数")}
                                                     name="max_partition_level"
                                                     min={0}
                                                     max={10}
@@ -222,57 +252,81 @@ export const NewJobForm = (
                 }}
             </ProFormDependency>
 
-            <ProFormList name="partition_filters" label="分区过滤" >
+            <ProFormList name="partition_filters" label={fm(intl, "components.Job.NewJobForm.PartitionFilter", "分区过滤")} >
                 <ProFormGroup key="group">
-                    <ProFormSelect showSearch  name="srcTable" valueEnum={tableEnum}  placeholder="请输入源表" colProps={{span: 10}}  />
-                    <ProFormText name="partitionFilter"   placeholder={"p1 > '2022-08-20' and p2 > 10"}  colProps={{span: 10}}  />
+                    <ProFormSelect
+                        showSearch
+                        name="srcTable"
+                        valueEnum={tableEnum}
+                        placeholder={fm(intl, "components.Job.NewJobForm.inputSrcTable", "请输入表名")}
+                        colProps={{span: 10}}
+                    />
+                    <ProFormText name="partitionFilter"  placeholder={"p1 > '2022-08-20' and p2 > 10"}  colProps={{span: 10}}  />
                 </ProFormGroup>
             </ProFormList>
-            <ProFormList name="table_mapping" label="表名映射">
+            <ProFormList name="table_mapping" label={fm(intl, "components.Job.NewJobForm.tableMapping", "表名映射")}>
                 <ProFormGroup key="group">
-                    <ProFormSelect showSearch   name="srcTable" valueEnum={tableEnum} placeholder="请输入源表" colProps={{span: 10}}  />
-                    <ProFormText name="dstTable" placeholder="请输入目的表" colProps={{span: 10}}  />
+                    <ProFormSelect
+                        showSearch
+                        name="srcTable" valueEnum={tableEnum}
+                        placeholder={fm(intl, "components.Job.NewJobForm.inputSrcTable", "请输入源表")}
+                        colProps={{span: 10}}
+                    />
+                    <ProFormText
+                        name="dstTable"
+                        placeholder={fm(intl, "components.Job.NewJobForm.inputDstTable", "请输入目的表")}
+                        colProps={{span: 10}}
+                    />
                 </ProFormGroup>
             </ProFormList>
-            <ProFormList name="column_mapping" label="列名映射">
+            <ProFormList name="column_mapping" label={fm(intl, "components.Job.NewJobForm.ColumnMapping", "列名映射")}>
                 <ProFormGroup key="group">
-                    <ProFormText name="srcColumn" placeholder="请输入源列名" colProps={{span: 10}}  />
-                    <ProFormText name="dstColumn" placeholder="请输入目的列名" colProps={{span: 10}}  />
+                    <ProFormText name="srcColumn" placeholder={fm(intl, "components.Job.NewJobForm.srcColumn", "请输入源列名")} colProps={{span: 10}}  />
+                    <ProFormText name="dstColumn" placeholder={fm(intl, "components.Job.NewJobForm.dstColumn", "请输入目的列名")} colProps={{span: 10}}  />
                 </ProFormGroup>
             </ProFormList>
             <ProFormText
-
                 name="table_mapping_pattern"
-                label="表名映射规则:"
-                placeholder="格式: prefix${table}suffix"
+                label={fm(intl, "components.Job.NewJobForm.tableMapping", "表名映射规则:")}
+                placeholder={fm(intl, "components.Job.NewJobForm.tableMappingFormat", "格式: prefix${table}suffix", {table: "{table}"})}
                 rules={[{
                     required: false,
                     pattern: /^.*?\$\{table\}.*$/,
-                    message: "格式: prefix${table}suffix"
+                    message: fm(intl, "components.Job.NewJobForm.tableMappingFormat", "格式: prefix${table}suffix", {table: "{table}"})
                 }]}
             />
         </ModalForm>
     )
 }
 
-const JobTypeRender = ({jobType, tables, labelCol}:{jobType: string, tables?: string[], labelCol: number}) => {
-    const tableListRules = [{ required: false, warningOnly: true, pattern: /^((\w+)\s*,\s*)*(\w+)$/, message: '多个表名之间以逗号(,)分割' }];
+const JobTypeRender = ({jobType, tables, labelCol, intl}:{jobType: string, tables?: string[], labelCol: number, intl: IntlShape}) => {
+    const tableListRules = [{
+            required: false,
+            warningOnly: true,
+            pattern: /^((\w+)\s*,\s*)*(\w+)$/,
+            message: fm(intl, "components.Job.NewJobForm.tableListTip",  '多个表名之间以逗号(,)分割' )
+        }];
 
     if (jobType == "database") {
-        return <TableWhiteOrBlackList labelCol={labelCol} />
+        return <TableWhiteOrBlackList labelCol={labelCol} intl={intl} />
     }
 
     return <ProFormTextArea
         labelCol={{span: labelCol}}
         name="tables"
-        label="table列表"
+        label={fm(intl, "components.Job.NewJobForm.tableList", "table列表")}
         rules={tableListRules}
         initialValue={tables?.join(",")}
     />
 }
 
-const TableWhiteOrBlackList = ({labelCol}:{labelCol: number} & any) => {
-    const tableListRules = [{ required: false, warningOnly: true, pattern: /^((\w+)\s*,\s*)*(\w+)$/, message: '多个表名之间以逗号(,)分割' }];
+const TableWhiteOrBlackList = ({labelCol, intl}:{labelCol: number, intl: IntlShape} & any) => {
+    const tableListRules = [{
+        required: false,
+        warningOnly: true,
+        pattern: /^((\w+)\s*,\s*)*(\w+)$/,
+        message: fm(intl, "components.Job.NewJobForm.tableListTip",  '多个表名之间以逗号(,)分割' )
+    }];
 
     return (
         <ProForm.Group>
@@ -284,12 +338,12 @@ const TableWhiteOrBlackList = ({labelCol}:{labelCol: number} & any) => {
                 initialValue='tableWhiteList'
                 options={[
                     {
-                        label: 'table白名单',
+                        label: fm(intl, "components.Job.NewJobForm.tableWhiteList",   'table白名单'),
                         value: 'tableWhiteList',
                     },
                     {
                         value: 'tableBlackList',
-                        label: "table黑名单"
+                        label:  fm(intl, "components.Job.NewJobForm.tableBlackList",   'table黑名单'),
                     },
                 ]}
             />
@@ -298,11 +352,11 @@ const TableWhiteOrBlackList = ({labelCol}:{labelCol: number} & any) => {
                 {
                     ({whiteOrBlackList}) => {
                         let name="table_whitelist"
-                        let label="table白名单"
+                        let label=fm(intl, "components.Job.NewJobForm.tableWhiteList", "table白名单");
 
                         if (whiteOrBlackList === 'tableBlackList') {
                             name = "table_blacklist"
-                            label = "table黑名单"
+                            label = fm(intl, "components.Job.NewJobForm.tableBlackList",   'table黑名单')
                         }
 
                         return <ProFormTextArea

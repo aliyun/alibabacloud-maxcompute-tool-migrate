@@ -18,14 +18,15 @@ public interface PartitionMapper {
     List<Integer> getPartitionIdsOfTask(@Param("taskId") int taskId);
     List<PartitionModel> getPartitionsOfTableBasic(@Param("tableId") int tableId);
     List<PartitionModel> getPartitionsOfTablesBasic(@Param("tableIds") List<Integer> tableIds);
-    List<MigrationStatus> getPartitionsStatusOfTable(@Param("tableId") int tableId);
     PartitionModel getPartitionById(@Param("id") int id);
     void insertPartition(PartitionModel partitionModel);
     void updatePartition(PartitionModel partitionModel);
     List<PartitionModel> getPartitions(@Param("ids") List<Integer> ids);
     void updatePartitionsStatus(@Param("status") MigrationStatus status, @Param("taskId") Integer taskId);
-    List<PartitionModel> getPartitionsOfDataSource(@Param("sourceName") String sourceName);
-    List<PartitionModel> getPartitionsByDsId(@Param("sourceId") int sourceId);
+    List<PartitionModel> getPartitionsBasicByDsId(
+            @Param("sourceId") int sourceId,
+            @Param("maxItem") int maxItem,
+            @Param("marker") int marker);
     List<PartitionModel> getPartitionsOfDbsBasic(@Param("dbIds") List<Integer> tableIds);
     List<Map<String, Object>> ptStatOfDbs(@Param("dbIds") List<Integer> dbIds);
     List<Map<String, Object>> ptStatOfTables(@Param("tableIds") List<Integer> tableIds);

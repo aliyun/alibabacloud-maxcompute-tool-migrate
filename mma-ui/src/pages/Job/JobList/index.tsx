@@ -10,30 +10,44 @@ import {
 import {Button, Divider, Drawer, message, Popover, Switch, Tooltip, Popconfirm, Badge, Tabs} from 'antd';
 import React, { useRef, useState } from 'react';
 import {getJobs, jobAction} from "@/services/job";
-import {ProCoreActionType} from "@ant-design/pro-utils/lib/typing";
-import {Link} from "umi";
-import {JobStatusBadgeMap, JobStatusMap} from "@/pages/Job/JobList/components/JobUtil";
+import {Link, useIntl} from "umi";
 import {PresetStatusColorType} from "antd/lib/_util/colors";
 import {McProjectSelector} from "@/components/Config/McProjectSelector";
 import {SourceSelectorByName} from "@/components/Source/SourceSelector";
-import {ActionLog} from "@/pages/Source/SourceList/components/ActionLog";
 import {JobDetail} from "@/pages/Job/JobList/components/JobDetail";
+import {FM, fm, FMSpan} from "@/components/i18n"
 
 export default () => {
     const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
     const actionRef = useRef<ActionType>();
     const [currentRow, setCurrentRow] = useState<API.Job>();
+    const intl = useIntl();
+
+
+    const JobStatusMap = {
+        INIT: {text: fm(intl, "pages.Job.type.status.init", "未执行")},
+        DOING: {text: fm(intl, "pages.Job.type.status.doing", "执行中")},
+        FAILED: {text: fm(intl, "pages.Job.type.status.failed", "失败")},
+        DONE: {text: fm(intl, "pages.Job.type.status.done", "成功")},
+    } as Record<string, {text: string}>;
+
+    const JobStatusBadgeMap = {
+        INIT: "default",
+        DOING: "processing",
+        FAILED: "error",
+        DONE: "success"
+    } as Record<string, string>;
 
     const columns: ProColumns<API.Job>[] = [
          {
-             title: "任务名",
+             title: FM("pages.Job.taskName", "任务名"),
              dataIndex: 'description',
              render: (e, j) => {
                  return <Link to={`/jobs/tasks?jobId=${j.id}`}>{j.description}</Link>
              }
          },
          {
-             title: "数据源",
+             title: FM("pages.Job.datasource", "数据源"),
              dataIndex: 'source_name',
              key: "sourceName",
              renderFormItem: (item, { type, defaultRender, ...rest }, form) => {
@@ -41,12 +55,12 @@ export default () => {
              }
          },
          {
-             title: "源数据库",
+             title: FM("pages.Job.sourceDb", "源数据库"),
              dataIndex: 'db_name',
              key: "dbName",
          },
         {
-            title: "目的项目",
+            title: FM("pages.Job.dstProject", "目的项目"),
             dataIndex: 'dst_mc_project',
             key: "dstOdpsProject",
             renderFormItem: (item, { type, defaultRender, ...rest }, form) => {
@@ -54,13 +68,13 @@ export default () => {
             }
         },
          {
-             title: "类型",
+             title: FM( "pages.Job.type", "类型"),
              dataIndex: 'type',
              valueType: 'select',
              valueEnum: {
-                 Tables: {text: "多表"},
-                 Database: {text: "单库"},
-                 Partitions: {text: "多分区"},
+                 Tables: {text: fm(intl,"pages.Job.type.multiTables", "多表")},
+                 Database: {text: fm(intl,"pages.Job.type.multiTables", "单库")},
+                 Partitions: {text: fm(intl,"pages.Job.type.multiTables", "多分区")},
              }
          },
          // {
@@ -88,14 +102,14 @@ export default () => {
          //     search: false,
          // },
          {
-             title: "状态",
+             title: FM("pages.Job.type.status", "状态"),
              dataIndex: "status",
              render: (row, entity) => {
                  if (entity.stopped) {
                      return (
                          <Badge
                              status="warning"
-                             text="停止"
+                             text={fm(intl, "pages.Job.type.status.stopped", "停止")}
                          />
                      )
                  }
@@ -109,15 +123,15 @@ export default () => {
              },
              valueType: 'select',
              valueEnum: {
-                 INIT: {text: '未执行'},
-                 DOING: {text: '执行中'},
-                 DONE: {text: '完成'},
-                 FAILED: {text: '失败'},
-                 STOPPED: {text: '停止'},
+                 INIT: {text: fm(intl, "pages.Job.type.status.init", "未执行")},
+                 DOING: {text: fm(intl, "pages.Job.type.status.doing", "执行中")},
+                 DONE: {text:  fm(intl, "pages.Job.type.status.done", "完成")},
+                 FAILED: {text: fm(intl, "pages.Job.type.status.failed", "失败")},
+                 STOPPED: {text: fm(intl, "pages.Job.type.status.stopped", "停止")},
              },
          },
         {
-            title: "定时",
+            title: FM("pages.Job.timer", "定时"),
             dataIndex: "timer",
             search: false,
             render: (row, entity) => {
@@ -129,10 +143,10 @@ export default () => {
                 let content = "";
                 switch (timer.type) {
                     case "daily":
-                        content = `每天: ${timer.value}`
+                        content = `${fm(intl, "pages.Job.timer.daily", "每天")}: ${timer.value}`
                         break;
                     case "hourly":
-                        content = `每小时: ${timer.value}`
+                        content = `${fm(intl, "pages.Job.timer.hourly", "每小时")}: ${timer.value}`
                         break
                     default:
                         return "--";
@@ -149,15 +163,15 @@ export default () => {
             }
         },
          {
-             title: "创建时间",
+             title: FM("pages.Job.createTime", "每天"),
              dataIndex: "createTime",
              search: false,
              //sorter: (a, b) => (a.createTime - b.createTime),
 
          },
          {
-             title: "操作",
-             dataIndex: 'option',
+             title: FM("pages.Job.operation", "操作"),
+             dataIndex: 'operation',
              valueType: 'option',
              render: (row, entity) => {
                  let options = [];
@@ -166,22 +180,32 @@ export default () => {
                      options.push(
                          <Popconfirm
                              key="1"
-                             title={entity.stopped ? "开启任务" : "停止任务"}
+                             title={
+                                 entity.stopped ?
+                                     fm(intl, "pages.Job.operation.start", "开始任务") :
+                                     fm(intl, "pages.Job.operation.stop", "停止任务")
+                             }
                              onConfirm={async () => {
                                  if (! entity.stopped) {
-                                     let hide = message.loading("停止任务中...")
+                                     let hide = message.loading(fm(intl, "pages.Job.operation.stopping", "停止任务"))
                                      await jobAction(entity.id, "stop");
                                      hide();
-                                     message.success("停止任务成功");
+                                     message.success(fm(intl, "pages.Job.operation.stopOk", "停止成功"));
                                  } else {
-                                     await jobAction(entity.id, "retry");
-                                     message.success("启动任务成功");
+                                     await jobAction(entity.id, "start");
+                                     message.success(fm(intl, "pages.Job.operation.startOk", "启动成功"));
                                  }
 
                                  actionRef.current?.reload();
                              }}
                          >
-                             <a type="primary">{entity.stopped ? "启动" : "停止"}</a>
+                             <a type="primary">
+                                 {
+                                     entity.stopped ?
+                                         fm(intl, "pages.Job.operation.start", "启动") :
+                                         fm(intl, "pages.Job.operation.stop", "停止")
+                                 }
+                             </a>
                          </Popconfirm>
                      )
                  }
@@ -189,9 +213,9 @@ export default () => {
                  options.push([
                      <Popconfirm
                          key="2"
-                         title="确定删除任务?"
+                         title={fm(intl, "pages.Job.deletionConfirm", "确定删除任务?")}
                          onConfirm={async () => {
-                             let hide = message.loading("停止并删除任务中...")
+                             let hide = message.loading(fm(intl, "pages.Job.deletingMsg", "停止并删除任务中..."))
                              await jobAction(entity.id, "delete");
                              hide();
                              actionRef.current?.reload();
@@ -199,7 +223,7 @@ export default () => {
                          okText="Yes"
                          cancelText="No"
                      >
-                         <a href="#">删除</a>
+                         <a href="#"><FMSpan id="pages.Job.delete" defaultMessage="删除" /></a>
                      </Popconfirm>
                  ]);
 
@@ -207,7 +231,7 @@ export default () => {
                      options.push(
                          <Popconfirm
                              key={"3"}
-                             title="确定重试任务?"
+                             title={fm(intl, "pages.Job.retry.confirm", "确定重试任务?")}
                              onConfirm={async () => {
                                  await jobAction(entity.id, "retry");
                                  setTimeout(() => {
@@ -218,7 +242,7 @@ export default () => {
                              okText="Yes"
                              cancelText="No"
                          >
-                             <a href="#">重试</a>
+                             <a href="#"><FMSpan id="pages.Job.retry" defaultMessage="重试" /></a>
                          </Popconfirm>
                      )
                  }
@@ -245,6 +269,7 @@ export default () => {
              />
 
              <Drawer
+                 width={"40%"}
                  open={showJobDetail}
                  onOpenChange={setShowJobDetail}
                  onClose={() => {
@@ -254,7 +279,7 @@ export default () => {
                  closable={false}
              >
                  <Tabs>
-                     <Tabs.TabPane tab="执行批次" key="job_batch">
+                     <Tabs.TabPane tab={fm(intl, "pages.Job.jobBatches", "执行批次")} key="job_batch">
                          <JobDetail jobId={currentRow?.id} />
                      </Tabs.TabPane>
                  </Tabs>

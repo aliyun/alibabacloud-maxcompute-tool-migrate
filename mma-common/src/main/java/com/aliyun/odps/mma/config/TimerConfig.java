@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 @Data
 public class TimerConfig {
-    private static Logger logger = LoggerFactory.getLogger(TimerConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(TimerConfig.class);
 
     private static Pattern timePattern = Pattern.compile("((?<hour>\\d{2}):)?(?<minute>\\d{2})");
     private static SimpleDateFormat df = new SimpleDateFormat("HH:mm");

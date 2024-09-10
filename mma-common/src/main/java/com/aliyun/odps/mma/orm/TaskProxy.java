@@ -1,6 +1,11 @@
 package com.aliyun.odps.mma.orm;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.aliyun.odps.Column;
@@ -67,6 +72,10 @@ public class TaskProxy {
     public void setSubStatus(String status) {
         this.taskModel.setSubStatus(status);
         this.taskService.updateTaskSubStatus(this.taskModel);
+    }
+
+    public void error(String action, String logview, Exception e) {
+        error(action, logview + " \n " + ExceptionUtils.getStackTrace(e));
     }
 
     public void error(String action, Exception e) {

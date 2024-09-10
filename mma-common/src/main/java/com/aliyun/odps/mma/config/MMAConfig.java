@@ -32,6 +32,8 @@ public class MMAConfig extends Config {
     public static String AUTH_TYPE = "auth.type";
     @ConfigItem(desc = "UDTF鉴权方式=AK 时，config.ini 在 HDFS 上的路径", defaultValue = "hdfs:///tmp/odps_config.ini")
     public static String AUTH_AK_HDFS_PATH = "auth.ak.hdfs.path";
+    @ConfigItem(desc = "依赖根目录", defaultValue = "")
+    public static String DEPENDENCY_ROOT = "dependency.root";
 
     public MMAConfig() {
         super();
@@ -56,6 +58,13 @@ public class MMAConfig extends Config {
         }
 
         return projects;
+    }
+
+    public String getLibPath() {
+        return this.getOrDefault(
+            DEPENDENCY_ROOT,
+            System.getProperty("user.dir") + "/lib"
+        );
     }
 
     public void setInited() {

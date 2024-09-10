@@ -28,13 +28,13 @@ public class JobModel {
     private Integer id;
     private String description;
     @JsonProperty("source_name")
-    String sourceName;
+    private String sourceName;
     @JsonProperty("db_name")
-    String dbName;
+    private String dbName;
     @JsonProperty("dst_mc_schema")
-    String dstOdpsSchema;
+    private String dstOdpsSchema;
     @JsonProperty("dst_mc_project")
-    String dstOdpsProject;
+    private String dstOdpsProject;
     private JobStatus status = JobStatus.INIT;
     private JobType type;
     private Boolean stopped;

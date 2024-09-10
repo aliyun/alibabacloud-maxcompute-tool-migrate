@@ -99,6 +99,7 @@ declare namespace API {
         "dbName": string,
         "name": string,
         "type": string,
+        "lifecycle": number,
         "hasPartitions": boolean,
         "partitions": number,
         "partitionsDoing": number,

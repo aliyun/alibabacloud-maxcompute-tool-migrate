@@ -26,8 +26,7 @@ import java.util.stream.Collectors;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class JobProxy {
-    Logger logger = LoggerFactory.getLogger(JobProxy.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(JobProxy.class);
     private final MMAConfig mmaConfig;
     private final JobService jobService;
     private final DbService dbService;
@@ -87,7 +86,7 @@ public class JobProxy {
         TaskType taskType = jobConfig.getTaskType();
 
         if (taskType == TaskType.ODPS && jobConfig.getMaxPartitionLevel() >= 0) {
-            throw new JobSubmittingException(String.format("%s类型任务不支持合并分区", TaskTypeName.getName(taskType)));
+            throw new JobSubmittingException("不支持合并分区");
         }
 
         switch (this.jobModel.getType()) {
@@ -196,10 +195,6 @@ public class JobProxy {
     }
 
     private List<TaskModel> generateTasks(TableModel table, List<PartitionModel> _partitions) throws JobSubmittingException {
-        if (jobConfig.isIncrement() && jobModel.isOldJob() && !MigrationStatus.INIT.equals(table.getStatus())) {
-            return new ArrayList<>();
-        }
-
         if (Objects.isNull(_partitions)) {
             _partitions = new ArrayList<>();
         }
@@ -221,13 +216,26 @@ public class JobProxy {
                 .type(jobConfig.getTaskType())
                 .status(TaskStatus.INIT);
 
+        // 处理非分区表
         if (!table.isHasPartitions()) {
+            // 有”定时任务 + 增量更新“时，如果已经迁移成功的非分区表有变动，则重新迁移
+            if (jobModel.isOldJob() && jobConfig.isIncrement() && MigrationStatus.DONE == table.getStatus()) {
+                if (table.isUpdated()) {
+                    TaskModel task = tb.build();
+                    tasks.add(task);
+                    return tasks;
+                }
+
+                logger.info("there no task for unPartitioned table {} in timer job {}", table.getFullName(), jobModel.getId());
+                return new ArrayList<>();
+            }
+
+            // 其他情况
             TaskModel task = tb.build();
             tasks.add(task);
             return tasks;
         }
 
-//        List<PartitionModel> _partitions = partitionService.getPartitionsOfTableBasic(table.getId());
         List<PartitionModel> partitions = _partitions;
 
         Optional<PartitionFilter> pfOpt = jobConfig.getPartitionFilter(table.getName());
@@ -261,12 +269,13 @@ public class JobProxy {
             partitions = partitions
                     .stream()
                     .filter(p -> {
-                        // 定时任务只迁未建立过任务的分区
-                        if (jobModel.isOldJob()) {
-                            return MigrationStatus.INIT.equals(p.getStatus());
-                        }
-
-                        return MigrationStatus.DONE != p.getStatus() && MigrationStatus.DOING != p.getStatus();
+//                        // 定时任务只迁未建立过任务的分区, 否则任务重试的时候可能有多个失败的指向同一个分区
+//                        if (jobModel.isOldJob()) {
+//                            return MigrationStatus.INIT.equals(p.getStatus());
+//                        }
+//
+                        return (MigrationStatus.DONE != p.getStatus() && MigrationStatus.DOING != p.getStatus())
+                                || p.isUpdated();
                     })
                     .collect(Collectors.toList());
         }
@@ -275,6 +284,13 @@ public class JobProxy {
         if (partitions.isEmpty()) {
             TaskModel task = tb.build();
             tasks.add(task);
+
+            // 增量更新 + 定时任务场景，如果表已经迁移完毕，并且没有新的分区，则不产生新的任务
+            if (jobModel.isOldJob() && MigrationStatus.DONE == table.getStatus()) {
+                logger.info("there no task for table {} in timer job {}", table.getFullName(), jobModel.getId());
+                return new ArrayList<>();
+            }
+
             return tasks;
         }
 

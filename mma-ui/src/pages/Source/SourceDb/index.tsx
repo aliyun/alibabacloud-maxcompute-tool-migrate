@@ -1,16 +1,18 @@
 import {PageContainer} from "@ant-design/pro-components";
 import TableList from "./components/TableList";
-import {useParams} from "@@/exports";
 import {useEffect, useState} from "react";
 import {Button, Card, Descriptions} from "antd";
 import {getDbs} from "@/services/source";
 import PartitionList from "@/pages/Source/SourceDb/components/PartitionList";
+import {useIntl} from "umi";
+import {FMSpan, FM, fm} from "@/components/i18n";
+import {ReloadOutlined} from "@ant-design/icons";
 
 export default (props: any) => {
     const [tabKey, setTabKey] = useState("tables");
     const [database, setDatabase] = useState<API.DbModel>();
-
     const params = new URLSearchParams(window.location.search)
+    const intl = useIntl();
 
     let dbId = parseInt(params.get("dbId") || "");
 
@@ -30,7 +32,7 @@ export default (props: any) => {
     const DbDetail = (props: {db?: API.DbModel, tabKey: string}) => {
         let db = props?.db;
         if (db === undefined) {
-            return <div>加载不到数据</div>
+            return <div><FMSpan id="pages.Source.SourceDb.failedToGetData"  defaultMessage="加载数据失败" /></div>
         }
 
         if (props.tabKey == "tables") {
@@ -47,11 +49,11 @@ export default (props: any) => {
             }}
             tabList={[
                 {
-                    tab: 'table列表',
+                    tab: fm(intl, "pages.Source.SourceDb.TableList", "Table列表"),
                     key: 'tables',
                 },
                 {
-                    tab: 'partition列表',
+                    tab: fm(intl, "pages.Source.SourceDb.PartitionList", "Partition列表"),
                     key: 'partitions',
                 },
             ]}
@@ -60,19 +62,21 @@ export default (props: any) => {
             }}
             content={(
                 <Descriptions column={3}>
-                    <Descriptions.Item label="数据源">{database?.sourceName}</Descriptions.Item>
-                    <Descriptions.Item label="表总数">{database?.tables}</Descriptions.Item>
-                    <Descriptions.Item label="迁移完成的表">{database?.tablesDone}</Descriptions.Item>
-                    <Descriptions.Item label="迁移中的表">{database?.tablesDoing}</Descriptions.Item>
-                    <Descriptions.Item label="迁移失败的表">{database?.tablesFailed}</Descriptions.Item>
-                    <Descriptions.Item label="分区总数">{database?.partitions}</Descriptions.Item>
-                    <Descriptions.Item label="迁移完成的分区">{database?.partitionsDone}</Descriptions.Item>
-                    <Descriptions.Item label="迁移中的分区">{database?.partitionsDoing}</Descriptions.Item>
-                    <Descriptions.Item label="迁移失败的分区">{database?.partitionsFailed}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.datasource", "数据源")}>{database?.sourceName}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.tables", "表总数")}>{database?.tables}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.tablesOk", "迁移完成的表")}>{database?.tablesDone}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.tablesDoing", "迁移中的表")}>{database?.tablesDoing}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.tablesFailed", "迁移失败的表")}>{database?.tablesFailed}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.partitions", "分区总数")}>{database?.partitions}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.partitionsDone", "迁移完成的分区")}>{database?.partitionsDone}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.PartitionsDoing", "迁移中的分区")}>{database?.partitionsDoing}</Descriptions.Item>
+                    <Descriptions.Item label={fm(intl, "pages.Source.SourceDb.PartitionFailed", "迁移失败的分区")}>{database?.partitionsFailed}</Descriptions.Item>
                 </Descriptions>
             )}
             extra={[
-                <Button key="updatePage" onClick={getDb}>刷新</Button>,
+                <Button type="text" key="updatePage" onClick={getDb}>
+                    <ReloadOutlined />
+                </Button>,
                 // <Button key="updateDbMeta" type="primary">更新元数据</Button>
             ]}
         >

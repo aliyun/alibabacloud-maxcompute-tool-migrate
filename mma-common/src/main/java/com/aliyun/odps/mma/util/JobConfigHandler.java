@@ -17,8 +17,8 @@ import java.sql.SQLException;
 
 @Component
 public class JobConfigHandler extends BaseTypeHandler<JobConfig> {
-    Logger logger = LoggerFactory.getLogger(JobConfigHandler.class);
-    ObjectMapper om;
+    private static final Logger logger = LoggerFactory.getLogger(JobConfigHandler.class);
+    private ObjectMapper om;
 
     public JobConfigHandler() {
         om = new ObjectMapper()

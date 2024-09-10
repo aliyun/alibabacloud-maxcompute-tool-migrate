@@ -1,6 +1,11 @@
 package com.aliyun.odps.mma.service.impl;
 
 import com.aliyun.odps.mma.constant.JobBatchStatus;
+import com.aliyun.odps.mma.constant.TaskStatus;
+import com.aliyun.odps.mma.jdbc.IntSetter;
+import com.aliyun.odps.mma.jdbc.Setter;
+import com.aliyun.odps.mma.jdbc.SqlUtils;
+import com.aliyun.odps.mma.mapper.JobDao;
 import com.aliyun.odps.mma.mapper.JobMapper;
 import com.aliyun.odps.mma.mapper.TaskMapper;
 import com.aliyun.odps.mma.model.JobBatchModel;
@@ -8,6 +13,7 @@ import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.query.JobFilter;
 import com.aliyun.odps.mma.service.JobService;
+import com.aliyun.odps.mma.util.MysqlConfig;
 import com.aliyun.odps.mma.util.id.IdGenException;
 import com.aliyun.odps.mma.util.id.JobIdGen;
 import com.aliyun.odps.mma.util.id.TaskIdGen;
@@ -30,20 +36,21 @@ import java.util.*;
 @Service
 @DependsOn("DBInitializer")
 public class JobServiceImpl implements JobService {
-    Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
     @Autowired
     private JobMapper jobMapper;
     @Autowired
     private TaskMapper taskMapper;
     @Autowired
-    JobIdGen jobIdGen;
+    private JobIdGen jobIdGen;
     @Autowired
-    TaskIdGen taskIdGen;
+    private TaskIdGen taskIdGen;
     @Autowired
-    SqlSessionFactory sqlSessionFactory;
+    private SqlSessionFactory sqlSessionFactory;
     @Autowired
-    DataSource dataSource;
+    private DataSource dataSource;
+    @Autowired
+    private MysqlConfig mysqlConfig;
 
     @Override
     public void insertJob(JobModel job) {
@@ -67,6 +74,11 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public void submit(JobModel jobModel, List<TaskModel> tasks) {
+        // 定时任务可能会产生空的子任务列表
+        if (tasks.isEmpty()) {
+            return;
+        }
+
         try {
             Integer jobId = jobModel.getId();
             Integer jobBatchId = 0;
@@ -107,31 +119,18 @@ public class JobServiceImpl implements JobService {
     }
 
     public void _submit(boolean jobIsNew, JobModel jobModel, JobBatchModel jobBatch, List<TaskModel> tasks) {
-        try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
-            JobMapper jobMapper = sqlSession.getMapper(JobMapper.class);
-            TaskMapper taskMapper = sqlSession.getMapper(TaskMapper.class);
-
-            if (jobIsNew) {
-                jobMapper.insertJob(jobModel);
-            }
-
-            jobMapper.insertJobBatch(jobBatch);
-
-            for (TaskModel task: tasks) {
-                taskMapper.insertTask(task);
-            }
-
-            for (TaskModel task: tasks) {
-                List<Integer> partitions = task.getPartitions();
-
-                if (Objects.nonNull(partitions)) {
-                    for (Integer pid: partitions) {
-                        taskMapper.insertTaskPartition(task.getJobId(), task.getId(), pid);
-                    }
-                }
-            }
-
-            sqlSession.commit();
+        if (Objects.nonNull(jobModel.getDeleted()) && jobModel.getDeleted()) {
+            // 有定时任务的场景下，可能存在job已经删除，但是恰好定时任务要提交新的子任务的情况
+            return;
+        }
+        try (Connection conn = dataSource.getConnection()) {
+            SqlUtils.startTransaction(conn);
+            // 先分批提交tasks，task_partitions
+            JobDao.saveTaskAndPartitions(conn, tasks);
+            JobDao.saveJob(conn, jobIsNew, jobModel, jobBatch);
+            conn.commit();
+        } catch (Throwable e) {
+            logger.error("submit failed", e);
         }
     }
 
@@ -147,6 +146,18 @@ public class JobServiceImpl implements JobService {
 
             jobMapper.resetJobStop(jobId);
             jobMapper.setFailedTasksOfJobRestart(jobId);
+
+            sqlSession.commit();
+        }
+    }
+
+    @Override
+    public void startJob(int jobId) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            JobMapper jobMapper = sqlSession.getMapper(JobMapper.class);
+
+            jobMapper.resetJobStop(jobId);
+            jobMapper.setTerminatedTasksOfJobRestart(jobId);
 
             sqlSession.commit();
         }

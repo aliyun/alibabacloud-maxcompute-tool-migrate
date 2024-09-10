@@ -104,6 +104,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public void reset(int id) {
+        taskMapper.reset(id);
+    }
+
+    @Override
     public void restartAllTerminated() {
         taskMapper.restartAllTerminated();
     }

@@ -32,7 +32,7 @@
     </insert>
 
     <update id="updateDb" parameterType="com.aliyun.odps.mma.model.DataBaseModel">
-        update db_model set size=#{size}, num_rows=#{numRows}, updated=true where id=#{id}
+        update db_model set size=#{size}, num_rows=#{numRows}, updated=true, update_time=now() where id=#{id}
     </update>
 
     <update id="batchUpdateDbsStatus">

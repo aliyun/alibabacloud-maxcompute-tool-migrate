@@ -113,7 +113,16 @@
 
     <update id="setFailedTasksOfJobRestart">
         update task set restart=1, start_time=null, stopped=0
-        where job_id=#{jobId} and (status in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED') or stopped=1)
+        where
+            job_id=#{jobId} and batch_id=(select max(batch_id) from job_batch where job_id=#{jobId})
+          and status in ('SCHEMA_FAILED', 'DATA_FAILED', 'VERIFICATION_FAILED')
+    </update>
+
+    <update id="setTerminatedTasksOfJobRestart">
+        update task set restart=1, start_time=null, stopped=0
+        where
+            job_id=#{jobId} and batch_id=(select max(batch_id) from job_batch where job_id=#{jobId})
+          and status in ('SCHEMA_DOING', 'DATA_DOING', 'VERIFICATION_DOING', 'SCHEMA_DONE', 'DATA_DONE', 'VERIFICATION_DONE')
     </update>
 
     <update id="setJobDeleted">
@@ -140,6 +149,6 @@
     </select>
 
     <select id="listJobsWithTimer" resultMap="jobMap">
-        select * from job where timer is not null
+        select * from job where timer is not null and deleted = 0 and stopped = 0
     </select>
 </mapper>

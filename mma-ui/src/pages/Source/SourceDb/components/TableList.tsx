@@ -6,7 +6,8 @@ import {StatusMap} from "@/pages/Source/SourceDb/components/Status";
 import {Button, Col, Descriptions, Drawer, Row, Table, Tabs} from "antd";
 import {NewJobForm} from "@/components/Job/NewJobForm";
 import {Key, RowSelectMethod} from "antd/lib/table/interface";
-
+import {useIntl} from "umi";
+import {FMSpan, FM, fm} from "@/components/i18n";
 
 export default (props: {db: API.DbModel}) => {
     const [total, setTotal] = useState<number>(0);
@@ -14,10 +15,11 @@ export default (props: {db: API.DbModel}) => {
     const [tables, setTables] = useState<string[]>([]);
     const [showDetail, setShowDetail] = useState<boolean>(false);
     const [currentRow, setCurrentRow] = useState<API.TableModel>()
+    const intl = useIntl();
 
     const columns: ProColumns<API.TableModel>[] = [
         {
-            title: "schema",
+            title: "Schema",
             dataIndex: "schemaName",
             // formItemProps: {
             //     rules: [
@@ -29,7 +31,7 @@ export default (props: {db: API.DbModel}) => {
             // }
         },
         {
-            title: "表名",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.name", "表名"),
             dataIndex: "name",
             // formItemProps: {
             //     rules: [
@@ -41,10 +43,10 @@ export default (props: {db: API.DbModel}) => {
             // }
         },
         {
-            title: "分区表",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.partitionTable", "分区表"),
             dataIndex: "hasPartitions",
             render: (_, entity) => {
-                return entity.hasPartitions ? "是": "否";
+                return entity.hasPartitions ? "yes": "no";
             },
             valueEnum: {
                 "no": {text: "非分区表"},
@@ -55,7 +57,7 @@ export default (props: {db: API.DbModel}) => {
             sorter: (a, b) => (a.hasPartitions && 1) - (b.hasPartitions && 1),
         },
         {
-            title: "类型",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.type", "类型"),
             dataIndex: "type",
             valueEnum: {
                 "MANAGED_TABLE" : {text: "managed table"},
@@ -66,28 +68,28 @@ export default (props: {db: API.DbModel}) => {
             valueType: "select",
         },
         {
-            title: "分区",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.partitions", "分区"),
             dataIndex: "partitions",
             hideInSearch: true,
             sorter: (a, b) => a.partitions - b.partitions,
         },
         {
-            title: "完成分区",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.ptCopied", "完成分区"),
             dataIndex: "partitionsDone",
             hideInSearch: true
         },
         {
-            title: "正在迁移分区",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.ptCopying", "正在迁移分区"),
             dataIndex: "partitionsDoing",
             hideInSearch: true
         },
         {
-            title: "失败的分区",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.ptFailed", "失败的分区"),
             dataIndex: "partitionsFailed",
             hideInSearch: true
         },
         {
-            title: "大小",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.size", "大小"),
             dataIndex: 'size',
             render: (_, entity) => {
                 if (entity.size === undefined || entity.size === 0) {
@@ -104,7 +106,7 @@ export default (props: {db: API.DbModel}) => {
         },
 
         {
-            title: "行数",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.rows", "行数"),
             dataIndex: 'numRows',
             render: (_, entity) => {
                 if (entity.numRows === undefined || entity.numRows === 0) {
@@ -120,7 +122,19 @@ export default (props: {db: API.DbModel}) => {
             }
         },
         {
-            title: "数据最后修改时间",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.changed", "元数据有更新"),
+            dataIndex: "updated",
+            render: (_, entity) => {
+                return entity.updated ? "yes": "no";
+            },
+            valueType: "select",
+            valueEnum: {
+                0: {text: 'no'},
+                1: {text: 'yes'},
+            }
+        },
+        {
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.lastModifiedTime", "数据最后修改时间"),
             render: (_, entity) => {
                 return entity.lastDdlTime;
             },
@@ -132,20 +146,20 @@ export default (props: {db: API.DbModel}) => {
             }
         },
         {
-            title: "状态",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.status", "状态"),
             dataIndex: 'status',
             valueType: 'checkbox',
             valueEnum: {
-                INIT: {text: '未迁移'},
-                DONE: {text: '完成'},
-                DOING: {text: '迁移中'},
-                FAILED: {text: '部分完成，有失败'},
-                PART_DONE: {text: '部分完成'},
+                INIT: {text: fm(intl, "pages.Source.SourceDb.components.TableList.statusInit", "未迁移")},
+                DONE: {text: fm(intl, "pages.Source.SourceDb.components.TableList.statusDone", "完成")},
+                DOING: {text: fm(intl, "pages.Source.SourceDb.components.TableList.statusDoing", "迁移中")},
+                FAILED: {text: fm(intl, "pages.Source.SourceDb.components.TableList.statusFailed", "部分完成，有失败")},
+                PART_DONE: {text: fm(intl, "pages.Source.SourceDb.components.TableList.statusPartDone", "部分完成")},
             },
             sorter: (a, b) => (StatusMap[a.status] -  StatusMap[b.status]),
         },
         {
-            title: "schema",
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.tableSchema", "Schema"),
             dataIndex: "name",
             render: (e, table) => {
                 if (table.schema == undefined) {
@@ -168,7 +182,7 @@ export default (props: {db: API.DbModel}) => {
                     </>
                 )});
 
-                let ptTip = pts.length > 0 ? <Col span={24}><br />分区名/类型</Col>: "";
+                let ptTip = pts.length > 0 ? <Col span={24}><br /><FMSpan id="pages.Source.SourceDb.components.TableList.partition" defaultMessage="分区列" /></Col>: "";
                 let constraint: any = [];
                 if (table.schema.tableConstraints) {
                     constraint = [
@@ -193,7 +207,7 @@ export default (props: {db: API.DbModel}) => {
                 return (
                     <>
                         <Row>
-                            <Col span={24}>列名/类型</Col>
+                            <Col span={24}><FMSpan id="pages.Source.SourceDb.components.TableList.column" defaultMessage="列名/类型" /></Col>
                             {cols}
                             {ptTip}
                             {pts}
@@ -209,15 +223,23 @@ export default (props: {db: API.DbModel}) => {
             search: false
         },
         {
-            title: "操作",
+           title: fm(intl, "pages.Source.SourceDb.components.TableList.lifecycle", "生命周期"),
+           dataIndex: "lifecycle",
+           hideInTable: true,
+           hideInSearch: true
+        },
+        {
+            title: fm(intl, "pages.Source.SourceDb.components.TableList.operation", "操作"),
             dataIndex: 'option',
             valueType: 'option',
             render: (row, entity) => {
-                let options = [
+                const options = [
                     <a key={"1"} onClick={() => {
                         setShowDetail(true);
                         setCurrentRow(entity);
-                    }}>详情</a>,
+                    }}>
+                        <FMSpan id="pages.Source.SourceDb.components.TableList.detail" defaultMessage="详情" />
+                    </a>,
                 ];
 
                 return options;
@@ -267,7 +289,7 @@ export default (props: {db: API.DbModel}) => {
                                 setNewJobFormOpen(true);
                             }}
                         >
-                            新建迁移任务
+                            <FMSpan id="pages.Source.SourceDb.components.TableList.newJob" defaultMessage="新建迁移任务" />
                         </Button>,
                     ]
                 }}
@@ -275,7 +297,7 @@ export default (props: {db: API.DbModel}) => {
 
             <Drawer
                 width={1000}
-                visible={showDetail}
+                open={showDetail}
                 onClose={() => {
                     setCurrentRow(undefined);
                     setShowDetail(false);

@@ -25,6 +25,7 @@ public interface TaskMapper {
     void batchSetTaskStop(@Param("ids") List<Integer> taskIds);
     void resetRestart(@Param("id") int id);
     void restart(@Param("id") int id);
+    void reset(@Param("id") int id);
     void restartAllTerminated();
     List<TaskLog> getTaskLogs(@Param("taskId") int taskId);
     void insertTaskPartition(@Param("jobId") Integer jobId, @Param("taskId") Integer taskId, @Param("partitionId") Integer partitionId);

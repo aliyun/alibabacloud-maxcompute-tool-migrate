@@ -49,7 +49,6 @@ public class OssUtils {
             List<OSSObjectSummary> objectSummaries = objectListing.getObjectSummaries();
 
             if (! objectSummaries.isEmpty()) {
-                List<String> keys1 = objectSummaries.stream().map(OSSObjectSummary::getKey).collect(Collectors.toList());
                 Stream<String> keysStream = objectSummaries.stream().map(OSSObjectSummary::getKey);
 
                 if (ListUtils.size(whitelist) > 0) {

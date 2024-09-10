@@ -2,6 +2,7 @@ package com.aliyun.odps.mma.config;
 
 import com.aliyun.odps.mma.config.exception.ConfigMissingException;
 import com.aliyun.odps.mma.service.ConfigService;
+import com.aliyun.odps.mma.util.I18nUtils;
 import com.aliyun.odps.utils.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,6 +23,9 @@ public abstract class Config {
     protected List<String> itemMasks() {
         return Collections.emptyList();
     }
+
+    @Autowired
+    protected I18nUtils i18nUtils;
 
     public Config() {
         configItemMap = new HashMap<>();
@@ -191,6 +195,10 @@ public abstract class Config {
     }
 
     public List<Map<String, Object>> toJsonObj() {
+        return toJsonObj("zh-CN");
+    }
+
+    public List<Map<String, Object>> toJsonObj(String langCode) {
         List<Map<String, Object>> items = new ArrayList<>();
 
         for (int i = 0, n = configItems.size(); i < n; i ++) {
@@ -244,7 +252,8 @@ public abstract class Config {
             }
 
             item.put("type", configItem.type());
-            item.put("desc", configItem.desc());
+            String desc = i18nUtils.get(configKey, langCode, configItem.desc());
+            item.put("desc", desc);
             items.add(item);
         }
 

@@ -5,27 +5,30 @@ import React, {useState} from "react";
 import {Button, message, Popconfirm, Table} from "antd";
 import {Key, RowSelectMethod} from "antd/lib/table/interface";
 import {NewPartitionJobForm} from "@/components/Job/NewPartitionJobForm";
+import {useIntl} from "umi";
+import {FMSpan, fm} from "@/components/i18n";
 
 export default (props: {db: API.DbModel}) => {
     const [total, setTotal] = useState<number>(0);
     const [pts, setPts] = useState<API.PartitionModel[]>([]);
     const [visible, setVisible] = useState<boolean>(false);
+    const intl = useIntl();
 
     const columns: ProColumns<API.PartitionModel>[] = [
         {
-            title: "schema",
+            title: "Schema",
             dataIndex: "schemaName",
         },
         {
-            title: "表名",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.name", "表名"),
             dataIndex: "tableName",
         },
         {
-            title: "分区值",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.value", "分区值"),
             dataIndex: "value",
         },
         {
-            title: "大小",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.size", "大小"),
             dataIndex: 'size',
             render: (_, entity) => {
                 if (entity.size === undefined || entity.size === 0) {
@@ -41,7 +44,7 @@ export default (props: {db: API.DbModel}) => {
             }
         },
         {
-            title: "行数",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.row", "行数"),
             dataIndex: 'numRows',
             render: (_, entity) => {
                 if (entity.numRows === undefined || entity.numRows === 0) {
@@ -57,19 +60,19 @@ export default (props: {db: API.DbModel}) => {
             }
         },
         {
-            title: "元数据有更新",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.updated", "元数据有更新"),
             dataIndex: "updated",
             render: (_, entity) => {
-                return entity.updated ? "是": "否";
+                return entity.updated ? "yes": "no";
             },
             valueType: "select",
             valueEnum: {
-                0: {text: '否'},
-                1: {text: '是'},
+                0: {text: 'yes'},
+                1: {text: 'no'},
             }
         },
         {
-            title: "数据最后修改时间",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.lastDdlTime", "数据最后修改时间"),
             render: (_, entity) => {
                 return entity.lastDdlTime;
             },
@@ -81,14 +84,14 @@ export default (props: {db: API.DbModel}) => {
             }
         },
         {
-            title: "状态",
+            title: fm(intl, "pages.Source.SourceDb.components.PartitionList.status", "状态"),
             dataIndex: 'status',
             valueType: 'checkbox',
             valueEnum: {
-                INIT: {text: '未迁移'},
-                DONE: {text: '完成'},
-                DOING: {text: '迁移中'},
-                FAILED: {text: '失败'},
+                INIT: {text: fm(intl, "pages.Source.SourceDb.components.PartitionList.statsInit", "未迁移")},
+                DONE: {text: fm(intl, "pages.Source.SourceDb.components.PartitionList.statusDone", "完成")},
+                DOING: {text: fm(intl, "pages.Source.SourceDb.components.PartitionList.statusDoing", "迁移中")},
+                FAILED: {text: fm(intl, "pages.Source.SourceDb.components.PartitionList.statusFailed", "失败")},
             },
             filters: false,
         },
@@ -155,7 +158,7 @@ export default (props: {db: API.DbModel}) => {
                                     setVisible(true);
                                 }}
                         >
-                            新建迁移任务
+                            <FMSpan id="pages.Source.SourceDb.components.PartitionList.newMigration" defaultMessage="新建迁移任务"/>
                         </Button>
 
                     ]

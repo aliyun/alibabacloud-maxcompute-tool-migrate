@@ -88,7 +88,9 @@
             num_rows=#{numRows},
             last_ddl_time=#{lastDdlTime},
             table_schema=#{schema, typeHandler=com.aliyun.odps.mma.util.TableSchemaHandler},
-            updated= true
+            lifecycle=#{lifecycle},
+            updated= true,
+            update_time=now()
         where id = #{id}
     </update>
 
@@ -162,6 +164,10 @@
                 and table_model.has_partitions=#{hasPartitions}
             </if>
 
+            <if test="updated == 0 or updated == 1">
+                and table_model.updated=#{updated}
+            </if>
+
             <if test="lastDdlTime != null and lastDdlTime.size() == 2" >
                 and table_model.last_ddl_time >= #{lastDdlTimeStart} and table_model.last_ddl_time &lt;= #{lastDdlTimeEnd}
             </if>
@@ -216,6 +222,10 @@
 
             <if test="hasPartitions >= 0">
                 and has_partitions=#{hasPartitions}
+            </if>
+
+            <if test="updated == 0 or updated == 1">
+                and updated=#{updated}
             </if>
 
             <if test="lastDdlTime != null and lastDdlTime.size() == 2" >

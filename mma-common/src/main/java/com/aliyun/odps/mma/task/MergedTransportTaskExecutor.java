@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MergedTransportTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(MergedTransportTaskExecutor.class);
+    protected static final Logger logger = LoggerFactory.getLogger(MergedTransportTaskExecutor.class);
     protected static String TEMP_TABLE_PREFIX = "TEMP_MMA_MERGED_";
     protected static int DEFAULT_TEMP_TABLE_LIFECYCLE = 15;
 
@@ -134,7 +134,9 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
                 getTempTableName(),
                 tempTableSchema,
                 null,
-                DEFAULT_TEMP_TABLE_LIFECYCLE
+                DEFAULT_TEMP_TABLE_LIFECYCLE,
+                null,
+                null
         );
     }
 

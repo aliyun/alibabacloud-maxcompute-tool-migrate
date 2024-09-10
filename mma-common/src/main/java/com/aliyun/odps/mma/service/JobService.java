@@ -16,6 +16,7 @@ public interface JobService {
     void submit(JobModel model, List<TaskModel> tasks);
     void setJobStop(int id);
     void retryJob(int jobId);
+    void startJob(int jobId);
     Map<Integer, String> getIdToDecOfJobs();
     void insertJobBatch(JobBatchModel jobBatch);
 

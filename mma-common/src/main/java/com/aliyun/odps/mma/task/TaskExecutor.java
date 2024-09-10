@@ -1,6 +1,7 @@
 package com.aliyun.odps.mma.task;
 
 import com.aliyun.odps.mma.config.SourceConfig;
+import com.aliyun.odps.mma.execption.VerificationFailed;
 import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.orm.TableProxy;
 import com.aliyun.odps.mma.util.ExceptionUtils;
@@ -32,7 +33,7 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class TaskExecutor implements Runnable, TaskExecutorInter {
-    private final Logger logger = LoggerFactory.getLogger(TaskExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskExecutor.class);
 
     protected TableService tableService;
     protected TaskService taskService;
@@ -89,6 +90,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         sourceConfig = jobConfig.getSourceConfig();
         OdpsUtils odpsUtils = OdpsUtils.fromConfig(mmaConfig);
         this.odpsAction = new OdpsAction(odpsUtils, this.task);
+        this.odps = odpsUtils.getOdps();
 
         partitionNumOfTask = task.getPartitions().size();
     }
@@ -137,7 +139,17 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                     case SCHEMA_DONE:
                     case DATA_DOING:
                     case DATA_FAILED:
+                    // 校验失败，重新回到数据迁移阶段
+                    case VERIFICATION_FAILED:
+                        if (task.getStatus() == TaskStatus.VERIFICATION_FAILED) {
+                            task.setSubStatus("");
+                        }
+
                         dataTruncate();
+                        if (task.getStatus() == TaskStatus.DATA_FAILED) {
+                            return;
+                        }
+
                         dataTrans();
 
                         if (task.getStatus() == TaskStatus.DATA_FAILED) {
@@ -147,7 +159,6 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
 
                     case DATA_DONE:
                     case VERIFICATION_DOING:
-                    case VERIFICATION_FAILED:
                         if (! jobConfig.isEnableVerification()) {
                             task.setStatus(TaskStatus.VERIFICATION_DONE);
                             break;
@@ -214,6 +225,11 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                 logger.error("unexpected error", e);
             }
 
+            // 发生数据校验错误（不是异常错误), 再重新进行数据校验没有意义，重试任务时，需要重新传输数据
+//            if (e instanceof VerificationFailed) {
+//                task.setStatus(TaskStatus.DATA_FAILED);
+//            }
+
             return;
         }
 
@@ -250,6 +266,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         return null;
     }
 
+    @Override
     public void setUpSchema() {
         withStatus(
             TaskStatus.SCHEMA_DOING,
@@ -273,6 +290,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         withStatus(TaskStatus.DATA_DOING, TaskStatus.DATA_DONE, TaskStatus.DATA_FAILED, this::_dataTruncate);
     }
 
+    @Override
     public void dataTrans() {
         withStatus(
             TaskStatus.DATA_DOING,
@@ -282,6 +300,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
         );
     }
 
+    @Override
     public void verifyData() {
         withStatus(
             TaskStatus.VERIFICATION_DOING,

@@ -58,6 +58,9 @@ public class OdpsAction {
         );
     }
 
+    public void createTableIfNotExists(List<String> blackList) throws MMATaskInterruptException {
+        createTableIfNotExists(new HashMap<>(), null, blackList);
+    }
 
     public void createTableIfNotExists() throws MMATaskInterruptException {
         Map<String, String> hints = null;
@@ -67,6 +70,7 @@ public class OdpsAction {
         if (task.getJobConfig().getSourceConfig().getSourceType().equals(SourceType.ODPS) && table.hasDecimalColumn()) {
             hints = new HashMap<>();
 
+            //TODO decimal 判断应该使用 odps schema
             if (table.decimalOdps2()) {
                 hints.put(ODPS_SQL_DECIMAL_ODPS2, "true");
             } else {
@@ -74,18 +78,23 @@ public class OdpsAction {
             }
         }
 
-        createTableIfNotExists(hints);
+        createTableIfNotExists(hints, null, null);
     }
 
-    public void createTableIfNotExists(Map<String, String> hints) throws MMATaskInterruptException {
+    public void createRangeClusteredTable(RangeClusterInfo rangeClusterInfo) throws MMATaskInterruptException {
+        createTableIfNotExists(null, rangeClusterInfo, null);
+    }
+
+    public void createTableIfNotExists(Map<String, String> hints, RangeClusterInfo rangeClusterInfo, List<String> blackList) throws MMATaskInterruptException {
         String sql = OdpsSqlUtils.createTableSql(
                 task.getOdpsProjectName(),
                 task.getOdpsSchemaName(),
                 task.getOdpsTableName(),
                 task.getOdpsTableSchema(),
                 null,
-                task.getTable().getLifeCycle()
-
+                task.getTable().getLifeCycle(),
+                rangeClusterInfo,
+                blackList
         );
 
         task.log(sql, "try to create table: " + task.getOdpsTableFullName());
@@ -183,8 +192,17 @@ public class OdpsAction {
         return getCountFuture(sql, insGetter, hints);
     }
 
+    public CompletableFuture<Map<String, Long>> selectCountByPt(String tableFullName, List<PartitionValue> partitionValue, Consumer<Instance> insGetter, Map<String, String> hints) {
+        String sql = OdpsSqlUtils.selectCountByPtSql(tableFullName, partitionValue);
+        return getCountByPtFuture(sql, task.getPartitionNames(), insGetter, hints);
+    }
+
     public CompletableFuture<Map<String, Long>> selectDstCountByPt(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
-        String sql = OdpsSqlUtils.selectCountByPtSql(tableFullName, task.getDstOdpsPartitionValues());
+        return selectCountByPt(tableFullName, task.getDstOdpsPartitionValues(), insGetter, hints);
+    }
+
+    public CompletableFuture<Map<String, Long>> selectSrcCountByPt(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
+        String sql = OdpsSqlUtils.selectCountByPtSql(tableFullName, task.getSrcPartitionValues());
         return getCountByPtFuture(sql, task.getPartitionNames(), insGetter, hints);
     }
 
@@ -261,7 +279,7 @@ public class OdpsAction {
                     }
 
                     for (Record record: records) {
-                        String ptValue = "\"";
+                        String ptValue = "";
 
                         for (int i = 0, n = partitions.size(); i < n; i ++) {
                             ptValue += String.format("%s=%s", partitions.get(i), record.getString(i));
@@ -270,8 +288,6 @@ public class OdpsAction {
                                 ptValue += "/";
                             }
                         }
-
-                        ptValue += "\"";
 
                         countMap.put(ptValue, Long.parseLong(record.getString(record.getColumnCount() - 1)));
                     }

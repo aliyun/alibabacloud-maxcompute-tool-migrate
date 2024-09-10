@@ -1,5 +1,5 @@
 import {
-    ActionType,
+    ActionType, EditableFormInstance,
     EditableProTable,
     FormInstance,
     ProColumns, ProConfigProvider, ProForm,
@@ -9,6 +9,9 @@ import React, {useEffect, useRef, useState} from "react";
 import {Button, message} from "antd";
 import {showErrorMsg} from "@/utils/format";
 import {TimerPicker} from "@/components/TimerPicker";
+import {useIntl} from "umi";
+import {FMSpan, fm} from "@/components/i18n";
+import "./Config.css";
 
 const valueTypeMap: Record<string, ProRenderFieldPropsType> = {
     timer: {
@@ -23,15 +26,31 @@ const valueTypeMap: Record<string, ProRenderFieldPropsType> = {
 };
 
 const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>>, onSave: (c: API.MMAConfigJson) => Promise<API.MMARes<any>>, afterSave?: (_?: any) => any}) => {
+    const [editableKeys, setEditableRowKeys] = useState<React.Key[]>();
+    const [configValue, setConfigValue] = useState<API.ConfigItem[]>();
+    const aRef = useRef<ActionType>();
+    const intl = useIntl();
+
+    useEffect(() => {
+        aRef.current?.reset?.();
+    }, [props])
+
     const columns: ProColumns<API.ConfigItem>[] = [
         {
-            title: '配置项',
+            title: fm(intl, "components.Config.ConfigTable.key", "配置项"),
             dataIndex: 'key',
             editable: false,
             width: '15%',
+            render: (dom, entity) => {
+                if (entity.required) {
+                    return <span className="required-key">{entity.key}</span>;
+                }
+
+                return <span >{entity.key}</span>
+            }
         },
         {
-            title: '配置值',
+            title: fm(intl, "components.Config.ConfigTable.value", "配置值"),
             dataIndex: 'value',
             editable: (value: any, record: API.ConfigItem)  => {
                 return record.editable?? true;
@@ -61,7 +80,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
             formItemProps: (form: FormInstance<API.MMConfig>, { rowKey, key, index}) => {
                 if (rowKey === undefined) {
                     return {
-                        rules: [{ required: true, message: '此项为必填项' }]
+                        rules: [{ required: true, message: fm(intl, 'components.Config.ConfigTable.required', '此项为必填项') }]
                     };
                 }
 
@@ -69,15 +88,15 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
 
                 let rules = [];
                 if (config?.required) {
-                    rules.push({ required: config.required, message: '此项为必填项' });
+                    rules.push({ required: true, message: fm(intl, 'components.Config.ConfigTable.required', '此项为必填项') });
                 }
 
                 if (config?.type === "int") {
-                    rules.push({pattern: /[1-9][0-9]*$/, message: '该项值为数字'});
+                    rules.push({pattern: /[1-9][0-9]*$/, message: fm(intl, 'components.Config.ConfigTable.needNum', '该项值为数字')});
                 }
 
                 if (config?.type === "list") {
-                    rules.push({pattern: /^([\w]+\s*,\s*)*([\w]+)$/, message: '该项值为列表，值之间请以","分割'});
+                    rules.push({pattern: /^([\w]+\s*,\s*)*([\w]+)$/, message:  fm(intl, 'components.Config.ConfigTable.invalidList',  '该项值为列表，值之间请以","分割')});
                 }
 
                 if (config?.type === "map") {
@@ -86,7 +105,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                             try {
                                 JSON.parse(value);
                             } catch (e) {
-                                return Promise.reject(new Error('请填入合法的json字符串'));
+                                return Promise.reject(new Error(fm(intl, 'components.Config.ConfigTable.invalidJson',  '请填入合法的json字符串')));
                             }
 
                             return Promise.resolve();
@@ -101,19 +120,12 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
 
         },
         {
-            title: '描述',
+            title: fm(intl, "components.Config.ConfigTable.desc", "描述"),
             dataIndex: 'desc',
-            editable: false,
+            editable: false
         }
     ];
 
-    const [editableKeys, setEditableRowKeys] = useState<React.Key[]>();
-    const [configValue, setConfigValue] = useState<API.ConfigItem[]>();
-    const aRef = useRef<ActionType>();
-
-    useEffect(() => {
-        aRef.current?.reset?.();
-    }, [props])
 
     return (
         <ProConfigProvider valueTypeMap={valueTypeMap}>
@@ -158,6 +170,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                 return data;
             }}
             actionRef={aRef}
+            //formRef={formRef}
             toolBarRender={() => {
                 return [
                     <Button
@@ -176,7 +189,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                                 }
                             }
 
-                            const hide = message.loading("正在保存配置...");
+                            const hide = message.loading(fm(intl, "components.Config.ConfigTable.saving", "正在保存..."));
 
                             try {
                                 let res = await props.onSave(configJson)
@@ -195,11 +208,11 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                             } catch (e) {
                                 hide();
 
-                                message.error("发生错误", 10);
+                                message.error(fm(intl, "components.Config.ConfigTable.failed", "发生错误..."), 10);
                             }
                         }}
                     >
-                        保存
+                        <FMSpan id="components.Config.ConfigTable.save" defaultMessage="保存" />
                     </Button>,
 
                     <Button
@@ -208,7 +221,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                             aRef.current?.reload();
                         }}
                     >
-                        重置
+                        <FMSpan id="components.Config.ConfigTable.reset" defaultMessage="重置" />
                     </Button>
                 ];
             }}

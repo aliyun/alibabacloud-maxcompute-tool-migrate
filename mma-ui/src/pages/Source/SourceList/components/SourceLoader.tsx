@@ -1,28 +1,35 @@
 import {useEffect, useState} from "react";
 import {getLoadingMetaProgress, updateSource} from "@/services/source";
 import {Alert, Modal, Progress} from "antd";
+import {useIntl} from "umi";
+import {fm} from "@/components/i18n";
 
-export const SourceLoader = (props: { dataSource: API.DataSource | undefined, visible: boolean, onCancel: () => void}) => {
-    let ds = props?.dataSource;
+export const SourceLoader = (
+    {dataSource, visible, setVisible, loaderId}:
+        { dataSource: API.DataSource | undefined, visible: boolean, setVisible: (_: boolean) => void, loaderId: number}
+) => {
 
     const [progress, setProgress] = useState<number>(0);
     const [error, setError] = useState<String>("");
     const [closeable, setCloseable] = useState(false);
-    let sourceId = ds?.id;
+    const intl = useIntl();
+
+    let sourceId = dataSource?.id;
 
     const handleCancel = () => {
-        props.onCancel();
+        setVisible(false);
         setCloseable(false);
     };
 
     useEffect(() => {
+        setError("");
+        setProgress(0);
+
         if (sourceId == undefined) {
             return;
         }
 
         setCloseable(false);
-        setError("");
-        setProgress(0);
 
         updateSource(sourceId).then(async () => {
                 let sId = setInterval(async () => {
@@ -51,12 +58,12 @@ export const SourceLoader = (props: { dataSource: API.DataSource | undefined, vi
                 setCloseable(true);
                 setError(res.message);
             })
-    }, [props.visible]);
+    }, [loaderId]);
 
     return (
         <Modal
-            title={`"${ds?.name}"元数据更新进度`}
-            visible={props.visible}
+            title={`"${dataSource?.name}" ${fm(intl, "pages.Source.SourceList.components.SourceLoader.progress", "元数据更新进度")}`}
+            open={visible}
             closable={closeable}
             keyboard={false}
             maskClosable={false}

@@ -4,12 +4,16 @@ import {PageContainer} from '@ant-design/pro-components';
 import ConfigTable from "@/components/Config/ConfigTable";
 import {message} from "antd";
 import {useModel} from "@@/exports";
+import {useIntl} from "umi";
+import {fm} from "@/components/i18n";
+
 const { getMMAConfig, saveMMAConfig } = services;
 
 const MMAConfigTable: React.FC = () => {
     let taskMaxNum = "0";
 
     const { initialState, loading, error, refresh, setInitialState } = useModel('@@initialState');
+    const intl = useIntl();
 
     const saveMMAFunc = initialState?.inited ?? false ? updateMMAConfig : saveMMAConfig;
 
@@ -41,7 +45,7 @@ const MMAConfigTable: React.FC = () => {
         setInitialState({inited: true});
 
         if (newTaskMaxNum != taskMaxNum) {
-            let hide = message.loading("修了task.max.num, 服务正在重启");
+            let hide = message.loading(fm(intl, "pages.config.serviceRestarting", "服务正在重启"));
             taskMaxNum = newTaskMaxNum.toString();
             await restartMMA();
 
@@ -49,7 +53,7 @@ const MMAConfigTable: React.FC = () => {
                 try {
                     await pingMMA();
                     hide();
-                    message.success("重启完毕");
+                    message.success(fm(intl,"pages.config.serviceRestarted", "重启完毕"));
                     break;
                 } catch (e) {
 

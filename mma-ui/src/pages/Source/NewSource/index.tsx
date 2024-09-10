@@ -12,10 +12,11 @@ import {useEffect, useRef, useState} from "react";
 import {SourceLoadingProgress} from "@/components/Source/SourceLoadingProgress";
 import {showErrorMsg} from "@/utils/format";
 import * as React from "react";
-import {history} from "umi";
+import {history, useIntl} from "umi";
 import {SOURCES_ROUTE} from "@/constant";
 import {message, Form} from "antd";
 import {ProFormTimerPicker, TimerPicker} from "@/components/TimerPicker";
+import {FMSpan, FM, fm} from "@/components/i18n";
 
 export default () => {
     const formRef = useRef<ProFormInstance>();
@@ -24,7 +25,7 @@ export default () => {
     const [configItems, setConfigItems] = useState<API.ConfigItem[]>([]);
     const [newSource, setNewSource] = useState<API.DataSource>();
     const [visible, setVisible] = useState(false);
-
+    const intl = useIntl();
 
     useEffect(() => {
         getSourceTypes().then((res) => {
@@ -55,15 +56,16 @@ export default () => {
                 }}
                 formProps={{
                     validateMessages: {
-                        required: '此项为必填项',
+                        required: fm(intl, "pages.Source.NewSource.required", '此项为必填项'),
                     },
                 }}
             >
                 <StepsForm.StepForm<{
                     name: string;
                 }>
+                    key="step1"
                     name="base"
-                    title="选择数据源类型"
+                    title={fm(intl, "pages.Source.NewSource.selectType", "选择数据源类型")}
                     onFinish={async () => {
                         let type = formRef.current?.getFieldsValue().type
                         let res = await getSourceItems(type);
@@ -74,16 +76,17 @@ export default () => {
                 >
                     <ProFormSelect
                         colProps={{span: 24}}
-                        label="数据源类型:"
+                        label={fm(intl, "pages.Source.NewSource.sourceType",  "数据源类型:")}
                         name="type"
                         valueEnum={allSourceTypes}
-                        rules={[{ required: true, message: '请选择数据源类型' }]}
+                        rules={[{ required: true, message: fm(intl, "pages.Source.NewSource.selectType", "选择数据源类型") }]}
                     />
 
                 </StepsForm.StepForm>
                 <StepsForm.StepForm
+                    key="step2"
                     name="SourceConfig"
-                    title="配置数据源"
+                    title={fm(intl, "pages.Source.NewSource.configure", "配置数据源")}
                     onFinish={async () => {
                         let values = formRef.current?.getFieldsValue();
                         let keyToType = new Map<string, string>();
@@ -120,7 +123,7 @@ export default () => {
                                     break
                             }
                         }
-                        let hide = message.loading("添加数据源中..");
+                        let hide = message.loading(fm(intl, "pages.Source.NewSource.addingSource", "添加数据源中"));
                         let res =  await addSource(values);
                         hide();
                         if (! res.success) {
@@ -150,15 +153,16 @@ export default () => {
 }
 
 const SourceConfigForm = (props: {sourceType: string, configItems: API.ConfigItem[]}) => {
-    let items = props.configItems.map((config) => {
+    const intl = useIntl();
+
+    let items = props.configItems.map((config, index) => {
         let rules = [];
 
         if (config.required) {
-            rules.push({ required: true, message: '此项为必填项' });
+            rules.push({ required: true, message:  fm(intl, "pages.Source.NewSource.required", '此项为必填项')});
         }
 
         let itemProps = {
-            key: config.key,
             name: config.key,
             label: config.desc,
             rules: rules,
@@ -177,7 +181,7 @@ const SourceConfigForm = (props: {sourceType: string, configItems: API.ConfigIte
                         try {
                             JSON.parse(value);
                         } catch (e) {
-                            return Promise.reject(new Error('请填入合法的json字符串'));
+                            return Promise.reject(new Error(fm(intl, "pages.Source.NewSource.invalidJson", '请填入合法的json字符串')));
                         }
 
                         return Promise.resolve();
@@ -186,28 +190,31 @@ const SourceConfigForm = (props: {sourceType: string, configItems: API.ConfigIte
 
                 return <ProFormTextArea
                     {...itemProps}
+                    key={index}
                     initialValue={(() => JSON.stringify(config.value, null, 4))()}
                 />
             case "boolean":
                 return <ProFormSwitch
                     {...itemProps}
+                    key={index}
                 />;
             case "list":
-                rules.push({pattern: /^([\w\\*\\.]+\s*,\s*)*([\w\\*\\.]+)$/, message: '该项值为列表，值之间请以","分割'});
+                rules.push({pattern: /^([\w\\*\\.]+\s*,\s*)*([\w\\*\\.]+)$/, message: fm(intl, "pages.Source.NewSource.invalidList",  '该项值为列表, 值之间请以","分割')});
 
                 return <ProFormTextArea
                     {...itemProps}
+                    key={index}
                     initialValue={(() => Array.isArray(config.value) ? (config.value as string[]).join(", ") : "")()}
                 />
             case "int":
             case "long":
-                return <ProFormDigit {...itemProps}/>;
+                return <ProFormDigit {...itemProps} key={index}/>;
             case "password":
-                return <ProFormText.Password  {...itemProps}/>
+                return <ProFormText.Password  {...itemProps} key={index}/>
             case "timer":
-                return <ProFormTimerPicker name={itemProps.name} label={itemProps.label} />
+                return <ProFormTimerPicker name={itemProps.name} label={itemProps.label}  key={index}/>
             default:
-                return <ProFormText {...itemProps} disabled={config.key == "type"} />;
+                return <ProFormText {...itemProps} disabled={config.key == "type"} key={index} />;
         }
     })
 

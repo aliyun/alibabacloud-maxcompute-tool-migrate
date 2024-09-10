@@ -8,32 +8,46 @@ import com.aliyun.odps.mma.model.PartitionModel;
 import com.aliyun.odps.mma.query.PtFilter;
 import com.aliyun.odps.mma.service.PartitionService;
 
+import com.aliyun.odps.mma.util.MysqlConfig;
 import com.aliyun.odps.mma.util.StepIter;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.util.*;
 
 @Service
 public class PartitionServiceImpl implements PartitionService {
-    SqlSessionFactory sqlSessionFactory;
-    PartitionMapper mapper;
-    DataSourceMapper dsMapper;
+    private static final Logger logger = LoggerFactory.getLogger(PartitionServiceImpl.class);
+    private SqlSessionFactory sqlSessionFactory;
+    private PartitionMapper mapper;
+    private DataSourceMapper dsMapper;
+    private MysqlConfig mysqlConfig;
+    private DataSource dbDataSource;
 
     @Autowired
-    public PartitionServiceImpl(SqlSessionFactory sqlSessionFactory, PartitionMapper mapper, DataSourceMapper dsMapper) {
+    public PartitionServiceImpl(
+            SqlSessionFactory sqlSessionFactory,
+            PartitionMapper mapper,
+            DataSourceMapper dsMapper,
+            DataSource dbDataSource,
+            MysqlConfig mysqlConfig
+    ) {
         this.sqlSessionFactory = sqlSessionFactory;
         this.mapper = mapper;
         this.dsMapper = dsMapper;
+        this.dbDataSource = dbDataSource;
+        this.mysqlConfig = mysqlConfig;
     }
 
     @Override
     public List<PartitionModel> getPartitions(List<Integer> partitionIds) {
-        if (Objects.isNull(partitionIds) || partitionIds.size() == 0) {
+        if (Objects.isNull(partitionIds) || partitionIds.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -91,9 +105,8 @@ public class PartitionServiceImpl implements PartitionService {
     }
 
     @Override
-    @Transactional
     public void batchInsertPartitions(List<PartitionModel> pmList) {
-        int maxBatch = 50*10000;
+        int maxBatch = mysqlConfig.getMaxBatchSize();
         StepIter<PartitionModel> tableStepIter = new StepIter<>(pmList, maxBatch);
 
         for (List<PartitionModel> subList: tableStepIter) {
@@ -101,7 +114,6 @@ public class PartitionServiceImpl implements PartitionService {
         }
     }
 
-    @Transactional
     public void _batchInsertPartitions(List<PartitionModel> pmList) {
         try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
             PartitionMapper mapper = sqlSession.getMapper(PartitionMapper.class);
@@ -113,19 +125,7 @@ public class PartitionServiceImpl implements PartitionService {
             sqlSession.commit();
         }
 
-        // batch提交的时候，mybatis只能获取最后一个id，把这个id设置给pmList的第一个元素。
-        // 所以，所有元素的id需要自己计算出来
-//        int n = pmList.size();
-//        if (n > 0) {
-//            PartitionModel firstPm = pmList.get(0);
-//            int lastId = firstPm.getId();
-//            int offset = lastId - n + 1;
-//
-//            for (int i = n - 1; i >= 0; i --) {
-//                PartitionModel pm = pmList.get(i);
-//                pm.setId(offset + i);
-//            }
-//        }
+
     }
 
     @Override
@@ -139,6 +139,51 @@ public class PartitionServiceImpl implements PartitionService {
 
             sqlSession.commit();
         }
+
+//        try (Connection conn = dbDataSource.getConnection()) {
+//            String sql = "insert into partition_model\n" +
+//                    " (source_id, db_id, table_id, db_name, schema_name, table_name, value,\n" +
+//                    "   status,\n" +
+//                    "   size, num_rows, last_ddl_time, create_time\n" +
+//                    " )\n" +
+//                    " values\n" +
+//                    " (\n" +
+//                    "   ?, ?, ?, ?, ?, ?, ?,\n" +
+//                    "    ?,\n" +
+//                    "    ?, ?, ?, now()\n" +
+//                    " )";
+
+//            PreparedStatement ps = conn.prepareStatement(sql);
+//
+//            for (PartitionModel pm: pmList) {
+//                ps.setInt(1, pm.getSourceId());
+//                ps.setInt(2, pm.getDbId());
+//                ps.setInt(3, pm.getTableId());
+//                ps.setString(4, pm.getDbName());
+//                ps.setString(5, pm.getSchemaName());
+//                ps.setString(6, pm.getTableName());
+//                ps.setString(7, pm.getValue());
+//
+//                ps.setString(8, pm.getStatus().name());
+//
+//                ps.setLong(9, pm.getSize());
+//                ps.setLong(10, pm.getNumRows());
+//
+//                if (Objects.nonNull(pm.getLastDdlTime())) {
+//                    ps.setDate(11, new Date(pm.getLastDdlTime().getTime()));
+//                } else {
+//                    ps.setDate(11, null);
+//                }
+//
+//                ps.addBatch();
+//            }
+//
+//            ps.executeBatch();
+//            conn.commit();
+//        } catch (SQLException e) {
+//            logger.error("failed to save partitions", e);
+//            throw new RuntimeException(e);
+//        }
     }
 
     @Override
@@ -159,7 +204,25 @@ public class PartitionServiceImpl implements PartitionService {
             return new ArrayList<>();
         }
 
-        return this.mapper.getPartitionsByDsId(ds.getId());
+        // 分页获取partition
+        int maxItem = 10000;
+        int marker = 0;
+
+        List<PartitionModel> partitions = new ArrayList<>();
+
+        while (true) {
+            List<PartitionModel> page = this.mapper.getPartitionsBasicByDsId(ds.getId(), maxItem, marker);
+
+            if (page.isEmpty()) {
+                break;
+            }
+
+            partitions.addAll(page);
+            logger.info("get {} partitions", partitions.size());
+            marker = page.get(page.size() - 1).getId();
+        }
+
+        return partitions;
     }
 
     @Override
@@ -174,7 +237,7 @@ public class PartitionServiceImpl implements PartitionService {
 
     @Override
     public List<Map<String, Object>> ptStatOfDbs(List<Integer> dbIds) {
-        if (dbIds.size() == 0) {
+        if (dbIds.isEmpty()) {
             return new ArrayList<>();
         }
         return mapper.ptStatOfDbs(dbIds);
@@ -182,7 +245,7 @@ public class PartitionServiceImpl implements PartitionService {
 
     @Override
     public List<Map<String, Object>> ptStatOfTables(List<Integer> tableIds) {
-        if (tableIds.size() == 0) {
+        if (tableIds.isEmpty()) {
             return new ArrayList<>();
         }
         return mapper.ptStatOfTables(tableIds);
@@ -200,7 +263,7 @@ public class PartitionServiceImpl implements PartitionService {
 
     @Override
     public int resetPtStatus(List<Integer> ptIds) {
-        if (ptIds.size() == 0) {
+        if (ptIds.isEmpty()) {
             return 0;
         }
         return mapper.resetPtStatus(ptIds);

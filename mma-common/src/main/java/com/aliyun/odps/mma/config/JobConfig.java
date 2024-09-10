@@ -2,10 +2,7 @@ package com.aliyun.odps.mma.config;
 
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.model.JobModel;
-import com.aliyun.odps.mma.task.CommonPartitionGrouping;
-import com.aliyun.odps.mma.task.HivePartitionGrouping;
-import com.aliyun.odps.mma.task.MergedPartitionGrouping;
-import com.aliyun.odps.mma.task.PartitionGrouping;
+import com.aliyun.odps.mma.task.*;
 import com.aliyun.odps.mma.util.StringUtils;
 import com.aliyun.odps.mma.util.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -241,7 +238,7 @@ public class JobConfig {
             case ODPS:
                 switch (this.taskType) {
                     case MC2MC_VERIFY:
-                    case ODPS_MERGED_TRANS:
+                    case ODPS_INSERT_OVERWRITE:
                     case ODPS_OSS_TRANSFER:
                         Object maxNumObj = this.others.get("task.partition.max.num");
 
@@ -258,9 +255,12 @@ public class JobConfig {
                         }
 
                         return new MergedPartitionGrouping(maxPtLevel, maxNum, grouping);
+                    case ODPS: // copytask
+                        return new OdpsPartitionGrouping();
                     default:
                         break;
                 }
+                break;
             default:
                 break;
         }

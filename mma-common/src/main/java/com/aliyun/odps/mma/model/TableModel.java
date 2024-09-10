@@ -74,6 +74,15 @@ public class TableModel extends ModelBase {
         return this.schema.getColumns().stream().anyMatch(c -> c.getType().toLowerCase().startsWith("decimal("));
     }
 
+    @JsonIgnore
+    public String getFullName() {
+        if (Objects.nonNull(schemaName)) {
+            return dbName + "." + schemaName + "." + name;
+        }
+
+        return dbName + "." + name;
+    }
+
     public void setExtraMap(Map<String, String> extraMap) {
         Gson gson = new Gson();
         extra = gson.toJson(extraMap);

@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class FileLockContext {
-    static Logger logger = LoggerFactory.getLogger(FileLockContext.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileLockContext.class);
 
     public static synchronized void withFileLock(String strPath,  Func func) throws Exception {
         Path path = Paths.get(strPath);

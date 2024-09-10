@@ -60,6 +60,15 @@ public class ConfigInitializer {
         return odpsConfig;
     }
 
+    @Bean(name="BIGQUERY")
+    @Primary
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public BigQueryConfig getBigQueryConfig() {
+        BigQueryConfig bigQueryConfig = new BigQueryConfig();
+        initConfig(bigQueryConfig);
+        return bigQueryConfig;
+    }
+
     @Bean(name="DATABRICKS")
     @Primary
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)

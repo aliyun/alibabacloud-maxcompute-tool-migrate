@@ -1,7 +1,6 @@
 import { request } from "@umijs/max";
-import {paramsSerializer} from "@/utils/format";
 import {SortOrder} from "antd/lib/table/interface";
-import React from "react";
+import {getLocale} from "umi";
 
 export async function getSources() {
     return request<API.MMARes<API.DataSource[]>>("/api/sources", {
@@ -60,17 +59,13 @@ export async function updateSourceConfig(sourceId: number, body: API.MMAConfigJs
 }
 
 export async function getSourceConfig(sourceName: string)  {
-    let config = await request<API.MMARes<API.MMConfig>>(`/api/sources/${sourceName}/config`, {method: "GET"});
-
-    config.data?.forEach(m => {
-        if (m.required === true) {
-            m.desc += " (必填)";
-        } else if ((m.editable ?? true) != false) {
-            m.desc += " (可选)";
+    return await request<API.MMARes<API.MMConfig>>(
+        `/api/sources/${sourceName}/config`,
+        {
+            method: "GET",
+            params: {lang: getLocale()}
         }
-    });
-
-    return config;
+    );
 }
 
 export async function  getActionLogs(sourceId: number, actionType: string) {
@@ -83,8 +78,9 @@ export async function  getActionLogs(sourceId: number, actionType: string) {
 }
 
 export async function getSourceItems(type: string) {
-    return request<API.MMARes<API.ConfigItem[]>>(`/api/sources/items/?type=${type}`, {
+    return request<API.MMARes<API.ConfigItem[]>>(`/api/sources/items/`, {
         method: 'GET',
+        params: {type: type, lang: getLocale()}
     });
 }
 

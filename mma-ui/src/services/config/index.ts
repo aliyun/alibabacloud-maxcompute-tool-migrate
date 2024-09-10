@@ -1,17 +1,14 @@
 import { request } from "@umijs/max";
+import {getLocale} from "umi";
 
 export async function getMMAConfig(): Promise<API.MMARes<API.MMConfig>>  {
-    let mmaConfig = await request<API.MMARes<API.MMConfig>>("/api/config", {method: "GET"});
-
-    mmaConfig.data?.forEach(m => {
-        if (m.required === true) {
-            m.desc += " (必填)";
-        } else if ((m.editable ?? true) != false) {
-            m.desc += " (可选)";
+    return  await request<API.MMARes<API.MMConfig>>(
+        "/api/config",
+        {
+            method: "GET",
+            params: {lang: getLocale()}
         }
-    });
-
-    return mmaConfig;
+    );
 }
 
 export async function saveMMAConfig(body: API.MMAConfigJson) {

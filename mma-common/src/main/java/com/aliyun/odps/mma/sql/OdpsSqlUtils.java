@@ -4,6 +4,9 @@ import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.meta.schema.MMAColumnSchema;
 import com.aliyun.odps.mma.meta.schema.MMAOdpsTableSchema;
+import com.aliyun.odps.mma.meta.schema.SchemaAdapterError;
+import com.aliyun.odps.mma.util.ListUtils;
+import com.aliyun.odps.mma.task.RangeClusterInfo;
 import com.aliyun.odps.mma.util.StringUtils;
 
 import java.util.List;
@@ -14,13 +17,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OdpsSqlUtils {
+
     public static String createTableSql(
             String projectName,
             String schemaName,
             String tableName,
             TableSchema tableSchema,
             String tableComment,
-            Integer lifecycle
+            Integer lifecycle,
+            RangeClusterInfo rangeClusterInfo,
+            List<String> blackList
     ) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE TABLE IF NOT EXISTS ");
@@ -37,6 +43,9 @@ public class OdpsSqlUtils {
         sb.append(" (");
 
         List<Column> columns = tableSchema.getColumns();
+        if (blackList != null) {
+            columns = columns.stream().filter(c -> !blackList.contains(c.getName())).collect(Collectors.toList());
+        }
         for (int i = 0; i < columns.size(); i++) {
             Column c = columns.get(i);
             sb.append("\n`")
@@ -109,6 +118,12 @@ public class OdpsSqlUtils {
             sb.append(" LIFECYCLE ").append(lifecycle);
         }
 
+        if (Objects.nonNull(rangeClusterInfo)) {
+            sb.append("\n").append("RANGE CLUSTERED BY ").append("(").append(rangeClusterInfo.getColumnName()).append(")")
+                    .append(" SORTED by ").append("(").append(rangeClusterInfo.getColumnName()).append(")")
+                    .append(" INTO ").append(rangeClusterInfo.getBuckets()).append(" BUCKETS");
+        }
+
         sb.append(';');
 
         return sb.toString();
@@ -160,7 +175,9 @@ public class OdpsSqlUtils {
              'field.delim'=',',
              'serialization.format'=',')
          STORED AS RCFILE
-         LOCATION 'oss://ak:sk@endpoint/bucket/mma_test/test_rcfile_partitioned_10x1k';
+         LOCATION 'oss://ak:sk@endpoint/bucket/mma_test/test_rcfile_partitioned_10x1k'
+         TBLPROPERTIES ('lifecycle.deletemeta'='true')
+         LIFECYCLE 1;
         */
         StringBuilder sb = new StringBuilder(
                 String.format("CREATE EXTERNAL TABLE IF NOT EXISTS %s(", tableFullName));
@@ -219,6 +236,7 @@ public class OdpsSqlUtils {
         sb.append("\nLOCATION '").append(location).append("'");
 
         if (Objects.nonNull(lifecycle) && lifecycle > 0) {
+            sb.append("\nTBLPROPERTIES ('lifecycle.deletemeta'='true')");
             sb.append("\nLIFECYCLE ").append(lifecycle);
         }
 
@@ -274,7 +292,7 @@ public class OdpsSqlUtils {
 
     public static String selectCountByPtSql(String tableFullName, List<PartitionValue> partitionValues) {
         /*
-         SELECT COUNT(*) FROM mma_test.`test_rcfile_partitioned_10x1k`
+         SELECT p1, p2, COUNT(*) FROM mma_test.`test_rcfile_partitioned_10x1k`
          WHERE
          p1='dhcLk' AND p2=9505 OR
          p1='FfpLn' AND p2=1002;
@@ -327,7 +345,8 @@ public class OdpsSqlUtils {
         columns.addAll(partitionNames);
 
         sb.append("\nSELECT ")
-                .append(String.join(",", columns))
+                //.append(String.join(",", columns))
+                .append("*")
                 .append(" FROM ").append(sourceTable);
 
         if (!partitionValues.isEmpty()) {
@@ -338,15 +357,16 @@ public class OdpsSqlUtils {
     }
 
     public static String adaptOdpsPartitionValue(String type, String value) {
-        if ("BIGINT".equalsIgnoreCase(type) || "INT".equalsIgnoreCase(type)
-                || "SMALLINT".equalsIgnoreCase(type) || "TINYINT".equalsIgnoreCase(type)) {
+        type = type.toUpperCase();
+
+        if ("BIGINT".equals(type) || "INT".equals(type) || "SMALLINT".equals(type) || "TINYINT".equals(type)) {
             value = value.replaceFirst("^0+(?!$)", "");
             // Although the partition column type is integer, the partition values returned by HMS
             // client may have leading zeros. Let's say the partition in hive is hour=09. When the
             // partition is added in MC, the partition value will still be 09. In this example, however,
             // the UDTF will receive an integer 9 and creating an upload session with  9 will end up
             // with an error "No such partition". So, the leading zeros must be removed here.
-        } else if ("STRING".equalsIgnoreCase(type)) {
+        } else if ("STRING".equals(type) || type.startsWith("CHAR") || type.startsWith("VARCHAR")) {
             value = "'" + value + "'";
         }
         return value;

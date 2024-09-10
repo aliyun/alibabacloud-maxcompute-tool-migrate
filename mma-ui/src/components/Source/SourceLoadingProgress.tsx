@@ -51,7 +51,7 @@ export const SourceLoadingProgress = (props: { dataSource: API.DataSource | unde
     return (
         <Modal
             title={`"${ds?.name}"元数据更新进度`}
-            visible={props.visible}
+            open={props.visible}
             closable={closeable}
             keyboard={false}
             maskClosable={false}

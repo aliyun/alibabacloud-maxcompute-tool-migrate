@@ -28,5 +28,6 @@ public enum TaskType {
     ODPS_MERGED_TRANS,
     DATABRICKS,
     DATABRICKS_UDTF,
+    BIGQUERY,
     ODPS_OSS_TRANSFER
 }

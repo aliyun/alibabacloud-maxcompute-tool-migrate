@@ -18,7 +18,7 @@ public abstract class SourceConfig extends Config  {
     @ConfigItem(desc = "表白名单， 格式为db.table", type="list")
     public static String TABLE_WHITELIST = "source.table.whitelist";
     @ConfigItem(desc = "分区值转换配置（MaxCompute 分区值包含斜线）")
-    public static String PT_VALUE_MAPPING = "pt.value.mapping";
+    public static String PT_VALUE_MAPPING = "partition.value.mapping";
 
     protected String sourceName;
 
