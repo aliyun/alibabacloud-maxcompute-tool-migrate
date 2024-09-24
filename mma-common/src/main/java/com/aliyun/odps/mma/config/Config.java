@@ -35,30 +35,43 @@ public abstract class Config {
     }
 
     protected void initConfigItemMap(Class<? extends Config> thisC) {
-        Field[] fields = thisC.getFields();
-        List<String> masks = this.itemMasks();
+        Class<?> clazz = thisC;
 
-        for (Field field: fields) {
-            if (!field.isAnnotationPresent(ConfigItem.class)) {
-                continue;
-            }
+        // 从子类到父类取被注解了ConfigItem的Field
+        do {
+            Field[] fields = clazz.getFields();
+            List<String> masks = this.itemMasks();
 
-            ConfigItem configItem = field.getAnnotation(ConfigItem.class);
-
-            try {
-                String configKey = (String) field.get(this);
-
-                if (masks.contains(configKey)) {
+            for (Field field : fields) {
+                if (!field.isAnnotationPresent(ConfigItem.class)) {
                     continue;
                 }
 
-                configItems.add(configItem);
-                configKeys.add(configKey);
-                configItemMap.put(configKey, configItem);
-            } catch (Exception e) {
-                // !unreachable
+                ConfigItem configItem = field.getAnnotation(ConfigItem.class);
+
+                try {
+                    String configKey = (String) field.get(this);
+
+                    if (masks.contains(configKey)) {
+                        continue;
+                    }
+
+                    // 子类已经有了相同key的配置，忽略到父类相同key的配置
+                    // 即子类配置覆盖父类配置
+                    if (configItemMap.containsKey(configKey)) {
+                        continue;
+                    }
+
+                    configItems.add(configItem);
+                    configKeys.add(configKey);
+                    configItemMap.put(configKey, configItem);
+                } catch (Exception e) {
+                    // !unreachable
+                }
             }
-        }
+
+            clazz = clazz.getSuperclass();
+        } while (clazz != Config.class);
     }
 
     abstract public String category();

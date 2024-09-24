@@ -1,6 +1,7 @@
 package com.aliyun.odps.mma.meta.schema;
 
 import com.aliyun.odps.OdpsType;
+import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.type.TypeInfo;
 import com.aliyun.odps.type.TypeInfoFactory;
@@ -37,16 +38,16 @@ public class DatabricksSchemaAdapter implements OdpsSchemaAdapter {
     }
 
     @Override
-    public void checkCompatibility(MMATableSchema tableSchema) throws SchemaAdapterError {
+    public void checkCompatibility(MMATableSchema tableSchema, JobConfig jobConfig) throws SchemaAdapterError {
         if (Objects.nonNull(tableSchema.getForeignKeyConstrat())) {
             throw new SchemaAdapterError("maxcompute does not support foreign key, table is " + tableSchema.getName());
         }
 
-        toOdpsSchema(tableSchema, -1, null);
+        toOdpsSchema(tableSchema, -1, null, null);
     }
 
     @Override
-    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema) {
+    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema, JobConfig jobConfig) {
         String columnType = columnSchema.getType().toUpperCase();
 
         if(unsupportedTypes.stream().anyMatch(columnType::startsWith)) {

@@ -25,7 +25,7 @@ import java.util.concurrent.*;
 
 @Component
 public class TaskManager implements InitializingBean {
-    private final Logger logger = LoggerFactory.getLogger(TaskManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
     private TaskService taskService;
     private PartitionMapper ptMapper;
@@ -120,7 +120,7 @@ public class TaskManager implements InitializingBean {
             });
         }
 
-        if (tasks.size() > 0) {
+        if (!tasks.isEmpty()) {
             logger.info("success submit tasks num: {}", tasks.size());
         }
     }

@@ -12,7 +12,6 @@ import com.aliyun.odps.mma.service.TableService;
 import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> {
-    private final Logger logger = LoggerFactory.getLogger(JobValidator.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobValidator.class);
     private final MMAConfig mmaConfig;
     private boolean configRequired;
     private final Service service;
@@ -118,7 +117,7 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
                 }
 
                 if (value instanceof List) {
-                    if (((List<?>)value).size() == 0) {
+                    if (((List<?>) value).isEmpty()) {
                         String fieldName = fieldFormat(requiredField);
 
                         apiRes.addError(fieldName, String.format("%s is required, cannot be empty", fieldName));
@@ -128,7 +127,7 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
 
                 if (value instanceof Map) {
                     String fieldName = fieldFormat(requiredField);
-                    if (((Map<?, ?>)value).size() == 0) {
+                    if (((Map<?, ?>) value).isEmpty()) {
                         apiRes.addError(fieldName, String.format("%s is required, cannot be empty", fieldName));
                         return false;
                     }
@@ -210,7 +209,7 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
         TableService ts = service.getTableService();
         List<TableModel> tables = ts.getTablesOfDbByNames(job.getSourceName(), job.getDbName(), tableNames);
 
-        if (tables.size() != tableNames.size()) {
+        if (tables.size() < tableNames.size()) {
             Set<String> real = new HashSet<>(tableNames.size());
             Set<String> given = new HashSet<>(tableNames);
             tables.forEach(t -> real.add(t.getName()));
@@ -270,13 +269,13 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
     private Optional<DataSourceModel> getDatasource(JobModel job, ApiRes apiRes) {
         String dsName = job.getSourceName();
         if (Objects.isNull(dsName)) {
-            apiRes.addError("data_source", "cannot be empty");
+            apiRes.addError("datasource", "cannot be empty");
             return Optional.empty();
         }
 
         Optional<DataSourceModel> ds = service.getDsService().getDataSource(dsName);
         if (! ds.isPresent()) {
-            apiRes.addError("data_source", String.format("%s is not existed", dsName));
+            apiRes.addError("datasource", String.format("%s is not existed", dsName));
             return Optional.empty();
         }
 

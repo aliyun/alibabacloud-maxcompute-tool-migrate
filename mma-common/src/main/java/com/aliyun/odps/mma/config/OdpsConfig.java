@@ -8,6 +8,8 @@ import com.aliyun.odps.mma.util.StringUtils;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 //@Component
@@ -15,9 +17,9 @@ import java.util.List;
 public class OdpsConfig extends SourceConfig {
     @ConfigItem(desc = "maxcompute endpoint", required = true)
     public static String MC_ENDPOINT = "mc.endpoint";
-    @ConfigItem(desc = "vpc endpoint", required = true)
+    //@ConfigItem(desc = "vpc endpoint")
     public static String MC_DATA_ENDPOINT = "mc.data.endpoint";
-    @ConfigItem(desc = "tunnel endpoint", required = true)
+    //@ConfigItem(desc = "tunnel endpoint")
     public static String MC_TUNNEL_ENDPOINT = "mc.tunnel.endpoint";
     @ConfigItem(desc = "maxcompute access id", required = true)
     public static String MC_AUTH_ACCESS_ID = "mc.auth.access.id";
@@ -26,16 +28,16 @@ public class OdpsConfig extends SourceConfig {
     @ConfigItem(desc = "maxcompute default project(用于执行sql的project)", required = true)
     public static String MC_DEFAULT_PROJECT = "mc.default.project";
     @ConfigItem(desc = "要迁移的maxcompute projects", type = "list", required = true)
-    public static String MC_PROJECTS = "mc.projects";
+    public static String MC_PROJECTS = "mc.src.projects";
     @ConfigItem(desc = "maxcompute endpoint http connect timeout(单位s)", type = "int", defaultValue = "3")
     public static String MC_REST_CONN_TIMEOUT = "mc.rest.conn.timeout";
     @ConfigItem(desc = "maxcompute endpoint http read timeout(单位s)", type = "int", defaultValue = "5")
     public static String MC_REST_READ_TIMEOUT = "mc.rest.read.timeout";
     @ConfigItem(desc = "maxcompute endpoint http try times", type = "int", defaultValue = "1")
     public static String MC_REST_TRY_TIMES = "mc.rest.try.times";
-    @ConfigItem(desc = "instance number of one copyTask, 仅用于\"跨region项目迁移\"", type = "int", defaultValue = "100")
+//    @ConfigItem(desc = "instance number of one copyTask", type = "int", defaultValue = "100")
     public static String COPYTASK_INS_NUM = "copytask.ins.num";
-    @ConfigItem(desc = "coppytask direction, 仅用于\"跨region项目迁移\"", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
+//    @ConfigItem(desc = "coppytask direction", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
     public static String COPYTASK_DIRECTION = "copytask.direction";
     @ConfigItem(desc = "oss internal endpoint")
     public static final String OSS_ENDPOINT_INTERNAL = "oss.endpoint.internal";
@@ -47,11 +49,11 @@ public class OdpsConfig extends SourceConfig {
     public static final String OSS_AUTH_ACCESS_ID = "oss.auth.access.id";
     @ConfigItem(desc = "oss access key", type = "password")
     public static final String OSS_AUTH_ACCESS_KEY = "oss.auth.access.key";
-    @ConfigItem(desc = "maxcompute 迁移任务sql参数, 仅用于\"同region项目迁移\"", type = "map", defaultValue = "{\n    " +
+    @ConfigItem(desc = "maxcompute 迁移任务sql参数", type = "map", defaultValue = "{\n    " +
             "\"odps.sql.hive.compatible\": \"true\"" +
             "\n}")
     public static String MC_SQL_HINTS = "mc.sql.hints";
-    @ConfigItem(desc = "单个任务处理的最多分区数量, 仅用于\"同region项目迁移\"", type = "int", defaultValue = "50")
+    @ConfigItem(desc = "单个任务处理的最多分区数量", type = "int", defaultValue = "50")
     public static final String MC_TASK_PARTITION_MAX_NUM = "mc.task.partition.max.num";
 
 
@@ -98,5 +100,12 @@ public class OdpsConfig extends SourceConfig {
         }
 
         return ub.build().toString();
+    }
+    @Override
+    public List<String> itemMasks() {
+        return Arrays.asList(new String[]{
+                "source.database.whitelist",
+                "source.database.blacklist",
+        });
     }
 }

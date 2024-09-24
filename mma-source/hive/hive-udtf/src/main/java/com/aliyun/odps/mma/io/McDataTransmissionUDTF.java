@@ -16,10 +16,7 @@
 
 package com.aliyun.odps.mma.io;
 
-import com.aliyun.odps.Column;
-import com.aliyun.odps.Odps;
-import com.aliyun.odps.PartitionSpec;
-import com.aliyun.odps.TableSchema;
+import com.aliyun.odps.*;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.account.BearerTokenAccount;
@@ -31,7 +28,9 @@ import com.aliyun.odps.tunnel.TableTunnel;
 import com.aliyun.odps.tunnel.TableTunnel.UploadSession;
 import com.aliyun.odps.tunnel.TunnelException;
 import com.aliyun.odps.tunnel.io.TunnelBufferedWriter;
+import com.aliyun.odps.tunnel.streams.UpsertStream;
 import com.aliyun.odps.type.TypeInfo;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.hive.ql.exec.MapredContext;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -43,6 +42,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -55,10 +55,12 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   TableTunnel tunnel;
   ObjectInspector[] objectInspectors;
   private String odpsProjectName;
+  private String odpsSchemaName;
   private String odpsTableName;
   private List<String> odpsColumnNames;
   private List<String> odpsPartitionColumnNames;
   private TableSchema schema;
+  private boolean IsTransactional;
 
   /**
    * Changes with different partition
@@ -66,6 +68,9 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private Map<String, UploadSession> partitionSpecToUploadSession = new HashMap<>();
   private UploadSession currentUploadSession;
   private RecordWriter recordWriter;
+  private Map<String, TableTunnel.UpsertSession> partitionSpecToUpSertSession = new HashMap<>();
+  private TableTunnel.UpsertSession currentUpsertSession;
+  private UpsertStream stream;
   private String currentOdpsPartitionSpec;
 
   /**
@@ -73,7 +78,7 @@ public class McDataTransmissionUDTF extends GenericUDTF {
    */
   private Object[] hiveColumnValues;
   private Object[] hivePartitionColumnValues;
-  private Record reusedRecord;
+  private ArrayRecord reusedRecord;
 
   /**
    * Metrics
@@ -89,10 +94,11 @@ public class McDataTransmissionUDTF extends GenericUDTF {
   private static final int IDX_ENDPOINT = 2;
   private static final int IDX_TUNNEL_ENDPOINT = 3;
   private static final int IDX_PROJECT = 4;
-  private static final int IDX_TABLE = 5;
-  private static final int IDX_COLUMNS = 6;
-  private static final int IDX_PTS = 7;
-  private static final int IDX_COL_START = 8;
+  private static final int IDX_SCHEMA = 5;
+  private static final int IDX_TABLE = 6;
+  private static final int IDX_COLUMNS = 7;
+  private static final int IDX_PTS = 8;
+  private static final int IDX_COL_START = 9;
   private static int IDX_PT_BEGIN = IDX_COL_START;
 
   private MapredContext mapredContext;
@@ -129,12 +135,12 @@ public class McDataTransmissionUDTF extends GenericUDTF {
 
   @Override
   public void process(Object[] args) throws HiveException {
-    // args:          0       1         2         3                 4         5       6         7     other
-    // ak             true    ini path  endpoint  tunnel endpoint   project   table   columns   pts   col1... pt1...
-    // bearer token   false   token     endpoint  tunnel endpoint   project   table
+    // args:          0       1         2         3                 4       5       6       7         8     other
+    // ak             true    ini path  endpoint  tunnel endpoint   project schema  table   columns   pts   col1... pt1...
+    // bearer token   false   token     endpoint  tunnel endpoint   project schema  table
     try {
       if (odps == null) {
-        print("version:MMAv3_20230516");
+        print("version:MMAv3_20240628");
         // setup odps
         Account account;
         if ("AK".equals(readString(args, IDX_AUTH_TYPE))) {
@@ -165,12 +171,23 @@ public class McDataTransmissionUDTF extends GenericUDTF {
       if (odpsTableName == null) {
         // setup project, table, schema, value array
         odpsProjectName = readString(args, IDX_PROJECT);
+        odpsSchemaName = readString(args, IDX_SCHEMA);
         odps.setDefaultProject(odpsProjectName);
+        if (odpsSchemaName != null && !(odpsSchemaName.trim().isEmpty())) {
+          odps.setCurrentSchema(odpsSchemaName);
+        }
         print("project: " + odpsProjectName);
+        print("schema: " + odpsSchemaName);
 
         odpsTableName = readString(args, IDX_TABLE);
         print("table: " + odpsTableName);
-        schema = odps.tables().get(odpsTableName).getSchema();
+        Table table = odps.tables().get(odpsTableName);
+        schema = table.getSchema();
+        Table.ClusterInfo clusterInfo = table.getClusterInfo();
+        IsTransactional = table.isTransactional() && clusterInfo != null
+                && clusterInfo.getBucketNum() > 0
+                && clusterInfo.getClusterType() != null
+                && clusterInfo.getClusterType().equalsIgnoreCase("hash");
 
         odpsColumnNames = readList(args, IDX_COLUMNS);
         hiveColumnValues = new Object[odpsColumnNames.size()];
@@ -198,13 +215,17 @@ public class McDataTransmissionUDTF extends GenericUDTF {
 
       // Create new tunnel upload session & record writer or reuse the current ones
       if (currentOdpsPartitionSpec == null || !currentOdpsPartitionSpec.equals(partitionSpec)) {
-        resetUploadSession(partitionSpec);
+        resetSession(partitionSpec);
       }
 
       // Step 3: set record and write to tunnel
       if (reusedRecord == null) {
         // reusedRecord = currentUploadSession.newRecord();
-        reusedRecord = new ArrayRecord(currentUploadSession.getSchema().getColumns().toArray(new Column[0]), false);
+        if (IsTransactional) {
+          reusedRecord = (ArrayRecord) currentUpsertSession.newRecord();
+        } else {
+          reusedRecord = new ArrayRecord(currentUploadSession.getSchema().getColumns().toArray(new Column[0]), false);
+        }
       }
 
       for (int i = 0; i < odpsColumnNames.size(); i++) {
@@ -216,12 +237,21 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           // Handle data types
           ObjectInspector objectInspector = objectInspectors[i + IDX_COL_START];
           TypeInfo typeInfo = schema.getColumn(odpsColumnName).getTypeInfo();
-          reusedRecord.set(odpsColumnName,
-                           HiveObjectConverter.convert(objectInspector, value, typeInfo));
+          if (OdpsType.DATE.equals(typeInfo.getOdpsType())) {
+            reusedRecord.setDateAsLocalDate(odpsColumnName, (LocalDate) HiveObjectConverter.convert(objectInspector, value, typeInfo));
+          } else {
+            reusedRecord.set(odpsColumnName,
+                            HiveObjectConverter.convert(objectInspector, value, typeInfo));
+          }
         }
       }
 
-      recordWriter.write(reusedRecord);
+      if (IsTransactional) {
+        stream.upsert(reusedRecord);
+      } else {
+        recordWriter.write(reusedRecord);
+      }
+
       numRecordTransferred += 1;
     } catch (Exception e) {
       e.printStackTrace();
@@ -251,6 +281,15 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     return partitionSpecBuilder.toString();
   }
 
+  private void resetSession(String partitionSpec) throws TunnelException, IOException, HiveException {
+    if (IsTransactional) {
+      resetUpsertSession(partitionSpec);
+    } else {
+      resetUploadSession(partitionSpec);
+    }
+    currentOdpsPartitionSpec = partitionSpec;
+  }
+
   private void resetUploadSession(String partitionSpec)
       throws TunnelException, IOException, HiveException {
     // Close current record writer
@@ -264,6 +303,34 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     recordWriter = currentUploadSession.openBufferedWriter(true);
     ((TunnelBufferedWriter) recordWriter).setBufferSize(64 * 1024 * 1024);
     currentOdpsPartitionSpec = partitionSpec;
+  }
+
+  private void resetUpsertSession(String partitionSpec) throws IOException, HiveException, TunnelException {
+    if (currentUpsertSession != null) {
+      // stream.flush();
+      // stream.close();
+    }
+    currentUpsertSession = getOrCreateUpsertSession(partitionSpec);
+
+    UpsertStream.Listener listener = new UpsertStream.Listener() {
+      @Override
+      public void onFlush(UpsertStream.FlushResult result) {
+        System.out.println("flush success:" + result.traceId);
+      }
+
+      @Override
+      public boolean onFlushFail(String error, int retry) {
+        if (retry < 2) {
+          System.out.println("flush failed:" + error + " retry: " + retry);
+          return true;
+        } else {
+          System.out.println("flush failed:" + error);
+          return false;
+        }
+      }
+    };
+
+    stream = currentUpsertSession.buildUpsertStream().setListener(listener).build();
   }
 
   private UploadSession getOrCreateUploadSession(String partitionSpec)
@@ -309,8 +376,59 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     return uploadSession;
   }
 
+  private TableTunnel.UpsertSession getOrCreateUpsertSession(String partitionSpec) throws HiveException, IOException {
+    TableTunnel.UpsertSession upsertSession = partitionSpecToUpSertSession.get(partitionSpec);
+
+    if (upsertSession == null) {
+      int retry = 0;
+      long sleep = 2000;
+      while (true) {
+        try {
+          if (partitionSpec.isEmpty()) {
+            print("creating upsert session");
+            upsertSession = tunnel.buildUpsertSession(odps.getDefaultProject(), odpsTableName).build();
+            print("creating upsert session done");
+          } else {
+            print("creating record worker for " + partitionSpec);
+            upsertSession = tunnel.buildUpsertSession(odps.getDefaultProject(), odpsTableName).setPartitionSpec(partitionSpec).build();
+            print("creating record worker for " + partitionSpec + " done");
+          }
+          break;
+        } catch (TunnelException e) {
+          print("create session failed, retry: " + retry);
+          e.printStackTrace(System.out);
+          retry++;
+          if (retry > 5) {
+            String msg = ExceptionUtils.getFullStackTrace(e);
+            throw new HiveException(msg, e);
+          }
+          try {
+            Thread.sleep(sleep + ThreadLocalRandom.current().nextLong(3000));
+          } catch (InterruptedException ex) {
+            ex.printStackTrace();
+          }
+          sleep = sleep * 2;
+        }
+      }
+      partitionSpecToUpSertSession.put(partitionSpec, upsertSession);
+    }
+
+    return upsertSession;
+  }
+
+
   @Override
   public void close() throws HiveException {
+    if (IsTransactional) {
+      closeUpsert();
+    } else {
+      closeBatch();
+    }
+
+    forwardObj[0] = numRecordTransferred;
+    forward(forwardObj);
+  }
+  public void closeBatch() throws HiveException {
     if (recordWriter == null) {
       print("record writer is null, seems no record is fed to this UDTF");
     } else {
@@ -327,7 +445,8 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           e.printStackTrace(System.out);
           retry--;
           if (retry <= 0) {
-            throw new HiveException(e);
+            String msg = ExceptionUtils.getFullStackTrace(e);
+            throw new HiveException(msg, e);
           }
         }
       }
@@ -348,7 +467,8 @@ public class McDataTransmissionUDTF extends GenericUDTF {
           e.printStackTrace(System.out);
           retry--;
           if (retry <= 0) {
-            throw new HiveException(e);
+            String msg = ExceptionUtils.getFullStackTrace(e);
+            throw new HiveException(msg, e);
           }
         }
       }
@@ -357,8 +477,40 @@ public class McDataTransmissionUDTF extends GenericUDTF {
     print("total bytes: " + bytesTransferred);
     print("upload speed (in KB): " + bytesTransferred / (System.currentTimeMillis() - startTime));
 
-    forwardObj[0] = numRecordTransferred;
-    forward(forwardObj);
+  }
+
+  private void closeUpsert() throws HiveException {
+    if (stream != null) {
+      try {
+        stream.flush();
+        stream.close();
+      } catch (TunnelException | IOException e) {
+        // TODO Auto-generated catch block
+        String msg = ExceptionUtils.getFullStackTrace(e);
+        throw new HiveException(msg, e);
+      }
+    }
+
+    for (String partitionSpec: partitionSpecToUpSertSession.keySet()) {
+      int retry = 3;
+      while (true) {
+        try {
+          print("committing " + partitionSpec);
+          partitionSpecToUpSertSession.get(partitionSpec).commit(false);
+          print("committing " + partitionSpec + " done");
+          break;
+        } catch (TunnelException e) {
+          print("committing " + partitionSpec + " failed, retry: " + retry);
+          e.printStackTrace(System.out);
+          retry--;
+          if (retry <= 0) {
+            String msg = ExceptionUtils.getFullStackTrace(e);
+            throw new HiveException(msg, e);
+          }
+        }
+      }
+    }
+
   }
 
   private static void print(String log) {

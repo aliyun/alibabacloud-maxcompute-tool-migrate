@@ -20,48 +20,14 @@
         <dependency>
             <groupId>com.aliyun.odps</groupId>
             <artifactId>odps-sdk-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.aliyun.odps</groupId>
-            <artifactId>hive-source</artifactId>
-            <version>${project.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.eclipse.jetty.aggregate</groupId>
-                    <artifactId>jetty-all</artifactId>
+                    <artifactId>protobuf-java</artifactId>
+                    <groupId>com.google.protobuf</groupId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-runner</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.eclipse.jetty.orbit</groupId>
-                    <artifactId>javax.servlet</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.mortbay.jetty</groupId>
-                    <artifactId>servlet-api-2.5</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>servlet-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>geronimo-jaspic_1.0_spec</artifactId>
-                    <groupId>org.apache.geronimo.specs</groupId>
-                </exclusion>
-                <!--for hive 1.x-->
-<!--                <exclusion>-->
-<!--                    <artifactId>slf4j-log4j12</artifactId>-->
-<!--                    <groupId>org.slf4j</groupId>-->
-<!--                </exclusion>-->
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>com.aliyun.odps</groupId>
-            <artifactId>odps</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -88,10 +54,6 @@
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-log4j2</artifactId>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
@@ -113,10 +75,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.pebbletemplates</groupId>
             <artifactId>pebble-spring-boot-starter</artifactId>
         </dependency>
@@ -128,7 +86,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.8.5</version>
+<!--            <version>2.8.5</version>-->
         </dependency>
         <dependency>
             <groupId>com.beust</groupId>
@@ -141,6 +99,173 @@
             <version>0.5.4</version>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>hive</id>
+            <activation>
+                <property>
+                    <name>sourceType</name>
+                    <value>hive</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>hive-source</artifactId>
+                    <version>${project.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty.aggregate</groupId>
+                            <artifactId>jetty-all</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty</groupId>
+                            <artifactId>jetty-runner</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty.orbit</groupId>
+                            <artifactId>javax.servlet</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.mortbay.jetty</groupId>
+                            <artifactId>servlet-api-2.5</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>javax.servlet</groupId>
+                            <artifactId>servlet-api</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <artifactId>geronimo-jaspic_1.0_spec</artifactId>
+                            <groupId>org.apache.geronimo.specs</groupId>
+                        </exclusion>
+                        <!--for hive 1.x-->
+                        <!--                <exclusion>-->
+                        <!--                    <artifactId>slf4j-log4j12</artifactId>-->
+                        <!--                    <groupId>org.slf4j</groupId>-->
+                        <!--                </exclusion>-->
+                    </exclusions>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>odps</id>
+            <activation>
+                <property>
+                    <name>sourceType</name>
+                    <value>odps</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>odps</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>bigquery</id>
+            <activation>
+                <property>
+                    <name>sourceType</name>
+                    <value>bigquery</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>bigquery-source</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>databricks</id>
+            <activation>
+                <property>
+                    <name>sourceType</name>
+                    <value>databricks</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>databricks</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>all</id>
+            <activation>
+                <property>
+                    <name>sourceType</name>
+                    <value>all</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>hive-source</artifactId>
+                    <version>${project.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty.aggregate</groupId>
+                            <artifactId>jetty-all</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty</groupId>
+                            <artifactId>jetty-runner</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty.orbit</groupId>
+                            <artifactId>javax.servlet</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.mortbay.jetty</groupId>
+                            <artifactId>servlet-api-2.5</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>javax.servlet</groupId>
+                            <artifactId>servlet-api</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <artifactId>geronimo-jaspic_1.0_spec</artifactId>
+                            <groupId>org.apache.geronimo.specs</groupId>
+                        </exclusion>
+                        <!--for hive 1.x-->
+                        <!--                <exclusion>-->
+                        <!--                    <artifactId>slf4j-log4j12</artifactId>-->
+                        <!--                    <groupId>org.slf4j</groupId>-->
+                        <!--                </exclusion>-->
+                    </exclusions>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>odps</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>databricks</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.aliyun.odps</groupId>
+                    <artifactId>bigquery-source</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
     <build>
         <finalName>MMAv3</finalName>

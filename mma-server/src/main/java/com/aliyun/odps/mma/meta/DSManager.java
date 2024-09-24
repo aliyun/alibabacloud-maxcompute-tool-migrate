@@ -1,6 +1,6 @@
 package com.aliyun.odps.mma.meta;
 
-import com.aliyun.odps.mma.orm.MMADataSource;
+import com.aliyun.odps.mma.orm.DataSource;
 import com.aliyun.odps.mma.orm.OrmFactory;
 import com.aliyun.odps.mma.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +16,10 @@ import java.util.concurrent.ConcurrentMap;
 
 @Component
 public class DSManager {
-    Logger logger = LoggerFactory.getLogger(DSManager.class);
-    ConcurrentMap<String, MMADataSource> dsLocks = new ConcurrentHashMap<>();
-    Map<String, String> dsErrors = new HashMap<>();
-    OrmFactory ormFactory;
+    private static final Logger logger = LoggerFactory.getLogger(DSManager.class);
+    private ConcurrentMap<String, DataSource> dsLocks = new ConcurrentHashMap<>();
+    private Map<String, String> dsErrors = new HashMap<>();
+    private OrmFactory ormFactory;
 
     @Autowired
     public DSManager(OrmFactory ormFactory) {
@@ -32,7 +32,7 @@ public class DSManager {
             return Result.err(String.format("%s is being loaded", dsName));
         }
 
-        MMADataSource dataSource = dsLock.getDataSource();
+        DataSource dataSource = dsLock.getDataSource();
 
         if (! dataSource.isExisted()) {
             return Result.err(String.format("%s has not been added", dsName));
@@ -59,10 +59,45 @@ public class DSManager {
         return Result.ok();
     }
 
+    public Result<Void, String> runInitializer(String dsName)  {
+        DsLock dsLock = tryLock(dsName);
+        if (Objects.isNull(dsLock)) {
+            return Result.err(String.format("initializer of %s is running", dsName));
+        }
+
+        DataSource dataSource = dsLock.getDataSource();
+
+        if (! dataSource.isExisted()) {
+            return Result.err(String.format("%s has not been added", dsName));
+        }
+
+        try {
+            dsErrors.remove(dsName);
+            logger.info("start to run initializer of {}", dsName);
+            dataSource.setInitStatusRunning();
+            dataSource.runInitializer();
+            dataSource.setInitStatusOk();
+            logger.info("success to run initializer of {}", dsName);
+        } catch (Exception e) {
+            logger.error("failed to run {} initializer", dsName, e);
+            dsErrors.put(dsName, String.format("failed: %s", e.getMessage()));
+            dataSource.setInitStatusFailed();
+            return Result.err(String.format("failed to run %s initializer: %s", dsName, e.getMessage()));
+        } finally {
+            try {
+                dsLock.close();
+            } catch (Exception e) {
+                //!unreachable
+            }
+        }
+
+        return Result.ok();
+    }
+
     private DsLock tryLock(String name) {
         synchronized (this) {
             if (! dsLocks.containsKey(name)) {
-                MMADataSource dataSource = ormFactory.newDataSource(name);
+                DataSource dataSource = ormFactory.newDataSource(name);
                 dsLocks.put(name, dataSource);
                 return new DsLock(this, name);
             }
@@ -80,7 +115,7 @@ public class DSManager {
             this.dsManager = dsManager;
         }
 
-        public MMADataSource getDataSource() {
+        public DataSource getDataSource() {
             return this.dsManager.dsLocks.get(name);
         }
 
@@ -91,7 +126,7 @@ public class DSManager {
     }
 
     public float getProgress(String name) {
-        MMADataSource ds = dsLocks.get(name);
+        DataSource ds = dsLocks.get(name);
         if (Objects.nonNull(ds)) {
             return ds.getLoadingProgress();
         }

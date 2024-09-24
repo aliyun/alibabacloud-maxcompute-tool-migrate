@@ -15,5 +15,7 @@
     <modules>
         <module>hive</module>
         <module>odps</module>
+        <module>databricks</module>
+        <module>bigquery</module>
     </modules>
 </project>

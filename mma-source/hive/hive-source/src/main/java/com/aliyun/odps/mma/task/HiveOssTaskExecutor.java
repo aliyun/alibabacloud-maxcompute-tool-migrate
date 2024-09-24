@@ -2,6 +2,7 @@ package com.aliyun.odps.mma.task;
 
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.mma.config.HiveConfig;
+import com.aliyun.odps.mma.config.HiveGlueConfig;
 import com.aliyun.odps.mma.config.HiveOssConfig;
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
@@ -29,13 +30,13 @@ import static com.aliyun.odps.mma.util.PebbleUtils.renderTpl;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class HiveOssTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(HiveOssTaskExecutor.class);
-    HiveUtils hiveUtils;
-    OdpsOssAction odpsAction;
-    Connection sqlConn;
-    Instance dataTransInstance;
-    Instance ossCountInstance;
-    Instance odpsCountInstance;
+    private static final Logger logger = LoggerFactory.getLogger(HiveOssTaskExecutor.class);
+    private HiveUtils hiveUtils;
+    private OdpsOssActionForHive odpsAction;
+    private Connection sqlConn;
+    private Instance dataTransInstance;
+    private Instance ossCountInstance;
+    private Instance odpsCountInstance;
 
     private static final String COUNT_TPL_FILE = "tpl/count.peb";
 
@@ -47,7 +48,7 @@ public class HiveOssTaskExecutor extends TaskExecutor {
     protected void setUp() {
         hiveUtils = new HiveUtils((HiveConfig) sourceConfig);
         OdpsUtils odpsUtils = OdpsUtils.fromConfig(mmaConfig);
-        this.odpsAction = new OdpsOssAction(odpsUtils, task);
+        this.odpsAction = new OdpsOssActionForHive(odpsUtils, task);
     }
 
     @Override
@@ -58,7 +59,20 @@ public class HiveOssTaskExecutor extends TaskExecutor {
     @Override
     protected void _setUpSchema() throws Exception {
         odpsAction.createTableIfNotExists();
-        odpsAction.createExternalTable();
+        switch (sourceConfig.getSourceType()) {
+            case HIVE_OSS:
+                HiveOssConfig hiveOssConfig = (HiveOssConfig) sourceConfig;
+                String location = hiveOssConfig.getTableDataPath(task.getDbName(), task.getTableName());
+                odpsAction.createExternalTable(location);
+                break;
+            case HIVE_GLUE:
+                String s3Location = task.getTable().getTableModel().getLocation();
+                HiveGlueConfig hiveGlueConfig = (HiveGlueConfig) sourceConfig;
+                String ossLocation = hiveGlueConfig.getTableDataPathFromS3(s3Location);
+                odpsAction.createExternalTable(ossLocation);
+                break;
+        }
+
         odpsAction.addPartitionsToExternalTable();
     }
 

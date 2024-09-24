@@ -9,12 +9,14 @@ import java.util.List;
 public abstract class SourceConfig extends Config  {
     @ConfigItem(desc = "定时更新", type="timer")
     public static String META_TIMER = "meta.timer";
-    @ConfigItem(desc = "meta api访问并发量", type="int", defaultValue = "3")
+    @ConfigItem(desc = "meta api访问并发量", type="int", defaultValue = "10")
     public static String META_API_BATCH = "meta.api.batch";
-    private static final String DATABASE_WHITELIST = "source.database.whitelist";
-    private static final String DATABASE_BLACKLIST = "source.database.blacklist";
-    @ConfigItem(desc = "表黑名单, 格式为db.table", type="list", defaultValue = "[\"default\"]")
-    protected static String TABLE_BLACKLIST = "source.table.blacklist";
+    @ConfigItem(desc = "数据库白名单", type="list")
+    public static String DATABASE_WHITELIST = "source.database.whitelist";
+    @ConfigItem(desc = "数据库黑名单", type="list")
+    public static String DATABASE_BLACKLIST = "source.database.blacklist";
+    @ConfigItem(desc = "表黑名单, 格式为db.table", type="list")
+    public static String TABLE_BLACKLIST = "source.table.blacklist";
     @ConfigItem(desc = "表白名单， 格式为db.table", type="list")
     public static String TABLE_WHITELIST = "source.table.whitelist";
     @ConfigItem(desc = "分区值转换配置（MaxCompute 分区值包含斜线）")

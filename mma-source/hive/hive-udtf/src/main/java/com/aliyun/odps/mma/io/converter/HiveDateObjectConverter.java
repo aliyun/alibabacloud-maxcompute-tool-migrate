@@ -23,6 +23,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Date;
+import java.time.LocalDate;
 
 public class HiveDateObjectConverter extends AbstractHiveObjectConverter {
   Class<?> dateInspectorClazz;
@@ -76,12 +77,14 @@ public class HiveDateObjectConverter extends AbstractHiveObjectConverter {
         throw new RuntimeException(String.format("unreachable!, get date class %s", rawDate.getClass().getName()));
     }
 
+    LocalDate localDate = LocalDate.of(1900 + value.getYear(), 1 + value.getMonth(), value.getDate());
+
     if (OdpsType.STRING.equals(odpsTypeInfo.getOdpsType())) {
-      return value.toString();
+      return localDate.toString();
     } else if (OdpsType.DATETIME.equals(odpsTypeInfo.getOdpsType())) {
       return new Date(value.getTime());
     } else if (OdpsType.DATE.equals(odpsTypeInfo.getOdpsType())) {
-      return new Date(value.getTime());
+      return localDate;
     } else {
       String msg = String.format("Unsupported implicit type conversion: from %s to %s",
                                  "Hive.Date",

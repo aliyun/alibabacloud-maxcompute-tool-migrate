@@ -8,12 +8,13 @@ import java.sql.Statement;
 import java.util.Map;
 import java.util.Objects;
 
-import com.aliyun.odps.mma.config.HiveConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.aliyun.odps.mma.config.HiveConfig;
+
 public class HiveUtils {
-    Logger logger = LoggerFactory.getLogger(HiveUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(HiveUtils.class);
 
     private HiveConfig config;
 
@@ -38,6 +39,26 @@ public class HiveUtils {
 
     public void executeQuery(String sql, String taskName, Map<String, String> sqlSettings, SqlResultFunc func) throws SQLException {
         executeQuery(sql, taskName, sqlSettings, null, func);
+    }
+
+    public void execute(String sql, Map<String, String> sqlSettings) throws SQLException {
+        String hiveJdbcUrl = config.getConfig(HiveConfig.HIVE_JDBC_URL);
+        String user = config.getConfig(HiveConfig.HIVE_JDBC_USERNAME);
+        String password = config.getConfig(HiveConfig.HIVE_JDBC_PASSWORD);
+
+        DriverManager.setLoginTimeout(600);
+
+        try (Connection conn = DriverManager.getConnection(hiveJdbcUrl, user, password)) {
+
+            try (Statement stmt = conn.createStatement()) {
+
+                for (Map.Entry<String, String> entry : sqlSettings.entrySet()) {
+                    stmt.execute("SET " + entry.getKey() + "=" + entry.getValue());
+                }
+
+                stmt.execute(sql);
+            }
+        }
     }
 
     public void executeQuery(

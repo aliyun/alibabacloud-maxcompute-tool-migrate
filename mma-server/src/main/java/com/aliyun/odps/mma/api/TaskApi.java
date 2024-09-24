@@ -10,6 +10,7 @@ import com.aliyun.odps.mma.service.JobService;
 import com.aliyun.odps.mma.service.PartitionService;
 import com.aliyun.odps.mma.service.TaskService;
 import com.aliyun.odps.mma.task.TaskManager;
+import com.aliyun.odps.mma.util.I18nUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,13 +29,24 @@ public class TaskApi {
     private final JobService jobService;
     private final PartitionService ptService;
     private final TaskManager taskManager;
+    private final I18nUtils i18nUtils;
+    private final TaskTypeName taskTypeName;
 
     @Autowired
-    public TaskApi(TaskService taskService, JobService jobService, PartitionService ptService, TaskManager taskManager) {
+    public TaskApi(
+            TaskService taskService,
+            JobService jobService,
+            PartitionService ptService,
+            TaskManager taskManager,
+            I18nUtils i18nUtils,
+            TaskTypeName  taskTypeName
+    ) {
         this.taskService = taskService;
         this.jobService = jobService;
         this.ptService = ptService;
         this.taskManager = taskManager;
+        this.i18nUtils = i18nUtils;
+        this.taskTypeName = taskTypeName;
     }
 
     @PutMapping("")
@@ -88,7 +100,7 @@ public class TaskApi {
                 taskService.restart(taskId);
                 break;
             case "reset":
-                taskService.updateTaskStatus(taskId, TaskStatus.INIT);
+                taskService.reset(taskId);
                 break;
         }
 
@@ -96,7 +108,10 @@ public class TaskApi {
     }
 
     @GetMapping("/{taskId}/logs")
-    public ResponseEntity<String> downloadTaskLogs(@PathVariable("taskId") int taskId) {
+    public ResponseEntity<String> downloadTaskLogs(
+            @PathVariable("taskId") int taskId,
+            @RequestParam(value = "lang", defaultValue = "zh_CN") String langCode
+    ) {
         List<TaskLog> taskLogs = taskService.getTaskLogs(taskId);
 
         SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -105,10 +120,10 @@ public class TaskApi {
         StringBuilder sb = new StringBuilder();
         for (TaskLog log : taskLogs) {
             sb
-                    .append("时间: ").append(sf.format(log.getCreateTime())).append("\n")
-                    .append("状态: ").append(log.getStatus()).append("\n")
-                    .append("动作: ").append(log.getAction()).append("\n")
-                    .append("结果: ").append(log.getMsg()).append("\n\n");
+                    .append(i18nUtils.get("task.time", langCode, "时间") + ": ").append(sf.format(log.getCreateTime())).append("\n")
+                    .append(i18nUtils.get("task.status", langCode, "状态") + ": ").append(log.getStatus()).append("\n")
+                    .append(i18nUtils.get("task.action", langCode, "动作") + ": ").append(log.getAction()).append("\n")
+                    .append(i18nUtils.get("task.result", langCode, "结果") + ": ").append(log.getMsg()).append("\n\n");
         }
 
         String disposition = String.format("attachment; filename=\"task_%d_log.txt\"", taskId);
@@ -120,7 +135,7 @@ public class TaskApi {
     }
 
     @GetMapping("/typeNames")
-    public ApiRes getTypeNames() {
-        return ApiRes.ok("data", TaskTypeName.getNameMap());
+    public ApiRes getTypeNames(@RequestParam(value = "lang", defaultValue = "zh_CN") String lang) {
+        return ApiRes.ok("data", taskTypeName.getNameMap(lang));
     }
 }

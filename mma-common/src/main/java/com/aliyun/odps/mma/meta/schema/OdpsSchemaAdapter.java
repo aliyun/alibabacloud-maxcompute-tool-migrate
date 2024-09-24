@@ -2,6 +2,7 @@ package com.aliyun.odps.mma.meta.schema;
 
 import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
+import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.type.TypeInfo;
@@ -13,34 +14,36 @@ import java.util.Objects;
 public interface OdpsSchemaAdapter {
     SourceType sourceType();
 
-    default void checkCompatibility(MMATableSchema tableSchema) throws SchemaAdapterError {
-        toOdpsSchema(tableSchema, -1, null);
-    }
-
-    default MMAOdpsTableSchema toOdpsSchema(
-            MMATableSchema mmaTableSchema,
-            int maxPtLevel,
-            Map<String, String> columnMapping
-    ) {
-        return toOdpsSchema(mmaTableSchema, maxPtLevel, columnMapping, false);
+    default void checkCompatibility(MMATableSchema tableSchema, JobConfig jobConfig) throws SchemaAdapterError {
+        toOdpsSchema(tableSchema, -1, null, jobConfig);
     }
 
     default MMAOdpsTableSchema toOdpsSchema(
             MMATableSchema mmaTableSchema,
             int maxPtLevel,
             Map<String, String> columnMapping,
-            boolean enableTS2
+            JobConfig jobConfig
+    ) {
+        return toOdpsSchema(mmaTableSchema, maxPtLevel, columnMapping, false, jobConfig);
+    }
+
+    default MMAOdpsTableSchema toOdpsSchema(
+            MMATableSchema mmaTableSchema,
+            int maxPtLevel,
+            Map<String, String> columnMapping,
+            boolean enableTS2,
+            JobConfig jobConfig
     ) {
         MMAOdpsTableSchema tableSchema = new MMAOdpsTableSchema();
         mmaTableSchema.getColumns().forEach(columnSchema -> {
-            tableSchema.addColumn(convertToOdpsColumn(columnSchema, columnMapping));
+            tableSchema.addColumn(convertToOdpsColumn(columnSchema, columnMapping, jobConfig));
         });
 
         List<MMAColumnSchema> ptColumns = mmaTableSchema.getPartitions();
         // 有合并分区配置时，将最后的几个分区转换为普通列
         if (maxPtLevel >= 0 && ptColumns.size() > maxPtLevel) {
             ptColumns.subList(maxPtLevel, ptColumns.size()).forEach(c -> {
-                tableSchema.addColumn(convertToOdpsColumn(c, columnMapping));
+                tableSchema.addColumn(convertToOdpsColumn(c, columnMapping, jobConfig));
             });
 
             ptColumns.subList(0, maxPtLevel).forEach(c -> {
@@ -74,8 +77,8 @@ public interface OdpsSchemaAdapter {
         return tableSchema;
     }
 
-    default Column convertToOdpsColumn(MMAColumnSchema mmaColumnSchema, Map<String, String> columnMappings) {
-        TypeInfo odpsType = convertToOdpsType(mmaColumnSchema);
+    default Column convertToOdpsColumn(MMAColumnSchema mmaColumnSchema, Map<String, String> columnMappings, JobConfig jobConfig) {
+        TypeInfo odpsType = convertToOdpsType(mmaColumnSchema, jobConfig);
         return convertToOdpsColumn(mmaColumnSchema, odpsType, columnMappings);
     }
 
@@ -106,6 +109,6 @@ public interface OdpsSchemaAdapter {
         return convertToOdpsColumn(mmaColumnSchema, odpsType, columnMapping);
     }
 
-    TypeInfo convertToOdpsType(MMAColumnSchema columnSchema);
+    TypeInfo convertToOdpsType(MMAColumnSchema columnSchema, JobConfig jobConfig);
     TypeInfo convertToOdpsPartitionType(MMAColumnSchema columnSchema);
 }

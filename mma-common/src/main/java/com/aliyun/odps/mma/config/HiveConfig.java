@@ -47,17 +47,12 @@ public class HiveConfig extends SourceConfig {
             "  \"hive.execution.engine\": \"mr\"\n" +
             "}")
     public static final String HIVE_MR_JOB_SETTINGS = "hive.job.settings";
-    @ConfigItem(desc = "数据库白名单", type="list")
-    public static String DATABASE_WHITELIST = "source.database.whitelist";
-    @ConfigItem(desc = "数据库黑名单", type="list", defaultValue = "[\"default\"]")
-    public static String DATABASE_BLACKLIST = "source.database.blacklist";
     @ConfigItem(desc = "Hive UDTF 下载链接", defaultValue = "https://mma-v3.oss-cn-zhangjiakou.aliyuncs.com/udtf/hive-udtf.jar")
     public static String HIVE_UDTF_JAR_OSS_URL = "hive.udtf.jar.oss.url";
     @ConfigItem(desc = "Hive UDTF 名字", defaultValue = "default.odps_data_dump_multi")
     public static String HIVE_UDTF_NAME = "hive.udtf.name";
     @ConfigItem(desc = "Hive UDTF Class", defaultValue = "hive.com.aliyun.odps.mma.io.McDataTransmissionUDTF")
     public static String HIVE_UDTF_CLASS = "hive.udtf.class";
-
 
     public HiveConfig() {
         super();

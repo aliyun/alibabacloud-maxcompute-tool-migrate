@@ -208,7 +208,7 @@ public class TaskProxy {
 
         boolean enableTS2 = taskModel.getType().equals(TaskType.DATABRICKS_UDTF);
 
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel(), jobConfig.getColumnMapping(), enableTS2);
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel(), jobConfig.getColumnMapping(), jobConfig);
     }
 
     /**
@@ -217,7 +217,7 @@ public class TaskProxy {
     public TableSchema getTableSchemaOfOdpsSrc() {
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(SourceType.ODPS);
 
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1, null, false);
+        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1, null, false, jobConfig);
     }
 
     public int getPartitionNum() {

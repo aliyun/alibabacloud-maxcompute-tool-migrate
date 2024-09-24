@@ -5,7 +5,7 @@ create table if not exists `config` (
     `value` text not null
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-create table if not exists `data_source` (
+create table if not exists `datasource` (
     `id` integer auto_increment not null primary key,
     `name` varchar (255) not null comment '数据源名',
     `type` char (50) not null comment '数据源类型，如hive, odps',
@@ -13,12 +13,13 @@ create table if not exists `data_source` (
     `db_num` integer comment 'db数量',
     `table_num` integer comment 'table数量',
     `partition_num` integer comment '分区数量',
+    `init_status` char(50) default 'NOT_YET' comment '数据源初始化工作的状态',
     `create_time` datetime ,
     `update_time` datetime 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `db_model` (
-    `id` integer auto_increment not null primary key,
+    `id` integer not null primary key,
     `source_id` integer not null comment '数据源id',
     `name` varchar (255) not null comment '数据库名',
     `status` char(50) comment '迁移状态',
@@ -35,7 +36,7 @@ create table if not exists `db_model` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `table_model` (
-    `id` integer auto_increment not null primary key,
+    `id` integer not null primary key,
     `source_id` integer not null comment '数据源id',
     `db_id` integer not null comment '所属数据库的id',
     `db_name` varchar (255) not null comment '所属数据库的名字',
@@ -66,6 +67,7 @@ create table if not exists `partition_model` (
     `db_id` integer not null comment '所属数据库的id',
     `table_id` integer not null comment '所属table的id',
     `db_name` varchar(255) not null comment '所属数据库的名字',
+    `schema_name` varchar (255) comment 'odps的三层模型中的schema',
     `table_name` varchar(255) not null comment '所属table的名字',
     `value` varchar(1024) not null comment '分区值，格式为p1=v1/p2=v2',
     `status` char(50) comment '迁移状态',
@@ -82,18 +84,22 @@ create table if not exists `partition_model` (
     index (`db_id`),
     index (`table_id`),
     index (`db_name`),
+    index (`schema_name`),
     index (`table_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `task` (
     `id` integer not null primary key,
     `job_id` integer not null,
+    `batch_id` integer not null,
     `source_id` integer not null,
     `db_id` integer not null,
     `table_id` integer not null,
     `db_name` varchar(255) not null,
+    `schema_name` varchar (255),
     `table_name` varchar(255) not null,
     `odps_project` varchar(255) not null,
+    `odps_schema` varchar(255),
     `odps_table` varchar(255) not null,
     `type`  char(50) not null,
     `status` char(50) not null,
@@ -101,6 +107,7 @@ create table if not exists `task` (
     `stopped` boolean default false,
     `restart` boolean default false,
     `retried_times` integer default 0 not null,
+    `running` boolean default false,
     `start_time` datetime,
     `end_time` datetime,
     `deleted` boolean default false,
@@ -126,6 +133,8 @@ create table if not exists `job` (
     `type` char(50) not null,
     `stopped` boolean default false,
     `restart` boolean default false,
+    `timer` text,
+    `last_batch` integer default 0,
     `config` text,
     `deleted` boolean default false,
     `create_time` datetime ,
@@ -155,6 +164,30 @@ create table if not exists `task_log` (
     index (task_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+create table if not exists `action_log` (
+    `id` integer auto_increment not null primary key,
+    `source_id` integer not null,
+    `action_type` char(50) not null,
+    `status` char(50) not null,
+    `action` varchar(100) not null,
+    `msg` text not null,
+    `create_time` datetime,
+    `update_time` datetime,
+    index (source_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+create table if not exists `job_batch` (
+   `id` integer auto_increment not null primary key,
+   `job_id` integer not null,
+   `batch_id` integer not null,
+   `status` char(20) not null,
+   `err_msg` text,
+   `create_time` datetime,
+
+   index (job_id, batch_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 create or replace view task_id_group_by_table as
     select min(task.id) as task_id from task join job on task.job_id=job.id
     where (task.status='INIT' or task.restart=1)
@@ -162,4 +195,12 @@ create or replace view task_id_group_by_table as
     group by (task.table_name);
 
 
+create table if not exists `id_gen` (
+    `id` integer,
+    `name` char(20) primary key
+);
 
+insert ignore into id_gen (id, name) value (0, 'job');
+insert ignore into id_gen (id, name) value (0, 'task');
+insert ignore into id_gen (id, name) value (0, 'db');
+insert ignore into id_gen (id, name) value (0, 'table');

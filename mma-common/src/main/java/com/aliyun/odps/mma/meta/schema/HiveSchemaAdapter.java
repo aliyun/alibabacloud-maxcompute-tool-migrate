@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import com.aliyun.odps.Column;
 import com.aliyun.odps.OdpsType;
 import com.aliyun.odps.TableSchema;
+import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.type.TypeInfo;
 import com.aliyun.odps.type.TypeInfoFactory;
@@ -37,7 +38,7 @@ public class HiveSchemaAdapter implements OdpsSchemaAdapter {
     }
 
     @Override
-    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema) {
+    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema, JobConfig jobConfig) {
         // hive type string => odps TypeInfo
         // 1. all decimal(m,n) => decimal(36,18)
         // 2. all CHAR => STRING

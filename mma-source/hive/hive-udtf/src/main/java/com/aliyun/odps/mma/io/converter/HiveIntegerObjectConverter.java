@@ -16,6 +16,7 @@
 
 package com.aliyun.odps.mma.io.converter;
 
+import com.aliyun.odps.OdpsType;
 import com.aliyun.odps.type.TypeInfo;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
@@ -27,6 +28,12 @@ public class HiveIntegerObjectConverter extends AbstractHiveObjectConverter {
     if (o == null) {
       return null;
     }
-    return ((IntObjectInspector) objectInspector).get(o);
+
+    Integer intValue = (Integer) ((IntObjectInspector) objectInspector).get(o);
+    if (OdpsType.BIGINT.equals(odpsTypeInfo.getOdpsType())) {
+      return new Long(intValue);
+    }
+
+    return intValue;
   }
 }

@@ -287,7 +287,7 @@ export const NewJobForm = (
             </ProFormList>
             <ProFormText
                 name="table_mapping_pattern"
-                label={fm(intl, "components.Job.NewJobForm.tableMapping", "表名映射规则:")}
+                label={fm(intl, "components.Job.NewJobForm.tableMappingPattern", "表名映射规则:")}
                 placeholder={fm(intl, "components.Job.NewJobForm.tableMappingFormat", "格式: prefix${table}suffix", {table: "{table}"})}
                 rules={[{
                     required: false,
@@ -314,7 +314,7 @@ const JobTypeRender = ({jobType, tables, labelCol, intl}:{jobType: string, table
     return <ProFormTextArea
         labelCol={{span: labelCol}}
         name="tables"
-        label={fm(intl, "components.Job.NewJobForm.tableList", "table列表")}
+        label={fm(intl, "components.Job.NewJobForm.tableList", "Table列表")}
         rules={tableListRules}
         initialValue={tables?.join(",")}
     />

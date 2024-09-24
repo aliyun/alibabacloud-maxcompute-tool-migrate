@@ -10,6 +10,7 @@ import com.aliyun.odps.mma.service.DbService;
 import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.sql.PartitionValue;
 import com.aliyun.odps.mma.util.OdpsUtils;
+import com.aliyun.odps.mma.util.StringUtils;
 import com.aliyun.odps.task.CopyTask;
 import com.aliyun.odps.task.copy.Datasource;
 import com.aliyun.odps.task.copy.LocalDatasource;
@@ -32,15 +33,15 @@ import java.util.function.Predicate;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class CopyTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(CopyTaskExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(CopyTaskExecutor.class);
 
-    OdpsUtils sourceOdpsUtils;
-    OdpsAction sourceOdpsAction;
-    Instance dataTransInstance;
-    Instance srcCountInstance;
-    Instance destCountInstance;
-    Datasource.Direction copyTaskDirection;
-    OdpsUtils odpsUtils;
+    private OdpsUtils sourceOdpsUtils;
+    private OdpsAction sourceOdpsAction;
+    private Instance dataTransInstance;
+    private Instance srcCountInstance;
+    private Instance destCountInstance;
+    private Datasource.Direction copyTaskDirection;
+    private OdpsUtils odpsUtils;
 
 
     @Override
@@ -260,7 +261,16 @@ public class CopyTaskExecutor extends TaskExecutor {
         copyTask.SetTunnelInfo(tunnel);
 
         String insNum = jobConfig.getString(OdpsConfig.COPYTASK_INS_NUM);
-        copyTask.setJobInstanceNumber(insNum);
+
+        if (!StringUtils.isBlank(insNum)) {
+            try {
+                if (Integer.parseInt(insNum) > 0) {
+                    copyTask.setJobInstanceNumber(insNum);
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+        }
 
         JsonObject params = new JsonObject();
         // compatible: 是否兼容odps新的数据类型，如，struct/array等

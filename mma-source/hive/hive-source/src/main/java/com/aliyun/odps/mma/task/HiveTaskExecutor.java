@@ -35,7 +35,7 @@ import com.aliyun.odps.mma.util.OdpsUtils;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class HiveTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(HiveTaskExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(HiveTaskExecutor.class);
 
     HiveUtils hiveUtils;
     Connection sqlConn;
@@ -160,12 +160,21 @@ public class HiveTaskExecutor extends TaskExecutor {
         List<String> hiveColumnNames = ListUtils.map(columns, (c) -> String.format("`%s`", c.getName()));
         hiveColumnNames.addAll(ListUtils.map(ptColumns, (c) -> String.format("`%s`", c.getName())));
 
+        OdpsAuthType authType = OdpsAuthType.valueOf(mmaConfig.getConfig(MMAConfig.AUTH_TYPE));
         Map<String, Object> ctx = new HashMap<>(20);
-        ctx.put("authType", OdpsAuthType.BearerToken);
-        ctx.put("authInfo", this.odpsAction.getBearToken());
+        ctx.put("functionName", sourceConfig.getOrDefault(HiveConfig.HIVE_UDTF_NAME,
+                                                          "default.odps_data_dump_multi"));
+        ctx.put("authType", authType);
+        if (OdpsAuthType.AK.equals(authType)) {
+            ctx.put("authInfo", mmaConfig.getConfig(MMAConfig.AUTH_AK_HDFS_PATH));
+        } else {
+            ctx.put("authInfo", this.odpsAction.getBearerToken());
+        }
+
         ctx.put("mcEndpoint", mmaConfig.getMcDataEndpoint());
         ctx.put("tunnelEndpoint", mmaConfig.getConfig(MMAConfig.MC_TUNNEL_ENDPOINT));
         ctx.put("odpsProject", task.getOdpsProjectName());
+        ctx.put("odpsSchemaName", task.getOdpsSchemaName());
         ctx.put("odpsTable", task.getOdpsTableName());
         ctx.put("odpsColumnNames", odpsColumnNames);
         ctx.put("odpsPartitionColumns", odpsPartitionColumns);

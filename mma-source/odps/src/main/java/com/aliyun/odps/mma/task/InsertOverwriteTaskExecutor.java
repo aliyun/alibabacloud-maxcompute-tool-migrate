@@ -18,14 +18,14 @@ import com.aliyun.odps.mma.util.OdpsUtils;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class InsertOverwriteTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(InsertOverwriteTaskExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(InsertOverwriteTaskExecutor.class);
 
-    OdpsUtils sourceOdpsUtils;
-    OdpsAction sourceOdpsAction;
-    Instance dataTransInstance;
-    Instance srcCountInstance;
-    Instance destCountInstance;
-    DbService dbService;
+    private OdpsUtils sourceOdpsUtils;
+    private OdpsAction sourceOdpsAction;
+    private Instance dataTransInstance;
+    private Instance srcCountInstance;
+    private Instance destCountInstance;
+    private DbService dbService;
 
     @Autowired
     public InsertOverwriteTaskExecutor(DbService dbService) {

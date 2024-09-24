@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.meta.schema;
 
+import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.type.TypeInfo;
 import org.springframework.stereotype.Component;
 
@@ -18,12 +19,12 @@ public class OdpsToOdpsSchemaAdapter implements OdpsSchemaAdapter {
     }
 
     @Override
-    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema) {
+    public TypeInfo convertToOdpsType(MMAColumnSchema columnSchema, JobConfig jobConfig) {
         return TypeInfoParser.getTypeInfoFromTypeString(columnSchema.getType());
      }
 
     @Override
     public TypeInfo convertToOdpsPartitionType(MMAColumnSchema columnSchema) {
-        return convertToOdpsType(columnSchema);
+        return convertToOdpsType(columnSchema, null);
     }
 }

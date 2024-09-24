@@ -12,8 +12,9 @@
     <artifactId>hive-udtf</artifactId>
 
     <properties>
-        <maven.compiler.source>7</maven.compiler.source>
-        <maven.compiler.target>7</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <odps.sdk.version>0.45.5-public</odps.sdk.version>
     </properties>
 
     <dependencies>
@@ -23,11 +24,16 @@
             <version>${hive.version}</version>
             <scope>provided</scope>
         </dependency>
-      <dependency>
-          <groupId>com.aliyun.odps</groupId>
-          <artifactId>odps-sdk-commons</artifactId>
-          <version>0.31.7-MMA-SNAPSHOT</version>
-      </dependency>
+        <dependency>
+            <groupId>com.aliyun.odps</groupId>
+            <artifactId>odps-sdk-commons</artifactId>
+            <version>${odps.sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun.odps</groupId>
+            <artifactId>odps-sdk-core</artifactId>
+            <version>${odps.sdk.version}</version>
+        </dependency>
     </dependencies>
 
     <profiles>
@@ -44,14 +50,13 @@
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-commons</artifactId>
-                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <version>${odps.sdk.version}</version>
                 </dependency>
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-core</artifactId>
                     <!-- Different from the version used by MMA server to support java 7 -->
-                    <version>0.31.7-MMA-SNAPSHOT</version>
-                    <!-- <classifier>shaded</classifier> -->
+                    <version>${odps.sdk.version}</version>
                     <exclusions>
                         <exclusion>
                             <artifactId>jackson-core-asl</artifactId>
@@ -147,13 +152,13 @@
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-commons</artifactId>
-                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <version>${odps.sdk.version}</version>
                 </dependency>
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-core</artifactId>
                     <!-- Different from the version used by MMA server to support java 7 -->
-                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <version>${odps.sdk.version}</version>
                     <!-- <classifier>shaded</classifier> -->
                     <exclusions>
                         <exclusion>
@@ -174,6 +179,7 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-mapreduce-client-core</artifactId>
                     <version>${hadoop.version}</version>
+                    <scope>provided</scope>
                     <exclusions>
                         <exclusion>
                             <artifactId>protobuf-java</artifactId>
@@ -205,6 +211,7 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-common</artifactId>
                     <version>${hadoop.version}</version>
+                    <scope>provided</scope>
                     <exclusions>
                         <exclusion>
                             <artifactId>commons-beanutils-core</artifactId>
@@ -250,13 +257,13 @@
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-commons</artifactId>
-                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <version>${odps.sdk.version}</version>
                 </dependency>
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps-sdk-core</artifactId>
                     <!-- Different from the version used by MMA server to support java 7 -->
-                    <version>0.31.7-MMA-SNAPSHOT</version>
+                    <version>${odps.sdk.version}</version>
                     <!-- <classifier>shaded</classifier> -->
                     <exclusions>
                         <exclusion>
@@ -382,6 +389,48 @@
                     </execution>
                 </executions>
             </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-shade-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <artifactSet>-->
+<!--                        <includes>-->
+<!--                            &lt;!&ndash;  databricks用的hive udtf需要把odps的类也shade掉，不然与odps-spark-connector里的odps sdk冲突 &ndash;&gt;-->
+<!--&lt;!&ndash;                            <include>com.aliyun:*</include>&ndash;&gt;-->
+<!--                            <include>com.aliyun.odps:odps-sdk-core:jar:</include>-->
+<!--                        </includes>-->
+<!--                    </artifactSet>-->
+<!--                    <relocations>-->
+<!--                        <relocation>-->
+<!--                            <pattern>com.google.protobuf</pattern>-->
+<!--                            <shadedPattern>com.aliyun.odps.thirdparty.com.google.protobuf</shadedPattern>-->
+<!--                        </relocation>-->
+<!--                        <relocation>-->
+<!--                            <pattern>com.google.guava</pattern>-->
+<!--                            <shadedPattern>com.aliyun.odps.thirdparty.com.google.guava</shadedPattern>-->
+<!--                        </relocation>-->
+<!--                        <relocation>-->
+<!--                            <pattern>org.apache.arrow</pattern>-->
+<!--                            <shadedPattern>com.aliyun.odps.thirdparty.org.apache.arrow</shadedPattern>-->
+<!--                        </relocation>-->
+<!--                        <relocation>-->
+<!--                            <pattern>io.netty</pattern>-->
+<!--                            &lt;!&ndash;  databricks用的hive udtf需要把odps的类也shade掉，不然与odps-spark-connector里的odps sdk冲突 &ndash;&gt;-->
+<!--&lt;!&ndash;                            <shadedPattern>com.aliyun.odps.thirdparty.io.netty</shadedPattern>&ndash;&gt;-->
+<!--                        </relocation>-->
+<!--                    </relocations>-->
+<!--                    <shadedClassifierName>shade</shadedClassifierName>-->
+<!--                    <shadedArtifactAttached>true</shadedArtifactAttached>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>shade</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 </project>

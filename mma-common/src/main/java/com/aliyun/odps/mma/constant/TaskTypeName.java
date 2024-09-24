@@ -18,12 +18,12 @@ public class TaskTypeName {
 
     static Map<TaskType, String> map = new HashMap<TaskType, String>() {{
         put(TaskType.HIVE, "hive UDTF");
-        put(TaskType.ODPS, "mc跨region");
-        put(TaskType.ODPS_INSERT_OVERWRITE, "mc同region");
-        put(TaskType.MC2MC_VERIFY, "mc校验");
+//        put(TaskType.ODPS, "Maxcompute tunnel");
+        put(TaskType.ODPS_INSERT_OVERWRITE, "跨项目读数据");
+//        put(TaskType.MC2MC_VERIFY, "Maxcompute校验");
         put(TaskType.HIVE_OSS, "OSS外表");
         put(TaskType.HIVE_MERGED_TRANS, "hive UDTF合并传输");
-        put(TaskType.ODPS_MERGED_TRANS, "mc跨region合并传输");
+//        put(TaskType.ODPS_MERGED_TRANS, "mc跨region合并传输");
         put(TaskType.DATABRICKS, "Databricks spark");
         put(TaskType.DATABRICKS_UDTF, "Databricks hive UDTF");
         put(TaskType.BIGQUERY, "使用 Storage Read API 进行数据迁移");

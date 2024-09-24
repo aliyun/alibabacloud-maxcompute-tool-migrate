@@ -1,5 +1,32 @@
 package com.aliyun.odps.mma.meta;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.IMetaStoreClient;
+import org.apache.hadoop.hive.metastore.RetryingMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.SerDeInfo;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
+import org.apache.hadoop.hive.metastore.api.Table;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
 import com.aliyun.odps.mma.config.HiveConfig;
 import com.aliyun.odps.mma.config.SourceConfig;
 import com.aliyun.odps.mma.constant.SourceType;
@@ -9,22 +36,6 @@ import com.aliyun.odps.mma.model.ModelBase;
 import com.aliyun.odps.mma.model.PartitionModel;
 import com.aliyun.odps.mma.model.TableModel;
 import com.aliyun.odps.mma.util.DateUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
-import org.apache.hadoop.hive.metastore.RetryingMetaStoreClient;
-import org.apache.hadoop.hive.metastore.api.*;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 @Component
 @Primary
@@ -161,7 +172,7 @@ public class HiveMetaLoader implements MetaLoader {
         ts.setColumns(cols.stream().map(HiveMMASchemaAdapter::fieldSchemaToColumn).collect(Collectors.toList()));
         ts.setPartitions(partitionCols.stream().map(HiveMMASchemaAdapter::fieldSchemaToColumn).collect(Collectors.toList()));
         model.setSchema(ts);
-        model.setHasPartitions(partitionCols.size() > 0);
+        model.setHasPartitions(!partitionCols.isEmpty());
 
         return model;
     }
@@ -174,7 +185,7 @@ public class HiveMetaLoader implements MetaLoader {
             partitions =  client.instance().listPartitions(dbName, tableName, (short) -1);
         }
 
-        return partitions.stream().map(HiveMetaLoader::convertPartition).collect(Collectors.toList());
+        return partitions.stream().map(this::convertPartition).collect(Collectors.toList());
     }
 
     @Override
@@ -185,12 +196,12 @@ public class HiveMetaLoader implements MetaLoader {
         }
     }
 
-    private static PartitionModel convertPartition(Partition partition) {
+    private PartitionModel convertPartition(Partition partition) {
         PartitionModel model = new PartitionModel();
 
         model.setDbName(partition.getDbName());
         model.setTableName(partition.getTableName());
-        model.setValue(String.join("/", partition.getValues()));
+        model.setValue(partition.getValues());
 
         Map<String, String> params = partition.getParameters();
         setModelParam(params, model);

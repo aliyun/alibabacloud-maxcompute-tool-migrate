@@ -32,8 +32,8 @@ public class MMAConfig extends Config {
     public static String AUTH_TYPE = "auth.type";
     @ConfigItem(desc = "UDTF鉴权方式=AK 时，config.ini 在 HDFS 上的路径", defaultValue = "hdfs:///tmp/odps_config.ini")
     public static String AUTH_AK_HDFS_PATH = "auth.ak.hdfs.path";
-    @ConfigItem(desc = "依赖根目录", defaultValue = "")
-    public static String DEPENDENCY_ROOT = "dependency.root";
+    //@ConfigItem(desc = "Spark依赖根目录")
+    public static String SPARK_DEPENDENCY_ROOT = "spark.dependency.root";
 
     public MMAConfig() {
         super();
@@ -53,7 +53,7 @@ public class MMAConfig extends Config {
     public List<String> getDstMcProjects() {
         List<String> projects =  this.getList(MC_PROJECTS);
 
-        if (projects.size() == 0) {
+        if (projects.isEmpty()) {
             projects.add(this.getConfig(MC_DEFAULT_PROJECT));
         }
 
@@ -62,7 +62,7 @@ public class MMAConfig extends Config {
 
     public String getLibPath() {
         return this.getOrDefault(
-            DEPENDENCY_ROOT,
+                SPARK_DEPENDENCY_ROOT,
             System.getProperty("user.dir") + "/lib"
         );
     }

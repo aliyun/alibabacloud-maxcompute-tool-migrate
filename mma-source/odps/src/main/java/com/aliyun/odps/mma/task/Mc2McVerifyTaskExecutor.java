@@ -16,12 +16,11 @@ import java.util.concurrent.CompletableFuture;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class Mc2McVerifyTaskExecutor extends TaskExecutor {
-    Logger logger = LoggerFactory.getLogger(Mc2McVerifyTaskExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(Mc2McVerifyTaskExecutor.class);
 
-    OdpsAction sourceOdpsAction;
-
-    Instance odpsSrcIns;
-    Instance odpsDstIns;
+    private OdpsAction sourceOdpsAction;
+    private Instance odpsSrcIns;
+    private Instance odpsDstIns;
 
     public Mc2McVerifyTaskExecutor() {
         super();

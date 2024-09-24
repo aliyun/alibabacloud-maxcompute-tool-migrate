@@ -18,14 +18,9 @@ spring:
       connection-timeout: 30000
 #      validation-timeout: 33000
 #      max-lifetime: 600000
-      maximum-pool-size: ${DB_POOL_SIZE:100}
+#      maximum-pool-size: ${DB_POOL_SIZE:100}
+      transaction-isolation: TRANSACTION_READ_COMMITTED
 #      minimum-idle:  20
-
-  flyway:
-    enabled: false
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:/db/migration
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -43,6 +38,10 @@ spring:
     view:
       suffix: .html
 
+  messages:
+    basename: i18n/messages
+    encoding: utf-8
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
 
@@ -58,4 +57,4 @@ logging:
   file:
     name: ./logs/com.aliyun.odps.mma.log
 
-mma-version: 2023091514
+mma-version: 2024091909

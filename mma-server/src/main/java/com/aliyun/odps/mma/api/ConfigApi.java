@@ -32,8 +32,8 @@ public class ConfigApi {
     private String activeProfile;
 
     @GetMapping("")
-    public ApiRes getAllConfig() {
-        return ApiRes.ok("data", config.toJsonObj());
+    public ApiRes getAllConfig(@RequestParam(value = "lang", defaultValue = "zh_CN") String langCode) {
+        return ApiRes.ok("data", config.toJsonObj(langCode));
     }
 
     @GetMapping("/status")

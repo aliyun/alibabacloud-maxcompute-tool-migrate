@@ -106,7 +106,7 @@ public class ConfigInitializer {
             // 先parent class的filed, 在本class的field，让本class filed默认值覆盖parent class field的默认值
             Field[][] fieldsArray = new Field[][] {
                     c.getSuperclass().getFields(),
-                    c.getDeclaredFields()
+                    c.getFields()
             };
 
             for (Field[] fields: fieldsArray) {

@@ -41,8 +41,8 @@ public class CmdArgParser {
     public void parseConfigFile() {
         String[] sections = new String[] {"mysql", "mma"};
         String[][] optionsOfSection = new String[][]{
-                {"host", "port", "db", "username", "password"},
-                {"listening_port", "sch_rate", "task_max_num", "debug", "not_set_mr_job_name"}
+                {"host", "port", "db", "username", "password", "max_batch_size"},
+                {"listening_port", "sch_rate", "task_max_num", "debug", "not_set_mr_job_name", "log_sql", "task_id_cache_size"}
         };
 
         Map<String, String> optionToProperty = new HashMap<String, String>() {{
@@ -51,10 +51,13 @@ public class CmdArgParser {
             put("db", "MYSQL_DB");
             put("username", "MYSQL_USER");
             put("password", "MYSQL_PASS");
+            put("max_batch_size", "MYSQL_MAX_BATCH_SIZE");
             put("listening_port", "APP_PORT");
             put("sch_rate", "SCH_RATE");
             put("debug", "MMA_DEBUG");
             put("not_set_mr_name", "NOT_SET_MR_JOB_NAME");
+            put("log_sql", "LOG_SQL");
+            put("task_id_cache_size", "MMA_TASK_ID_CACHE_SIZE");
         }};
 
         try {
@@ -72,7 +75,7 @@ public class CmdArgParser {
                     }
                     String property = optionToProperty.get(option);
 
-                    if (Objects.nonNull(property) && !"".equals(value)) {
+                    if (Objects.nonNull(property) && !value.isEmpty()) {
                         System.setProperty(property, value);
                     }
                 }
@@ -88,7 +91,7 @@ public class CmdArgParser {
                 try {
                     int taskMaxNum = Integer.parseInt(taskMaxNumStr);
                     System.setProperty("TASK_MAX_NUM", taskMaxNumStr);
-                    System.setProperty("DB_POOL_SIZE", Integer.toString(taskMaxNum + 20));
+                    System.setProperty("DB_POOL_SIZE", Integer.toString(taskMaxNum + 2));
                 } catch (Exception e) {
                     throw new RuntimeException("mma.task_max_num must be a number, now it is " + taskMaxNumStr);
                 }

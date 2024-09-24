@@ -18,15 +18,15 @@ import java.util.*;
 
 @Component
 public class MetaDataStatusUpdater {
-    private final Logger logger = LoggerFactory.getLogger(MetaDataStatusUpdater.class);
+    private static final Logger logger = LoggerFactory.getLogger(MetaDataStatusUpdater.class);
 
-    PartitionMapper ptMapper;
-    TableMapper tableMapper;
-    SqlSessionFactory sqlSessionFactory;
-    Map<MigrationStatus, List<Integer>> statusToTables = new HashMap<>();
-    Map<MigrationStatus, Boolean> tableStatusChanged = new HashMap<>();
-    Map<MigrationStatus, List<Integer>> statusToDbs = new HashMap<>();
-    Map<MigrationStatus, Boolean> dbStatusChanged = new HashMap<>();
+    private PartitionMapper ptMapper;
+    private TableMapper tableMapper;
+    private SqlSessionFactory sqlSessionFactory;
+    private Map<MigrationStatus, List<Integer>> statusToTables = new HashMap<>();
+    private Map<MigrationStatus, Boolean> tableStatusChanged = new HashMap<>();
+    private Map<MigrationStatus, List<Integer>> statusToDbs = new HashMap<>();
+    private Map<MigrationStatus, Boolean> dbStatusChanged = new HashMap<>();
 
     @Autowired
     public MetaDataStatusUpdater(PartitionMapper ptMapper, TableMapper tableMapper, SqlSessionFactory sqlSessionFactory) {

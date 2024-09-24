@@ -1,9 +1,10 @@
-SELECT default.odps_data_dump_multi(
+SELECT {{functionName}}(
 '{{authType}}',
 '{{authInfo}}',
 '{{mcEndpoint}}',
 '{{ tunnelEndpoint ? tunnelEndpoint : '' }}',
 '{{odpsProject}}',
+'{{odpsSchemaName}}',
 '{{odpsTable}}',
 '{{ odpsColumnNames | join(',') }}',
 '{{ odpsPartitionColumns | join(',') }}',
