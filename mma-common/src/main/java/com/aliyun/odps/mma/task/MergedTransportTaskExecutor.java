@@ -4,8 +4,10 @@ import com.aliyun.odps.Column;
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.constant.TaskDataStatus;
+import com.aliyun.odps.mma.meta.schema.DstOdpsTableSchema;
 import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
+import com.aliyun.odps.mma.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,11 +117,21 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
     }
 
     protected String createMergedTempTableSql() {
-        TableSchema tableSchema = task.getOdpsTableSchema();
+        DstOdpsTableSchema tableSchema = task.getDstOdpsTableSchema();
+
+        // 在目标端建立一个与非分区表对应的分区表
+        DstOdpsTableSchema tempTableSchema = new DstOdpsTableSchema();
+
+        // 设置全路径表名信息
+        tempTableSchema.setProjectName(task.getOdpsProjectName());
+        tempTableSchema.setSchemaName(task.getOdpsSchemaName());
+        tempTableSchema.setTableName(getTempTableName());
+
         List<Column> columns = tableSchema.getColumns();
         List<Column> ptColumns = tableSchema.getPartitionColumns();
 
-        TableSchema tempTableSchema = new TableSchema();
+        // 将目标表的普通列和分区列都设置为临时非分区表的普通列
+
         for (Column c: columns) {
             tempTableSchema.addColumn(c);
         }
@@ -128,16 +140,7 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
             tempTableSchema.addColumn(c);
         }
 
-        return OdpsSqlUtils.createTableSql(
-                task.getOdpsProjectName(),
-                task.getOdpsSchemaName(),
-                getTempTableName(),
-                tempTableSchema,
-                null,
-                DEFAULT_TEMP_TABLE_LIFECYCLE,
-                null,
-                null
-        );
+        return tempTableSchema.getCreateTableSql();
     }
 
 
@@ -147,7 +150,7 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
         sb.append("insert overwrite table ")
                 .append(task.getOdpsTableFullName());
 
-        TableSchema tableSchema = task.getOdpsTableSchema();
+        TableSchema tableSchema = task.getDstOdpsTableSchema();
         List<String> ptColumns = tableSchema.getPartitionColumns().stream().map(Column::getName).collect(Collectors.toList());
 
         if (!ptColumns.isEmpty()) {
@@ -172,7 +175,11 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
 
 
     protected String getTempTableFullName() {
-        return String.format("%s.%s%s", task.getOdpsProjectName(), TEMP_TABLE_PREFIX, task.getOdpsTableName());
+        if (StringUtils.isBlank(task.getOdpsSchemaName())) {
+            return String.format("%s.%s%s", task.getOdpsProjectName(), TEMP_TABLE_PREFIX, task.getOdpsTableName());
+        }
+
+        return String.format("%s.%s.%s%s", task.getOdpsProjectName(), task.getOdpsSchemaName(), TEMP_TABLE_PREFIX, task.getOdpsTableName());
     }
 
     protected String getTempTableName() {

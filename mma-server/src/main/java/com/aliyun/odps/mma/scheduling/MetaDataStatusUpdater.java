@@ -35,7 +35,7 @@ public class MetaDataStatusUpdater {
         this.sqlSessionFactory = sqlSessionFactory;
     }
 
-    @Scheduled(fixedRate = 3000, initialDelay = 1000)
+    //@Scheduled(fixedRate = 3000, initialDelay = 1000)
     public void updateMetaDataStatus() {
         // 通过partition状态更新分区表的状态，非分区表的状态直接由task executor来设置
         // select table_id as objId, status from partition_model group by table_id, status

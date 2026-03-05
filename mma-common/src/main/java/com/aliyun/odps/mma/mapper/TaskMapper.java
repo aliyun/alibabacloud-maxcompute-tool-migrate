@@ -4,6 +4,8 @@ import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.model.TaskLog;
 import com.aliyun.odps.mma.query.JobFilter;
 import com.aliyun.odps.mma.query.TaskFilter;
+import com.aliyun.odps.mma.util.TableName;
+
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +34,7 @@ public interface TaskMapper {
     Integer maxTaskId();
     List<TaskModel> getTasksAvailable(@Param("limit") int limit);
     List<TaskModel> getRunningTasksByTableIds(@Param("tableIds") List<Integer> tableIds);
+    List<TaskModel> getDoneTasksByTableIds(TableName tableName); //
     List<TaskModel> getRunningTasksByPtIds(@Param("partitionIds") List<Integer> partitionIds);
     List<TaskModel> getRunningTasksByJobId(@Param("jobId") int jobId);
     List<TaskModel> getTaskStatusByJobIds(@Param("jobIds") List<Integer> jobIds);

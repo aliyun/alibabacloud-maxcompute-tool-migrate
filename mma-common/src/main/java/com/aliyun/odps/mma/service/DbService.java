@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface DbService {
     List<DataBaseModel> getAllDbs();
     List<DataBaseModel> getDbsOfDataSource(String sourceName);
-    Optional<DataBaseModel> getDbById(int id);
+    Optional<DataBaseModel> getDbById(int sourceId, int id);
     Optional<DataBaseModel> getDbByName(String dsName, String dbName);
     void insertDb(DataBaseModel db);
     void updateDb(DataBaseModel db);

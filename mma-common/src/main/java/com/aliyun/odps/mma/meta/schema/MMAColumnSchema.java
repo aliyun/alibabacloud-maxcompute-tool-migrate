@@ -54,9 +54,9 @@ public class MMAColumnSchema {
 
         MMAColumnSchema other = (MMAColumnSchema) ot;
 
-        return Objects.equals(this.name, other.getName()) &&
-                Objects.equals(this.type, other.getType()) &&
+        return this.name.equalsIgnoreCase(other.getName()) &&
                 Objects.equals(this.comment, other.getComment()) &&
+                this.type.equalsIgnoreCase(other.getType()) &&
                 Objects.equals(this.defaultValue, other.getDefaultValue()) &&
                 Objects.equals(this.nullable, other.getNullable());
     }

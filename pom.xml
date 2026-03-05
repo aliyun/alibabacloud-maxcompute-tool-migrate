@@ -24,7 +24,7 @@
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
-        <odps.sdk.version>0.40.8</odps.sdk.version>
+        <odps.sdk.version>0.50.8-MMA-SNAPSHOT</odps.sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -74,6 +74,18 @@
                 <groupId>org.xerial</groupId>
                 <artifactId>sqlite-jdbc</artifactId>
                 <version>3.36.0.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.8.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>4.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -8,6 +8,7 @@ import java.lang.annotation.*;
 public @interface ConfigItem {
     String desc();
     String type() default "string";
+    boolean isPassword() default false;
     String defaultValue() default "";
     String[] enums() default {};
     boolean required() default false;

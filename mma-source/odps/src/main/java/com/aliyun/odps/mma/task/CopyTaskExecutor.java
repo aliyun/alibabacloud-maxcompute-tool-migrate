@@ -75,9 +75,9 @@ public class CopyTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _dataTruncate() throws Exception {
-        if (copyTaskDirection == Datasource.Direction.IMPORT) {
-            odpsAction.truncate();
-        }
+//        if (copyTaskDirection == Datasource.Direction.IMPORT) {
+//            odpsAction.truncate();
+//        }
     }
 
     @Override
@@ -211,17 +211,18 @@ public class CopyTaskExecutor extends TaskExecutor {
             };
 
             Predicate<String> isChinaVpc = (url) -> {
-                if (!url.contains("-inc")) {
-                    return false;
-                }
-
-                for (String region: chinaRegions) {
-                    if (url.contains(region)) {
-                        return true;
-                    }
-                }
-
-                return false;
+                return true;
+//                if (!url.contains("-inc")) {
+//                    return false;
+//                }
+//
+//                for (String region: chinaRegions) {
+//                    if (url.contains(region)) {
+//                        return true;
+//                    }
+//                }
+//
+//                return false;
             };
 
             String destDataEndpoint = mmaConfig.getMcDataEndpoint();
@@ -277,8 +278,20 @@ public class CopyTaskExecutor extends TaskExecutor {
         final String ODPS_COPY_COMPATIBLE_ENABLED = "odps.copy.compatible.enabled";
         params.addProperty(ODPS_COPY_COMPATIBLE_ENABLED, "false");
         // params.addProperty(ODPS_COPY_STRIP_ENABLED, "false");
-        copyTask.setProperty("settings", params.toString());
+        if (Objects.nonNull(sourceConfig.getConfig(OdpsConfig.COPYTASK_BLOCK_SIZE))) {
+            Integer blockSize = sourceConfig.getInteger(OdpsConfig.COPYTASK_BLOCK_SIZE);
 
+            if (Objects.nonNull(blockSize)) {
+                params.addProperty(OdpsConfig.COPYTASK_BLOCK_SIZE, blockSize);
+            }
+        }
+
+        Map<String, String> hints = sourceConfig.getMap(OdpsConfig.MC_SQL_HINTS);
+        for (String hint : hints.keySet()) {
+            params.addProperty(hint, hints.get(hint));
+        }
+
+        copyTask.setProperty("settings", params.toString());
         return copyTask;
     }
 

@@ -133,7 +133,7 @@ export default () => {
 
                         let sourceId = res?.data?.id;
                         if (sourceId !== undefined) {
-                            let res1 = await getSource(sourceId.toString());
+                            let res1 = await getSource(sourceId);
                             setVisible(true);
                             setNewSource(res1?.data);
                         }
@@ -178,6 +178,10 @@ const SourceConfigForm = (props: {sourceType: string, configItems: API.ConfigIte
             case "map":
                 rules.push({
                     validator: (_: any, value: string) => {
+                        if (!value) {
+                            return Promise.resolve();
+                        }
+
                         try {
                             JSON.parse(value);
                         } catch (e) {

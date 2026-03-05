@@ -1,11 +1,15 @@
 package com.aliyun.odps.mma.validator;
 
+import com.aliyun.odps.Job;
 import com.aliyun.odps.OdpsException;
+import com.aliyun.odps.Project;
 import com.aliyun.odps.mma.api.ApiRes;
 import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.config.JobConfig;
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.config.PartitionFilter;
 import com.aliyun.odps.mma.constant.JobType;
+import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.model.*;
 import com.aliyun.odps.mma.service.Service;
 import com.aliyun.odps.mma.service.TableService;
@@ -137,6 +141,14 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
             }
         }
 
+
+        Optional<DataSourceModel> dsOpt = getDatasource(job, apiRes);
+        if (! dsOpt.isPresent()) {
+            return false;
+        }
+
+        DataSourceModel dsModel = dsOpt.get();
+
         boolean ok = true;
 
         switch (job.getType()) {
@@ -147,7 +159,7 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
                 ok = verifyTablesJob(job, apiRes);
                 break;
             case Partitions:
-                ok = verifyPartitionsJob(job, apiRes);
+                ok = verifyPartitionsJob(job, apiRes, dsModel);
                 break;
         }
 
@@ -158,14 +170,53 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
             return ok;
         }
 
+        if (!ok) {
+            return false;
+        }
+
         try {
-            OdpsUtils odpsUtils = OdpsUtils.fromConfig(this.mmaConfig);
-            boolean exists = odpsUtils.isProjectExists(projectName);
-            if (!exists) {
+            OdpsUtils dstOdpsUtils = OdpsUtils.fromConfig(this.mmaConfig);
+            Project dstProject = dstOdpsUtils.getProject(projectName);
+            try {
+                dstProject.reload();
+            } catch (OdpsException e) {
                 apiRes.addError("odps_project", String.format("%s is not exists", projectName));
+                return false;
             }
 
-            return ok && exists;
+            // odps -> odps 校验源和目标不能相同
+            if (dsModel.getType().equals(SourceType.ODPS)) {
+                OdpsConfig odpsConfig = (OdpsConfig) dsModel.getConfig();
+                OdpsUtils srcOdpsUtils = OdpsUtils.fromConfig(odpsConfig);
+                String srcProjectName = job.getDbName();
+
+                Project srcProject = srcOdpsUtils.getProject(srcProjectName);
+                try {
+                    srcProject.reload();
+                } catch (OdpsException e) {
+                    apiRes.addError("src_project", String.format("%s is not exists", srcProjectName));
+                    return false;
+                }
+
+                if (srcProject.getName().equals(dstProject.getName())) {
+                    String srcRegionId = srcProject.getRegionId();
+                    String dstRegionId = dstProject.getRegionId();
+
+                    if (
+                            (Objects.nonNull(srcRegionId) && Objects.nonNull(dstRegionId) && (Objects.equals(srcRegionId, dstRegionId)))
+                            || Objects.equals(srcProject.getTunnelEndpoint(), dstProject.getTunnelEndpoint())
+                    ) {
+                        apiRes.addError("src_project","src project is the same as the dst project, project is " + srcProjectName);
+                        return false;
+                    }
+
+
+                }
+
+
+            }
+
+            return true;
         } catch (OdpsException e) {
             logger.warn("job validation failed:", e);
             apiRes.setMessage(String.format("cannot connect to odps, %s", e.getMessage()));
@@ -174,10 +225,6 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
     }
 
     private boolean verifyDBJob(JobModel job, ApiRes apiRes) {
-        if (! getDatasource(job, apiRes).isPresent()) {
-            return false;
-        }
-
         boolean ok = verifyDatabase(job, apiRes);
         ok = ok && verifyTableBlackOrWhiteList(job.getConfig(), apiRes);
         ok = ok && verifyPartitionFilters(job.getConfig(), apiRes);
@@ -186,10 +233,6 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
     }
 
     private boolean verifyTablesJob(JobModel job, ApiRes apiRes) {
-        if (! getDatasource(job, apiRes).isPresent()) {
-            return false;
-        }
-
         if (! verifyDatabase(job, apiRes)) {
             return false;
         }
@@ -224,13 +267,7 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
         return ok;
     }
 
-    private boolean verifyPartitionsJob(JobModel job, ApiRes apiRes) {
-        Optional<DataSourceModel> dsOpt = getDatasource(job, apiRes);
-
-        if (! dsOpt.isPresent()) {
-            return false;
-        }
-
+    private boolean verifyPartitionsJob(JobModel job, ApiRes apiRes, DataSourceModel ds) {
         JobConfig config = job.getConfig();
         List<Integer> partitionIds = config.getPartitions();
         if (ListUtils.size(partitionIds) == 0) {
@@ -258,8 +295,8 @@ public class JobValidator implements ConstraintValidator<ValidateJob, JobModel> 
             return false;
         }
 
-        if (! dataSources.contains(dsOpt.get().getId())) {
-            apiRes.addError("partitions", "the datasource of partitions is not the " + dsOpt.get().getName());
+        if (! dataSources.contains(ds.getId())) {
+            apiRes.addError("partitions", "the datasource of partitions is not the " + ds.getName());
             return false;
         }
 

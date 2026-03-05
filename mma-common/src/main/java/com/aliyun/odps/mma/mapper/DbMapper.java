@@ -12,7 +12,7 @@ import java.util.List;
 public interface DbMapper {
     List<DataBaseModel> getAllDbs();
     List<DataBaseModel> getDbsOfDataSource(@Param("sourceName") String sourceName);
-    DataBaseModel getDbById(@Param("id") int id);
+    DataBaseModel getDbById(@Param("sourceId") int sourceId, @Param("id") int id);
     DataBaseModel getDbByName(@Param("dsName") String dsName, @Param("dbName") String dbName);
     void insertDb(DataBaseModel db);
     void updateDb(DataBaseModel db);

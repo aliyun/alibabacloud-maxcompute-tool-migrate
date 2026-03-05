@@ -24,18 +24,5 @@ public class SchemaUtils {
         return this.schemaAdapterMap.get(sourceType);
     }
 
-    public OdpsSchemaAdapter getSchemaAdapter(TaskType taskType) {
-        switch (taskType) {
-            case HIVE:
-            case HIVE_DATAX: return this.schemaAdapterMap.get(SourceType.HIVE);
-            case MC2MC_VERIFY:
-            case BIGQUERY:
-            case ODPS: return this.schemaAdapterMap.get(SourceType.ODPS);
-            case OSS: return this.schemaAdapterMap.get(SourceType.OSS);
-//            case BIGQUERY:
-//                return this.schemaAdapterMap.get(SourceType.BIGQUERY);
-        }
 
-        return null;
-    }
 }

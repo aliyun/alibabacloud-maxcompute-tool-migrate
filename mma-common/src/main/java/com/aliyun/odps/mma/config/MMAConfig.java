@@ -18,7 +18,7 @@ public class MMAConfig extends Config {
     public static String MC_TUNNEL_ENDPOINT = "mc.tunnel.endpoint";
     @ConfigItem(desc = "maxcompute access id", required = true)
     public static String MC_AUTH_ACCESS_ID = "mc.auth.access.id";
-    @ConfigItem(desc = "maxcompute access key", required = true, type = "password")
+    @ConfigItem(desc = "maxcompute access key", required = true, type = "password", isPassword = true)
     public static String MC_AUTH_ACCESS_KEY = "mc.auth.access.key";
     @ConfigItem(desc = "maxcompute default project", required = true)
     public static String MC_DEFAULT_PROJECT = "mc.default.project";
@@ -34,6 +34,10 @@ public class MMAConfig extends Config {
     public static String AUTH_AK_HDFS_PATH = "auth.ak.hdfs.path";
     //@ConfigItem(desc = "Spark依赖根目录")
     public static String SPARK_DEPENDENCY_ROOT = "spark.dependency.root";
+    @ConfigItem(desc = "spark version:kube/cupid, default is kube", defaultValue = "kube")
+    public static String SPARK_VERSION = "spark.version";
+    @ConfigItem(desc = "mc logview host(默认不用配置)", defaultValue = "")
+    public static String LOG_VIEW_HOST = "mc.logview.host";
 
     public MMAConfig() {
         super();

@@ -20,7 +20,7 @@ public class CommonPartitionGrouping implements PartitionGrouping {
     @Override
     public List<List<PartitionModel>> group(List<PartitionModel> partitions) {
         if (partitions.isEmpty()) {
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
 
         // 按照大小倒序排列

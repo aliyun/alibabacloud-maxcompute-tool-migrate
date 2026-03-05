@@ -247,6 +247,27 @@ export default () => {
                      )
                  }
 
+                 if (entity.status == "DONE") {
+                     options.push(
+                         <Popconfirm
+                             key={"3"}
+                             title={fm(intl, "pages.Job.rerun.confirm", "确定重新运行任务?")}
+                             onConfirm={async () => {
+                                 await jobAction(entity.id, "rerun");
+                                 setTimeout(() => {
+                                     actionRef.current?.reload();
+                                 }, 2000);
+
+                             }}
+                             okText="Yes"
+                             cancelText="No"
+                         >
+                             <a href="#"><FMSpan id="pages.Job.retrun" defaultMessage="重新运行" /></a>
+                         </Popconfirm>
+                     )
+                 }
+
+
                  return options;
              },
              search: false,

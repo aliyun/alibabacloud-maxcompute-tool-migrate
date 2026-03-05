@@ -1,19 +1,13 @@
 package com.aliyun.odps.mma;
 
-import com.aliyun.odps.Odps;
-import com.aliyun.odps.OdpsException;
-import com.aliyun.odps.Table;
-import com.aliyun.odps.account.Account;
-import com.aliyun.odps.account.BearerTokenAccount;
-import com.aliyun.odps.mma.config.HiveGlueConfig;
 import com.aliyun.odps.mma.config.MMAConfig;
-import com.aliyun.odps.mma.config.HiveConfig;
 import com.aliyun.odps.mma.constant.TaskStatus;
 import com.aliyun.odps.mma.mapper.JobMapper;
 import com.aliyun.odps.mma.mapper.PartitionMapper;
 import com.aliyun.odps.mma.mapper.TableMapper;
 import com.aliyun.odps.mma.mapper.TaskMapper;
 import com.aliyun.odps.mma.meta.*;
+import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.orm.OrmFactory;
 import com.aliyun.odps.mma.orm.TaskProxy;
@@ -21,13 +15,11 @@ import com.aliyun.odps.mma.service.DbService;
 import com.aliyun.odps.mma.service.JobService;
 import com.aliyun.odps.mma.service.TableService;
 import com.aliyun.odps.mma.service.TaskService;
-import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.sql.PartitionValue;
 //import com.aliyun.odps.mma.task.HiveTaskExecutor;
 import com.aliyun.odps.mma.task.TaskManager;
 import com.aliyun.odps.mma.task.TaskUtils;
 import com.aliyun.odps.mma.util.I18nUtils;
-import com.aliyun.odps.mma.util.OdpsUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -119,7 +111,13 @@ public class MMATester implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        testJobServe();
+        testJobModel();
+    }
+
+    private void testJobModel() {
+        JobModel jobModel = jobService.getJobById(140);
+
+        System.out.println(jobModel.getDstOdpsSchema());
     }
 
     public void testI18nUtils() {
@@ -229,27 +227,6 @@ public class MMATester implements CommandLineRunner {
 //
 //        System.out.println(he.getUDTFSql());
 //    }
-
-    private void testBearerToken() throws OdpsException {
-        OdpsUtils odpsUtils = new OdpsUtils(
-                config.getConfig(MMAConfig.MC_AUTH_ACCESS_ID),
-                config.getConfig(MMAConfig.MC_AUTH_ACCESS_KEY),
-                config.getConfig(MMAConfig.MC_ENDPOINT),
-                config.getConfig(MMAConfig.MC_DEFAULT_PROJECT)
-        );
-
-        String bearerToken = odpsUtils.getBearerToken("mma_test_hz", "", "acid_persons");
-        System.out.println(bearerToken);
-
-        Account account = new BearerTokenAccount(bearerToken);
-        Odps odps = new Odps(account);
-        odps.setEndpoint(config.getConfig(MMAConfig.MC_ENDPOINT));
-        odps.setDefaultProject("mma_test_hz");
-
-        Table table = odps.tables().get("acid_persons");
-        table.reload();
-        System.out.println(table.getRecordNum());
-    }
 
     private void testTaskMapper() {
         TaskModel taskModel = taskMapper.getTaskById(1);

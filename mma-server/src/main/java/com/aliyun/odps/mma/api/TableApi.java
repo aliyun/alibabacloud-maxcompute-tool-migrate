@@ -43,36 +43,36 @@ public class TableApi {
     public ApiRes getTables(@RequestBody TableFilter tableFilter) {
         int tablesCount = ts.getTablesCount(tableFilter);
         List<TableModel> tables =  ts.getTables(tableFilter);
-        List<Integer> tableIds = new ArrayList<>(tables.size());
+//        List<Integer> tableIds = new ArrayList<>(tables.size());
+//
+//        Map<Integer, TableModel> tableMap = new HashMap<>();
+//        for (TableModel tm: tables) {
+//            tableIds.add(tm.getId());
+//            tableMap.put(tm.getId(), tm);
+//        }
 
-        Map<Integer, TableModel> tableMap = new HashMap<>();
-        for (TableModel tm: tables) {
-            tableIds.add(tm.getId());
-            tableMap.put(tm.getId(), tm);
-        }
-
-        List<Map<String, Object>> ptStatList = ps.ptStatOfTables(tableIds);
-
-        for (Map<String, Object> ptStat: ptStatList) {
-            Integer tableId = (Integer) ptStat.get("tableId");
-            TableModel table = tableMap.get(tableId);
-            int count = ((Long)ptStat.get("count")).intValue();
-            table.setPartitions(table.getPartitions() + count);
-
-            switch ((String) ptStat.get("status")) {
-                case "INIT":
-                    break;
-                case "DOING":
-                    table.setPartitionsDoing(count);
-                    break;
-                case "DONE":
-                    table.setPartitionsDone(count);
-                    break;
-                case "FAILED":
-                    table.setPartitionsFailed(count);
-                    break;
-            }
-        }
+//        List<Map<String, Object>> ptStatList = ps.ptStatOfTables(tableIds);
+//
+//        for (Map<String, Object> ptStat: ptStatList) {
+//            Integer tableId = (Integer) ptStat.get("tableId");
+//            TableModel table = tableMap.get(tableId);
+//            int count = ((Long)ptStat.get("count")).intValue();
+//            table.setPartitions(table.getPartitions() + count);
+//
+//            switch ((String) ptStat.get("status")) {
+//                case "INIT":
+//                    break;
+//                case "DOING":
+//                    table.setPartitionsDoing(count);
+//                    break;
+//                case "DONE":
+//                    table.setPartitionsDone(count);
+//                    break;
+//                case "FAILED":
+//                    table.setPartitionsFailed(count);
+//                    break;
+//            }
+//        }
 
         ApiRes apiRes = ApiRes.ok();
         apiRes.addData("total", tablesCount);

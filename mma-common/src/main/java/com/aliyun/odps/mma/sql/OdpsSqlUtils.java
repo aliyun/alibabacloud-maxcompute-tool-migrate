@@ -3,11 +3,6 @@ package com.aliyun.odps.mma.sql;
 import com.aliyun.odps.Column;
 import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.meta.schema.MMAColumnSchema;
-import com.aliyun.odps.mma.meta.schema.MMAOdpsTableSchema;
-import com.aliyun.odps.mma.meta.schema.SchemaAdapterError;
-import com.aliyun.odps.mma.util.ListUtils;
-import com.aliyun.odps.mma.task.RangeClusterInfo;
-import com.aliyun.odps.mma.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -17,117 +12,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OdpsSqlUtils {
-
-    public static String createTableSql(
-            String projectName,
-            String schemaName,
-            String tableName,
-            TableSchema tableSchema,
-            String tableComment,
-            Integer lifecycle,
-            RangeClusterInfo rangeClusterInfo,
-            List<String> blackList
-    ) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("CREATE TABLE IF NOT EXISTS ");
-        sb.append(projectName).append(".");
-
-        if (StringUtils.isBlank(schemaName)) {
-            sb.append(tableName);
-        } else {
-            sb.append(schemaName)
-                    .append(".")
-                    .append(tableName);
-        }
-
-        sb.append(" (");
-
-        List<Column> columns = tableSchema.getColumns();
-        if (blackList != null) {
-            columns = columns.stream().filter(c -> !blackList.contains(c.getName())).collect(Collectors.toList());
-        }
-        for (int i = 0; i < columns.size(); i++) {
-            Column c = columns.get(i);
-            sb.append("\n`")
-                    .append(c.getName()).append("` ")        // 列名
-                    .append(c.getTypeInfo().getTypeName());  // 列类型
-
-            // not null
-            if (! c.isNullable()) {
-                sb.append(" ")
-                        .append("NOT NULL");
-            }
-
-            // default value, 默认值无论什么类型都用单引号(')包裹
-            if (! StringUtils.isBlank(c.getDefaultValue())) {
-                sb.append(" DEFAULT ")
-                        .append("'")
-                        .append(c.getDefaultValue())
-                        .append("'");
-            }
-
-            if (! StringUtils.isBlank(c.getComment())) {
-                sb.append(" COMMENT '").append(c.getComment()).append("'");
-            }
-            if (i + 1 < columns.size()) {
-                sb.append(',');
-            }
-        }
-
-        MMAOdpsTableSchema odpsTableSchema = (MMAOdpsTableSchema) tableSchema;
-        boolean ts2 = Objects.nonNull(odpsTableSchema.getEnableTransaction()) && odpsTableSchema.getEnableTransaction();
-
-        if (ts2) {
-            List<String> primaryKeys = odpsTableSchema.getPrimaryKeys();
-
-            if (! primaryKeys.isEmpty()) {
-                sb.append(", PRIMARY KEY(")
-                        .append(String.join(", ", primaryKeys))
-                        .append(") ");
-            }
-        }
-
-        sb.append("\n)");
-
-        if (! StringUtils.isBlank(tableComment)) {
-            sb.append("\n COMMENT '").append(tableComment).append("' ");
-        }
-
-        List<Column> pcolumns = tableSchema.getPartitionColumns();
-        if (!pcolumns.isEmpty()) {
-            sb.append("\n PARTITIONED BY (");
-            for (int i = 0; i < pcolumns.size(); i++) {
-                Column c = pcolumns.get(i);
-                sb.append("`").append(c.getName()).append("` ")
-                        .append(c.getTypeInfo().getTypeName());
-                if (! StringUtils.isBlank(c.getComment())) {
-                    sb.append(" COMMENT '").append(c.getComment()).append("'");
-                }
-                if (i + 1 < pcolumns.size()) {
-                    sb.append(',');
-                }
-            }
-            sb.append(")\n");
-        }
-
-        if (ts2) {
-            sb.append(" TBLPROPERTIES(\"transactional\"=\"true\")\n");
-        }
-
-        if (Objects.nonNull(lifecycle) && lifecycle > 0) {
-            sb.append(" LIFECYCLE ").append(lifecycle);
-        }
-
-        if (Objects.nonNull(rangeClusterInfo)) {
-            sb.append("\n").append("RANGE CLUSTERED BY ").append("(").append(rangeClusterInfo.getColumnName()).append(")")
-                    .append(" SORTED by ").append("(").append(rangeClusterInfo.getColumnName()).append(")")
-                    .append(" INTO ").append(rangeClusterInfo.getBuckets()).append(" BUCKETS");
-        }
-
-        sb.append(';');
-
-        return sb.toString();
-    }
 
     public static String createExternalTableSql(
             String tableFullName,
@@ -235,8 +119,9 @@ public class OdpsSqlUtils {
         sb.append("\nOUTPUTFORMAT '").append(outputFormat).append("'");
         sb.append("\nLOCATION '").append(location).append("'");
 
+        sb.append("\nTBLPROPERTIES ('lifecycle.deletemeta'='true')");
+
         if (Objects.nonNull(lifecycle) && lifecycle > 0) {
-            sb.append("\nTBLPROPERTIES ('lifecycle.deletemeta'='true')");
             sb.append("\nLIFECYCLE ").append(lifecycle);
         }
 

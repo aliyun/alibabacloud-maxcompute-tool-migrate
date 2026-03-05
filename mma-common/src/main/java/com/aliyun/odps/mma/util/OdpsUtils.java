@@ -4,6 +4,7 @@ import com.aliyun.odps.*;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.mma.config.Config;
 import com.aliyun.odps.mma.config.OdpsConfig;
+import com.aliyun.odps.mma.orm.TaskProxy;
 import com.aliyun.odps.task.SQLTask;
 import lombok.Getter;
 
@@ -17,13 +18,24 @@ public class OdpsUtils {
     @Getter
     private final Odps odps;
 
-    public OdpsUtils(String accessId, String accessKey, String endpoint, String defaultProject) {
+    public OdpsUtils(String accessId, String accessKey, String endpoint, String defaultProject, String logviewHost) {
         AliyunAccount account = new AliyunAccount(accessId, accessKey);
         this.odps = new Odps(account);
         this.odps.setEndpoint(endpoint);
         this.odps.setDefaultProject(defaultProject);
         String mmaFlag = MMAFlag.getMMAFlag(odps);
         this.odps.setUserAgent(mmaFlag);
+        this.odps.getRestClient().setRetryTimes(3);
+        this.odps.getRestClient().setConnectTimeout(30);
+        this.odps.getRestClient().setReadTimeout(30);
+        this.odps.getRestClient().setRetryStrategy(new MMARetryStrategy(null, 5));
+        if (!StringUtils.isBlank(logviewHost)) {
+            this.odps.setLogViewHost(logviewHost);
+        }
+    }
+
+    public void setRetry(TaskProxy task) {
+        this.odps.getRestClient().setRetryStrategy(new MMARetryStrategy(task, 5));
     }
 
     public static OdpsUtils fromConfig(Config config) {
@@ -31,14 +43,19 @@ public class OdpsUtils {
             config.getConfig(OdpsConfig.MC_AUTH_ACCESS_ID),
             config.getConfig(OdpsConfig.MC_AUTH_ACCESS_KEY),
             config.getConfig(OdpsConfig.MC_ENDPOINT),
-            config.getConfig(OdpsConfig.MC_DEFAULT_PROJECT)
+            config.getConfig(OdpsConfig.MC_DEFAULT_PROJECT),
+            config.getConfig(OdpsConfig.LOG_VIEW_HOST)
         );
     }
 
     public void setConnectTimeout(int seconds) {
         this.odps.getRestClient().setConnectTimeout(seconds);
         this.odps.getRestClient().setReadTimeout(seconds);
-        this.odps.getRestClient().setRetryTimes(1);
+        this.odps.getRestClient().setRetryTimes(2);
+    }
+
+    public Project getProject(String projectName) throws OdpsException {
+        return odps.projects().get(projectName);
     }
 
     public boolean isProjectExists(String projectName) throws OdpsException {

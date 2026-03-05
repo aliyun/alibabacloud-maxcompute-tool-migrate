@@ -10,6 +10,7 @@ import com.aliyun.odps.mma.service.DbService;
 import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.sql.PartitionValue;
 import com.aliyun.odps.mma.util.OdpsUtils;
+import com.aliyun.odps.mma.util.StringUtils;
 import com.aliyun.odps.task.CopyTask;
 import com.aliyun.odps.task.copy.Datasource;
 import com.aliyun.odps.task.copy.LocalDatasource;
@@ -65,7 +66,14 @@ public class CopyTaskMergedTransExecutor extends MergedTransportTaskExecutor {
 
     @Override
     protected void _mergeSourceTable() throws Exception {
-        String srcTempTableName = String.format("%s.%s", task.getDbName(), getTempTableName());
+        String srcTempTableName = null;
+
+        if (StringUtils.isBlank(task.getSchemaName())) {
+            srcTempTableName = String.format("%s.%s", task.getDbName(), getTempTableName());
+        } else {
+            srcTempTableName = String.format("%s.%s.%s", task.getDbName(), task.getSchemaName(), getTempTableName());
+        }
+
 
         String dropTableSql = "drop table if exists " + srcTempTableName + ";";
         executeSrcOdpsSql(dropTableSql, null);
@@ -233,27 +241,27 @@ public class CopyTaskMergedTransExecutor extends MergedTransportTaskExecutor {
             String destDataEndpoint = mmaConfig.getMcDataEndpoint();
             String destTunnelEndpoint = mmaConfig.getConfig(MMAConfig.MC_TUNNEL_ENDPOINT);
 
-            if (Objects.nonNull(destTunnelEndpoint)) {
-                if (Objects.nonNull(srcTunnelEndpoint)) {
-                    if ((! isChinaVpc.test(destTunnelEndpoint)) && isChinaVpc.test(sourceProject)) {
-                        throw new Exception("cannot download data");
-                    }
-                } else {
-                    if ((! isChinaVpc.test(destTunnelEndpoint)) && isChinaVpc.test(srcOdpsEndpoint)) {
-                        throw new Exception("cannot download data");
-                    }
-                }
-            } else {
-                if (Objects.nonNull(srcTunnelEndpoint)) {
-                    if ((! isChinaVpc.test(destDataEndpoint)) && isChinaVpc.test(sourceProject)) {
-                        throw new Exception("cannot download data");
-                    }
-                } else {
-                    if ((! isChinaVpc.test(destDataEndpoint)) && isChinaVpc.test(srcOdpsEndpoint)) {
-                        throw new Exception("cannot download data");
-                    }
-                }
-            }
+//            if (Objects.nonNull(destTunnelEndpoint)) {
+//                if (Objects.nonNull(srcTunnelEndpoint)) {
+//                    if ((! isChinaVpc.test(destTunnelEndpoint)) && isChinaVpc.test(sourceProject)) {
+//                        throw new Exception("cannot download data");
+//                    }
+//                } else {
+//                    if ((! isChinaVpc.test(destTunnelEndpoint)) && isChinaVpc.test(srcOdpsEndpoint)) {
+//                        throw new Exception("cannot download data");
+//                    }
+//                }
+//            } else {
+//                if (Objects.nonNull(srcTunnelEndpoint)) {
+//                    if ((! isChinaVpc.test(destDataEndpoint)) && isChinaVpc.test(sourceProject)) {
+//                        throw new Exception("cannot download data");
+//                    }
+//                } else {
+//                    if ((! isChinaVpc.test(destDataEndpoint)) && isChinaVpc.test(srcOdpsEndpoint)) {
+//                        throw new Exception("cannot download data");
+//                    }
+//                }
+//            }
         }
 
         // SETUP Task

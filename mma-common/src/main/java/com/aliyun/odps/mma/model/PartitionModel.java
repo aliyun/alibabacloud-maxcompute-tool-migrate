@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import com.aliyun.odps.mma.config.SourceConfig;
 import com.aliyun.odps.mma.util.TableHasher;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Data;
 
@@ -54,11 +53,6 @@ public class PartitionModel extends ModelBase {
                 && Objects.equals(this.tableName, o.tableName)
                 && Objects.equals(this.schemaName, o.schemaName)
                 && Objects.equals(this.value, o.value);
-    }
-
-    @JsonIgnore
-    public String key() {
-        return String.format("%s.%s.%s", dbName, tableName, value);
     }
 
     // new value after replace
@@ -107,7 +101,7 @@ public class PartitionModel extends ModelBase {
         this.value = value;
     }
 
-    public void setValue(List<String> values) {
+    public void setValueList(List<String> values) {
         this.value = values.stream().map(v -> {
                 try {
                     return URLEncoder.encode(v, "UTF8");

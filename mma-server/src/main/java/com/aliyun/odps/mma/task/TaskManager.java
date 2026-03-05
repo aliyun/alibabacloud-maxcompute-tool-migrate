@@ -1,5 +1,14 @@
 package com.aliyun.odps.mma.task;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.mapper.JobMapper;
 import com.aliyun.odps.mma.mapper.PartitionMapper;
@@ -12,6 +21,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,30 +30,26 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.concurrent.*;
-
 @Component
-public class TaskManager implements InitializingBean {
+public class TaskManager implements InitializingBean, DisposableBean {
     private static final Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
     private TaskService taskService;
     private PartitionMapper ptMapper;
-    SqlSessionFactory sqlSessionFactory;
-    private ThreadPoolExecutor threadPool;
-    private int maxTaskNum;
+    private SqlSessionFactory sqlSessionFactory;
+    private final ExecutorService threadPool = Executors.newCachedThreadPool();
+    private volatile int maxTaskNum;
     private TaskUtils taskUtil;
     private final MMAConfig config;
-    private final Map<Integer, Future<?>> taskFutures = new HashMap<>();
-    private final Map<Integer, TaskExecutor> taskExecutors = new HashMap<>();
-    private ApplicationEventPublisher publisher;
-    private boolean stoppingJob;
-
+    private final ConcurrentHashMap<Integer, Future<?>> taskFutures = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, TaskExecutor> taskExecutors = new ConcurrentHashMap<>();
+    private final ApplicationEventPublisher publisher;
+    private volatile boolean stoppingJob;
 
     public TaskManager(
-            @Autowired MMAConfig config,
-            ApplicationEventPublisher publisher,
-            @Value("${mma-version}") String mmaVersion
+        @Autowired MMAConfig config,
+        ApplicationEventPublisher publisher,
+        @Value("${mma-version}") String mmaVersion
     ) {
         this.config = config;
         this.publisher = publisher;
@@ -73,7 +79,7 @@ public class TaskManager implements InitializingBean {
 
     @Scheduled(fixedRateString = "${SCH_RATE:2000}", initialDelay = 2_000)
     public void executeTasks() {
-        int activeTasks = this.threadPool.getActiveCount();
+        int activeTasks = this.taskFutures.size();
         int executorAvailable = this.maxTaskNum - activeTasks;
 
         if (executorAvailable <= 0) {
@@ -90,39 +96,41 @@ public class TaskManager implements InitializingBean {
             logger.info("get available tasks num: {}", tasks.size());
         }
 
-        for (TaskModel task: tasks) {
+        int taskCountSubmit = 0;
+        for (TaskModel task : tasks) {
             if (taskFutures.containsKey(task.getId())) {
                 continue;
+            }
+            if (taskFutures.size() >= maxTaskNum) {
+                break;
             }
 
             TaskExecutor te = taskUtil.getTaskExecutor(task.getType());
             logger.info("submit task {}", task.getTaskName());
             te.setTask(task);
 
-            CompletableFuture<?> cf = new CompletableFuture<>();
+            taskExecutors.put(task.getId(), te);
+            CountDownLatch latch = new CountDownLatch(1);
             Future<?> f = this.threadPool.submit(() -> {
                 try {
                     te.run();
                 } finally {
-                    cf.complete(null);
+                    taskExecutors.remove(task.getId());
+                    //waiting for taskFutures.put() finished
+                    latch.await();
+                    logger.info("task is {} {}", task.getStatus(), task.getTaskName());
+                    taskFutures.remove(task.getId());
                 }
-
                 return null;
             });
 
             taskFutures.put(task.getId(), f);
-            taskExecutors.put(task.getId(), te);
-
-            cf.thenAccept((Void) -> {
-                logger.info("task is {} {}", task.getStatus(), task.getTaskName());
-                taskFutures.remove(task.getId());
-                taskExecutors.remove(task.getId());
-            });
+            // make sure taskFutures.put() happen before taskFutures.remove()
+            latch.countDown();
+            taskCountSubmit++;
         }
 
-        if (!tasks.isEmpty()) {
-            logger.info("success submit tasks num: {}", tasks.size());
-        }
+        logger.info("success submit tasks num: {}", taskCountSubmit);
     }
 
     @Override
@@ -133,11 +141,10 @@ public class TaskManager implements InitializingBean {
             this.maxTaskNum = Integer.parseInt(taskMaxNumStr);
             config.setConfig(MMAConfig.TASK_MAX_NUM, taskMaxNumStr);
         } else {
-            this.maxTaskNum = config.getInteger(MMAConfig.TASK_MAX_NUM);;
+            this.maxTaskNum = config.getInteger(MMAConfig.TASK_MAX_NUM);
         }
 
         logger.info("the max worker num is {}", this.maxTaskNum);
-        threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(this.maxTaskNum);
         this.taskService.restartAllTerminated();
         this.ptMapper.setTerminatedPtStatusInit();
     }
@@ -151,7 +158,7 @@ public class TaskManager implements InitializingBean {
 
         taskFutures.remove(taskId);
         taskExecutors.remove(taskId);
-        if (! future.isDone()) {
+        if (!future.isDone()) {
             logger.info("try to stop task with id={}", taskId);
             te.killSelf();
             future.cancel(true);
@@ -176,18 +183,6 @@ public class TaskManager implements InitializingBean {
         setJobDeleted(jobId);
         stoppingJob = false;
         logger.info("success to delete job {} ", jobId);
-    }
-
-    public void join() {
-        while (this.threadPool.getActiveCount() != 0) {
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-                logger.error("", e);
-            }
-        }
-
-        this.threadPool.shutdown();
     }
 
     @Transactional
@@ -240,7 +235,7 @@ public class TaskManager implements InitializingBean {
         List<TaskModel> tasks = taskService.getRunningTasksByJobId(jobId);
 
         // 停掉task
-        for (TaskModel task: tasks) {
+        for (TaskModel task : tasks) {
             task.setStopped(true); // 供task executor用
             publisher.publishEvent(new TaskEvent(this, task));
             int taskId = task.getId();
@@ -250,7 +245,7 @@ public class TaskManager implements InitializingBean {
                 continue;
             }
 
-            if (! future.isDone()) {
+            if (!future.isDone()) {
                 logger.info("stop task with id={}", taskId);
                 te.killSelf();
                 future.cancel(true);
@@ -258,10 +253,16 @@ public class TaskManager implements InitializingBean {
         }
 
         // 在从taskFutures里去掉task
-        for (TaskModel task: tasks) {
+        for (TaskModel task : tasks) {
             int taskId = task.getId();
             taskFutures.remove(taskId);
             taskExecutors.remove(taskId);
         }
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(1, TimeUnit.MINUTES);
     }
 }

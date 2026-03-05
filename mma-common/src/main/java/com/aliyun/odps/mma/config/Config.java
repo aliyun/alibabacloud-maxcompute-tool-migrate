@@ -248,12 +248,22 @@ public abstract class Config {
             }
 
             item.put("key", configKey);
-            if (Objects.nonNull(configValue) && !Objects.equals(configItem.type(), "password")) {
+            if (Objects.nonNull(configValue) &&
+                    !(
+                            Objects.equals(configItem.type(), "password") ||
+                                    configItem.isPassword()
+                    )
+
+            ) {
                 item.put("value", configValue);
             }
 
             if (configItem.required()) {
                 item.put("required", true);
+            }
+
+            if (configItem.isPassword()) {
+                item.put("password", true);
             }
 
             if (! configItem.editable()) {
@@ -296,7 +306,7 @@ public abstract class Config {
         Map<String, String> clearItems = new HashMap<>();
         List<String> itemsDeleted = new ArrayList<>();
 
-        for (String configKey: items.keySet()) {
+        for (String configKey: configItemMap.keySet()) {
             ConfigItem configItem = configItemMap.get(configKey);
             if (Objects.isNull(configItem)) {
                 continue;
@@ -304,7 +314,10 @@ public abstract class Config {
 
             Object configValue = items.get(configKey);
             if (Objects.isNull(configValue)) {
-                itemsDeleted.add(configKey);
+                if (! configItem.isPassword()) {
+                    itemsDeleted.add(configKey);
+                }
+
                 continue;
             }
 
@@ -315,7 +328,10 @@ public abstract class Config {
                 configStrVal = configStrVal.trim();
 
                 if (configStrVal.isEmpty()) {
-                    itemsDeleted.add(configKey);
+                    if (! configItem.isPassword() && configItem.type() != "password") {
+                        itemsDeleted.add(configKey);
+                    }
+
                     continue;
                 }
             } else {
@@ -398,7 +414,7 @@ public abstract class Config {
             clearItems.put(configKey, configStrVal);
         }
 
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             return errors;
         }
 
@@ -407,10 +423,11 @@ public abstract class Config {
             this.setConfig(configKey, configValue);
         }
 
-        for (String configKey: itemsDeleted) {
-            this.deleteConfig(configKey);
+        if (Objects.isNull(mem)) {
+            for (String configKey : itemsDeleted) {
+                this.deleteConfig(configKey);
+            }
         }
-
         return errors;
     }
 

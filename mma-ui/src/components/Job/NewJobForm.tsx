@@ -114,6 +114,10 @@ export const NewJobForm = (
         jobJson["type"] = jobType;
         "whiteOrBlackList" in jobJson && delete jobJson["whiteOrBlackList"];
 
+        if ("others" in jobJson) {
+            jobJson["others"] = JSON.parse(jobJson["others"]);
+        }
+
         const hide = message.loading(fm(intl, "components/Job/NewJobForm.submitting", "提交迁移任务中..."))
         submitJob(jobJson as API.Job)
             .then((res) => {
@@ -172,6 +176,7 @@ export const NewJobForm = (
                 name="task_type"
                 valueEnum={jobOpts?.taskTypes}
                 rules={[{ required: true, message: fm(intl, "components.Job.NewJobForm.selectTaskType",'请选择任务类型') }]}
+                initialValue={jobOpts?.defaultTaskType}
             />
             <ProFormSelect
                 label={fm(intl, "components.Job.NewJobForm.mcProject", "MC项目:")}
@@ -193,6 +198,23 @@ export const NewJobForm = (
                 placeholder={fm(intl, "components.Job.NewJobForm.mcSchemaPlaceholder", "请输入mc schema名称")}
             />
             <JobTypeRender tables={tables} jobType={jobType} labelCol={labelCol} intl={intl}/>
+
+            {
+                (() => {
+                    if (jobOpts?.sourceType == 'DATABRICKS') {
+                        return (<ProFormSelect
+                                label={fm(intl, "components.Job.tableType", "表类型:")}
+                                name="table_type"
+                                valueEnum={{
+                                    "ACID1.0": "ACID1.0",
+                                    "COMMON": "普通表"
+                                }}
+                                initialValue="ACID1.0"
+                            />
+                        )
+                    }
+                })()
+            }
 
             <ProFormSwitch
 
@@ -295,6 +317,25 @@ export const NewJobForm = (
                     message: fm(intl, "components.Job.NewJobForm.tableMappingFormat", "格式: prefix${table}suffix", {table: "{table}"})
                 }]}
             />
+                        {/*<ProFormTextArea*/}
+                        {/*                            name="others"*/}
+                        {/*                            label="other config"*/}
+                        {/*                            colProps={{span: 24}}*/}
+                        {/*                            rules = {[{*/}
+                        {/*            validator: (_: any, value: string) => {*/}
+                        {/*                if (!value) {*/}
+                        {/*                    return Promise.resolve();*/}
+                        {/*                }*/}
+                        {/*                try {*/}
+                        {/*                    JSON.parse(value);*/}
+                        {/*                } catch (e) {*/}
+                        {/*                    return Promise.reject(new Error('请填入合法的json字符串'));*/}
+                        {/*                }*/}
+
+                        {/*                return Promise.resolve();*/}
+                        {/*            }*/}
+                        {/*        }]}*/}
+                        {/*                        />*/}
         </ModalForm>
     )
 }

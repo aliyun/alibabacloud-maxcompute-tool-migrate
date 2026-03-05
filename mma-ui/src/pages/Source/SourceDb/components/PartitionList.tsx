@@ -16,10 +16,6 @@ export default (props: {db: API.DbModel}) => {
 
     const columns: ProColumns<API.PartitionModel>[] = [
         {
-            title: "Schema",
-            dataIndex: "schemaName",
-        },
-        {
             title: fm(intl, "pages.Source.SourceDb.components.PartitionList.name", "表名"),
             dataIndex: "tableName",
         },
@@ -79,7 +75,7 @@ export default (props: {db: API.DbModel}) => {
             dataIndex: "lastDdlTime",
             valueType: 'dateRange',
             sorter: {
-                compare: (a, b) => 0,
+                compare: (a, b) => a.size ?? 0 - b.size ?? 0,
                 multiple: 1
             }
         },
@@ -102,6 +98,7 @@ export default (props: {db: API.DbModel}) => {
             <ProTable<API.PartitionModel>
                 columns={columns}
                 request={async (params, sort, filter) => {
+                    params["sourceId"] = props?.db.sourceId;
                     params["dbId"] = props?.db.id;
                     let res = await getPts(params, sort, filter);
                     setTotal(res?.total || 0);

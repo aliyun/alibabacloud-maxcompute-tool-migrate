@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class JobFilter extends QueryFilter {
+    private String description;
     private String sourceName;
     private String dbName;
     private String schemaName;

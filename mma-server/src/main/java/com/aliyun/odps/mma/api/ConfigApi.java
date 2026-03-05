@@ -73,12 +73,11 @@ public class ConfigApi {
         try {
             config.openMemMode();
             Map<String, String> errors = config.addConfigItems(configItems);
-            if (errors.size() > 0) {
+            if (!errors.isEmpty()) {
                 return ApiRes.error("config error", errors);
             }
 
             OdpsUtils odpsUtils = OdpsUtils.fromConfig(config);
-            odpsUtils.setConnectTimeout(2);
 
             try {
                 boolean ok = odpsUtils.isProjectExists(config.getConfig(MMAConfig.MC_DEFAULT_PROJECT));

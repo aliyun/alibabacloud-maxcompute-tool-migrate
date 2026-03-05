@@ -311,6 +311,7 @@ public class DataSourceMetaLoader {
             pm.setDbName(dm.getName());
             pm.setTableName(tm.getName());
 
+
             dm.setSize(dm.getSizeOpt().orElse(0L) + size);
             tm.setSize(tm.getSizeOpt().orElse(0L) + size);
 
@@ -401,8 +402,8 @@ public class DataSourceMetaLoader {
             }
 
             return blackList.stream().noneMatch(t -> {
-                if (t.startsWith("*.")) {
-                    return tableName.equals(t.substring("*.".length()));
+                while (t.startsWith("*.")) {
+                    t = t.substring("*.".length());
                 }
 
                 return t.equals(tableFullName);
@@ -436,9 +437,13 @@ public class DataSourceMetaLoader {
 
                 Future<TableModel> future = threadPool.submit(() -> {
                     try {
+                        logger.info("try to get table {} {}", dbName, tbName);
                         return loader.getTable(dbName, tbName);
                     } catch (Exception e) {
-                        logger.error("failed to get table {}.{}", dbName, tbName);
+                        logger.error("failed to get table {} {}", dbName, tbName, e);
+
+                        actionLog(DSUpdateAction.LOAD_META, ActionStatus.FAILED, "failed to get table %s.%s", dbName, tbName);
+
                         throw e;
                     }
                 });
@@ -531,6 +536,16 @@ public class DataSourceMetaLoader {
 
                 if (lastDdlTimeUpdated) {
                     log("last ddl time of {} is updated", oldModel);
+//                    logger.info(oldModel.getLastDdlTime().toString() + " " + newModel.getLastDdlTime());
+//                    logger.info(oldModel.getLastDdlTime().getTime() + " " + newModel.getLastDdlTime().getTime());
+//                    logger.info(String.valueOf(
+//                        Objects.equals(newModel.getLastDdlTime(), oldModel.getLastDdlTime())));
+//                } else {
+//                    log("{} NOT UPDATED", oldModel);
+//                    logger.info(oldModel.getLastDdlTime().toString() + " " + newModel.getLastDdlTime());
+//                    logger.info(oldModel.getLastDdlTime().getTime() + " " + newModel.getLastDdlTime().getTime());
+//                    logger.info(String.valueOf(
+//                        Objects.equals(newModel.getLastDdlTime(), oldModel.getLastDdlTime())));
                 }
 
                 boolean isUpdated = sizeUpdated || numRowsUpdated || lastDdlTimeUpdated;

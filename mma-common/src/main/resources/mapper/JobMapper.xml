@@ -6,6 +6,7 @@
         <result column="source_name"  property="sourceName" />
         <result column="db_name"  property="dbName"  />
         <result column="odps_project" property="dstOdpsProject"/>
+        <result column="odps_schema" property="dstOdpsSchema"/>
         <result column="create_time"  property="createTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
         <result column="update_time"  property="updateTime" typeHandler="org.apache.ibatis.type.DateTypeHandler" />
         <result column="config"  property="config" typeHandler="com.aliyun.odps.mma.util.JobConfigHandler" />
@@ -25,6 +26,10 @@
                 and source_name = #{sourceName}
             </if>
 
+            <if test="description != null">
+                and description like CONCAT('%', #{description}, '%')
+            </if>
+
             <if test="dbName != null">
                 and db_name = #{dbName}
             </if>
@@ -41,21 +46,88 @@
                 and stopped = 1
             </if>
 
-            <if test="dbId > 0">
-                and id in (select job_id from task where db_id=#{dbId} limit 1)
-            </if>
-
-            <if test="tableId > 0">
-                and id in (select job_id from task where table_id=#{tableId} limit 1)
-            </if>
-
-            <if test="taskId > 0">
-                and id in (select job_id from task where id=#{taskId})
+            <if test="jobIds != null and jobIds.size() > 0">
+                and id in
+                <foreach item="jobId" index="index" collection="jobIds" open="(" separator="," close=")">
+                    #{jobId}
+                </foreach>
             </if>
         </where>
     </sql>
 
+    <sql id="dynamicJob">
+        with job as (
+        with t as (
+        select job_id,
+        sum(case when status = 'INIT' then 1 else 0 END) as init,
+        sum(case when status = 'DONE' then 1 else 0 END) as done,
+        sum(case when status like '%DOING' then 1 else 0 END) as doing,
+        sum(case when status like '%FAILED' then 1 else 0 END) as failed
+        from task
+            <where>
+            deleted=0
+            <if test="dbName != null">
+                and db_name=#{dbName}
+            </if>
+
+            <if test="schemaName != null">
+                and schema_name=#{schemaName}
+            </if>
+
+            <if test="tableName != null">
+                and table_name=#{tableName}
+            </if>
+
+            <if test="dstOdpsProject != null">
+                and odps_project=#{dstOdpsProject}
+            </if>
+
+            <if test="dstOdpsSchema != null">
+                and odps_schema=#{dstOdpsSchema}
+            </if>
+
+            <if test="dstOdpsTable != null">
+                and odps_table=#{dstOdpsTable}
+            </if>
+
+            <if test="ptValue != null">
+               and id in (
+                select task_id from task_partition where partition_id in (select id from partition_model where `value`
+                like CONCAT('%', #{ptValue}, '%'))
+                )
+           </if>
+            </where>
+            group by job_id
+        )
+        select
+                 id,
+                `description`,
+                `source_name`,
+                `db_name`,
+                `odps_project`,
+                `odps_schema`,
+                `type`,
+                `stopped`,
+                `restart`,
+                `timer`,
+                `last_batch`,
+                `config`,
+                `deleted`,
+                `create_time` datetime ,
+                 t.init as tasks_init, t.done as tasks_done, t.doing as tasks_doing, t.failed as tasks_failed,
+               (
+                   case when t.doing > 0 then 'DOING'
+                        when t.failed > 0 then 'FAILED'
+                        when t.done > 0 and t.init = 0 then 'DONE'
+                        else 'INIT'
+                       end
+                   ) as status
+        from job left join t on job.id = t.job_id
+        )
+    </sql>
+
     <select id="getJobs"  resultMap="jobMap" parameterType="com.aliyun.odps.mma.query.JobFilter">
+        <include refid="dynamicJob"></include>
         select * from job
         <include refid="jobFilter"></include>
 

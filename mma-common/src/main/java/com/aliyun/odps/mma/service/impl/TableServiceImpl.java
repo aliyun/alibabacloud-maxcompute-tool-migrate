@@ -126,7 +126,7 @@ public class TableServiceImpl implements TableService {
 
     @Override
     public List<TableModel> getTablesOfDbs(List<Integer> dbIds) {
-        if (dbIds.size() == 0) {
+        if (dbIds.isEmpty()) {
             return new ArrayList<>();
         }
         return  mapper.getTablesOfDbs(dbIds);

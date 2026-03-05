@@ -131,70 +131,54 @@
         </where>
     </update>
 
-    <select id="getTables" resultMap="tableMap" parameterType="com.aliyun.odps.mma.query.TableFilter">
-        select table_model.*, datasource.name as sourceName from table_model join datasource on
-        table_model.source_id = datasource.id
+    <sql id="dynamicTableModel">
+        with table_model as (
+        with p as (
 
-        <where>
-            <if test="sourceId > 0">
-                datasource.id=#{sourceId}
-            </if>
-
+        select
+            table_id,
+            sum(case when status = 'INIT' then 1 else 0 END)   as init,
+            sum(case when status = 'DONE' then 1 else 0 END)   as done,
+            sum(case when status = 'DOING' then 1 else 0 END)  as doing,
+            sum(case when status = 'FAILED' then 1 else 0 END) as failed,
+            count(*) as partitions
+            from partition_model
+            where source_id = #{sourceId}
             <if test="dbId > 0">
-                and table_model.db_id=#{dbId}
+              and db_id=#{dbId}
             </if>
+            group by table_id
+        )
+        select
+        source_id,
+        id,
+        db_id,
+        name,
+        has_partitions,
+        type,
+        p.partitions as partitions,
+        p.done as partitionsDone,
+        p.doing as partitionsDoing,
+        p.failed as partitionsFailed,
+        (
+           case
+             when has_partitions = 0 or p.partitions = 0 then status
+             when p.doing > 0 then 'DOING'
+             when p.failed > 0 then 'FAILED'
+             when p.done = p.partitions then 'DONE'
+             when p.done &gt; 0 and p.done &lt; p.partitions then 'PART_DONE'
+             else 'INIT'
+           end
+        )  as status,
+        size,
+        num_rows,
+        updated,
+        last_ddl_time
+        from table_model left join p on table_model.id = p.table_id
+        )
+    </sql>
 
-            <if test="dbName != null">
-                and table_model.db_name like CONCAT('%', #{dbName}, '%')
-            </if>
-
-            <if test="schemaName != null">
-                and table_model.schema_name like CONCAT('%', #{schemaName}, '%')
-            </if>
-
-            <if test="name != null">
-                and table_model.name like CONCAT('%', #{name}, '%')
-            </if>
-
-            <if test="type != null">
-                and table_model.type = #{type}
-            </if>
-
-            <if test="hasPartitions >= 0">
-                and table_model.has_partitions=#{hasPartitions}
-            </if>
-
-            <if test="updated == 0 or updated == 1">
-                and table_model.updated=#{updated}
-            </if>
-
-            <if test="lastDdlTime != null and lastDdlTime.size() == 2" >
-                and table_model.last_ddl_time >= #{lastDdlTimeStart} and table_model.last_ddl_time &lt;= #{lastDdlTimeEnd}
-            </if>
-
-            <if test="status != null and status.size() > 0">
-                and
-                <foreach item="st" index="index" collection="status" open="table_model.status in ("
-                         separator="," close=")">
-                    #{st}
-                </foreach>
-            </if>
-        </where>
-
-        <if test="orders.size() > 0">
-            <foreach item="p" index="index" collection="orders" open="order by" separator="," close="">
-                table_model.${p.name} ${p.order}
-            </foreach>
-        </if>
-
-        <if test="offset >= 0 and pageSize > 0">
-            limit #{offset}, #{pageSize}
-        </if>
-    </select>
-
-    <select id="getTablesCount" resultType="java.lang.Integer" parameterType="com.aliyun.odps.mma.query.TableFilter">
-        select count(*) from table_model
-
+    <sql id="tableFilter">
         <where>
             <if test="sourceId > 0">
                 source_id=#{sourceId}
@@ -209,15 +193,15 @@
             </if>
 
             <if test="schemaName != null">
-                and `schema_name` like CONCAT('%', #{schemaName}, '%')
+                and schema_name like CONCAT('%', #{schemaName}, '%')
             </if>
 
             <if test="name != null">
-                and `name` like CONCAT('%', #{name}, '%')
+                and name like CONCAT('%', #{name}, '%')
             </if>
 
             <if test="type != null">
-                and `type` = #{type}
+                and table_model.type = #{type}
             </if>
 
             <if test="hasPartitions >= 0">
@@ -240,6 +224,28 @@
                 </foreach>
             </if>
         </where>
+    </sql>
+
+    <select id="getTables" resultMap="tableMap" parameterType="com.aliyun.odps.mma.query.TableFilter">
+        <include refid="dynamicTableModel" />
+        select * from table_model
+        <include refid="tableFilter" />
+
+        <if test="orders.size() > 0">
+            <foreach item="p" index="index" collection="orders" open="order by" separator="," close="">
+                table_model.${p.name} ${p.order}
+            </foreach>
+        </if>
+
+        <if test="offset >= 0 and pageSize > 0">
+            limit #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="getTablesCount" resultType="java.lang.Integer" parameterType="com.aliyun.odps.mma.query.TableFilter">
+        <include refid="dynamicTableModel" />
+        select count(*) from table_model
+        <include refid="tableFilter" />
     </select>
 
     <select id="getTablesOfDbs" resultMap="tableMap">

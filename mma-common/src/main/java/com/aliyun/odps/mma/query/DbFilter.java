@@ -12,7 +12,7 @@ public class DbFilter extends QueryFilter {
     private int sourceId;
     private String name;
     private String status;
-    private TableFilter.TableSorter sorter;
+    private DbFilter.DbSorter sorter;
 
     public List<SortPair> getOrders() {
         if (Objects.nonNull(sorter)) {

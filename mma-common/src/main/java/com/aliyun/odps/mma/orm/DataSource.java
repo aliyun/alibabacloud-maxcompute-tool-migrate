@@ -71,8 +71,11 @@ public class DataSource {
     public void loadMeta() throws Exception {
         ds.updateLastUpdateTime(dm.getId());
         dl.open(dm);
-        dl.updateData();
-        dl.close();
+        try {
+            dl.updateData();
+        } finally {
+            dl.close();
+        }
     }
 
     public void runInitializer() throws Exception {

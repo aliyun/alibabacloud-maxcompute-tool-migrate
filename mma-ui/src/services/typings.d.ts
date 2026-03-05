@@ -189,6 +189,7 @@ declare namespace API {
         taskTypes: {string: string},
         defaultTaskType: string,
         tables: [string],
+        sourceType: string
     }
 
     type Task =     {

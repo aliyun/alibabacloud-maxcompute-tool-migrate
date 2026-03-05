@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.api;
 
+import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.config.SourceConfig;
 import com.aliyun.odps.mma.config.SourceConfigUtils;
 import com.aliyun.odps.mma.constant.ActionType;
@@ -13,6 +14,7 @@ import com.aliyun.odps.mma.query.SourceFilter;
 import com.aliyun.odps.mma.service.DataSourceService;
 import com.aliyun.odps.mma.util.I18nUtils;
 import com.aliyun.odps.mma.util.Result;
+import com.aliyun.odps.mma.util.StringUtils;
 import com.aliyun.odps.mma.validator.JsonField;
 import com.aliyun.odps.mma.validator.ValidateJson;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -150,8 +152,10 @@ public class SourceApi {
             }
         }
 
+        SourceConfig configDb = sourceConfigUtils.newSourceConfig(dm.getType(), dm.getName());
         SourceConfig config = sourceConfigUtils.newSourceConfig(dm.getType(), dm.getName());
         config.openMemMode();
+
         Map<String, String> configErrors = config.addConfigItems(dsJson);
         if (!configErrors.isEmpty()) {
             return ApiRes.error(errMsg, configErrors);
@@ -161,6 +165,20 @@ public class SourceApi {
             ds.updateDSName(dm.getId(), newName);
         }
 
+        // 更新配置允许不填密码
+        switch (dm.getType()) {
+            case ODPS:
+                String newAccessKey = config.getConfig(OdpsConfig.MC_AUTH_ACCESS_KEY);
+                if(StringUtils.isBlank(newAccessKey)) {
+                    String accessKey = configDb.getConfig(OdpsConfig.MC_AUTH_ACCESS_KEY);
+                    config.setConfig(OdpsConfig.MC_AUTH_ACCESS_KEY, accessKey);
+                }
+                break;
+            default:
+                break;
+        }
+
+
         MetaLoader metaLoader = metaLoaderUtils.getMetaLoader(config.getSourceType());
         try {
             metaLoader.checkConfig(config);
@@ -169,7 +187,8 @@ public class SourceApi {
             return new ApiRes(String.format("failed to update source: %s", e.getMessage()));
         }
 
-        config.dumpMem();
+        config.closeMemMode();
+        config.addConfigItems(dsJson);
 
         Map<String, Object> ok = new HashMap<>();
         ok.put("name", dm.getName());

@@ -2,7 +2,7 @@ import {PageContainer} from "@ant-design/pro-components";
 import TableList from "./components/TableList";
 import {useEffect, useState} from "react";
 import {Button, Card, Descriptions} from "antd";
-import {getDbs} from "@/services/source";
+import {getDbs, getDb, getSource} from "@/services/source";
 import PartitionList from "@/pages/Source/SourceDb/components/PartitionList";
 import {useIntl} from "umi";
 import {FMSpan, FM, fm} from "@/components/i18n";
@@ -14,20 +14,25 @@ export default (props: any) => {
     const params = new URLSearchParams(window.location.search)
     const intl = useIntl();
 
+    let sourceId = parseInt(params.get("sourceId") || "");
     let dbId = parseInt(params.get("dbId") || "");
 
-    const getDb = () => {
-        getDbs({id: dbId}).then((res) => {
-            let dbs = res.data;
-            //@ts-ignore
-            let db = dbs[0];
-            setDatabase(db);
+    const initDb = () => {
+        getDb(sourceId, dbId).then((res) => {
+            let db = res;
+
+            getSource(sourceId).then((res1) => {
+                console.log(res1);
+                db.sourceName = res1?.data?.name ?? "";
+
+                setDatabase(db);
+            });
         })
     }
 
     useEffect(() => {
-        getDb();
-    }, [dbId]);
+        initDb();
+    }, [sourceId, dbId]);
 
     const DbDetail = (props: {db?: API.DbModel, tabKey: string}) => {
         let db = props?.db;
@@ -74,7 +79,7 @@ export default (props: any) => {
                 </Descriptions>
             )}
             extra={[
-                <Button type="text" key="updatePage" onClick={getDb}>
+                <Button type="text" key="updatePage" onClick={initDb}>
                     <ReloadOutlined />
                 </Button>,
                 // <Button key="updateDbMeta" type="primary">更新元数据</Button>

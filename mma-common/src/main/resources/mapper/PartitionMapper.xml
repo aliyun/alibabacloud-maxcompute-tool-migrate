@@ -92,13 +92,13 @@
         insert into partition_model
        (source_id, db_id, table_id, db_name, schema_name, table_name, value,
         status,
-        size, num_rows, last_ddl_time, create_time
+        size, num_rows, last_ddl_time, extra, create_time
         )
         values
        (
         #{sourceId}, #{dbId}, #{tableId}, #{dbName}, #{schemaName}, #{tableName}, #{value},
         #{status},
-        #{size}, #{numRows}, #{lastDdlTime}, now()
+        #{size}, #{numRows}, #{lastDdlTime}, #{extra}, now()
         )
     </insert>
 

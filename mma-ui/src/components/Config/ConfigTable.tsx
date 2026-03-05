@@ -77,17 +77,24 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                 return "text";
             },
 
-            formItemProps: (form: FormInstance<API.MMConfig>, { rowKey, key, index}) => {
-                if (rowKey === undefined) {
-                    return {
-                        rules: [{ required: true, message: fm(intl, 'components.Config.ConfigTable.required', '此项为必填项') }]
-                    };
+            renderText: (text, config) => {
+                if (config.password && config.type != "password") {
+                    return "********"
                 }
 
-                let config = form.getFieldValue(rowKey);
+                return config.value;
+            },
 
+            formItemProps: (form: FormInstance<API.MMConfig>, { rowKey, key, index, entity}) => {
+                // if (rowKey === undefined) {
+                //     return {
+                //         rules: [{ required: true, message: fm(intl, 'components.Config.ConfigTable.required', '此项为必填项') }]
+                //     };
+                // }
+
+                let config = entity;
                 let rules = [];
-                if (config?.required) {
+                if (config?.required && (!config.password)) {
                     rules.push({ required: true, message: fm(intl, 'components.Config.ConfigTable.required', '此项为必填项') });
                 }
 
@@ -102,6 +109,14 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                 if (config?.type === "map") {
                     rules.push( {
                         validator: (_: any, value: string) => {
+                            if (config.password && !value) {
+                                return Promise.resolve();
+                            }
+
+                            if (!value) {
+                                return Promise.resolve();
+                            }
+
                             try {
                                 JSON.parse(value);
                             } catch (e) {
@@ -163,7 +178,7 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
             postData={(data: API.MMConfig) => {
                 setEditableRowKeys(data.map(c=>c.key));
                 for (let config of data) {
-                    if (config.type === "map") {
+                    if (config.type === "map" && config.value) {
                         config.value = JSON.stringify(config.value, null, 4);
                     }
                 }
@@ -182,8 +197,14 @@ const ConfigTable = (props: {request: () => Promise<API.MMARes<API.ConfigItem[]>
                             }
                             let configJson: API.MMAConfigJson = {};
                             for (const configItem of configValue) {
+                                if (configItem.password && (!configItem.value || configItem.value == "********")) {
+                                    continue;
+                                }
+
                                 if (configItem.type == "map") {
-                                    configJson[configItem.key] = JSON.parse(configItem.value as string);
+                                    if (configItem.value) {
+                                        configJson[configItem.key] = JSON.parse(configItem.value as string);
+                                    }
                                 } else {
                                     configJson[configItem.key] = configItem.value
                                 }

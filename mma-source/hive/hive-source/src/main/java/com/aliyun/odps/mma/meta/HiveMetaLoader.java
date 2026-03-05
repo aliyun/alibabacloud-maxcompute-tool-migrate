@@ -201,7 +201,7 @@ public class HiveMetaLoader implements MetaLoader {
 
         model.setDbName(partition.getDbName());
         model.setTableName(partition.getTableName());
-        model.setValue(partition.getValues());
+        model.setValueList(partition.getValues());
 
         Map<String, String> params = partition.getParameters();
         setModelParam(params, model);
@@ -279,7 +279,8 @@ public class HiveMetaLoader implements MetaLoader {
             String principal = config.getOrErr(HiveConfig.HIVE_METASTORE_KERBEROS_PRINCIPAL);
 
             hiveConf.setVar(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL, "true");
-            hiveConf.setVar(HiveConf.ConfVars.METASTORE_KERBEROS_KEYTAB_FILE, keyTableFile);
+            //hiveConf.setVar(HiveConf.ConfVars.METASTORE_KERBEROS_KEYTAB_FILE, keyTableFile);
+            // 服务端的principal
             hiveConf.setVar(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL, principal);
 
             String gssJaasFile = config.getOrErr(HiveConfig.JAVA_SECURITY_AUTH_LOGIN_CONFIG);

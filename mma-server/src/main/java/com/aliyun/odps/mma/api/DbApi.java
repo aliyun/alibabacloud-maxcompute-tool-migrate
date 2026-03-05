@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Validated
 @RestController
-@RequestMapping("/api/dbs")
+@RequestMapping("api/sources/{sourceId}/dbs")
 public class DbApi {
     private final DataSourceService dsService;
     private final DbService dbService;
@@ -51,68 +51,16 @@ public class DbApi {
     }
 
     @PutMapping("")
-    public ApiRes getDbs(@RequestBody DbFilter dbFilter) {
+    public ApiRes getDbs(
+            @PathVariable("sourceId") int sourceId,
+            @RequestBody DbFilter dbFilter
+    ) {
+        dbFilter.setSourceId(sourceId);
         int dbsCount = dbService.getDbsCount(dbFilter);
 
         List<DataBaseModel> dbs = dbService.getDbs(dbFilter);
-        if (dbs.size() == 0) {
+        if (dbs.isEmpty()) {
             return ApiRes.ok("data", dbs);
-        }
-
-        List<Integer> dbIds = dbs.stream().map(DataBaseModel::getId).collect(Collectors.toList());
-
-        Map<Integer, DataBaseModel> dbMap = new HashMap<>();
-        for (DataBaseModel db: dbs) {
-            dbMap.put(db.getId(), db);
-        }
-
-        List<Map<String, Object>> ptStatList = ptService.ptStatOfDbs(dbIds);
-
-        for (Map<String, Object> ptStat: ptStatList) {
-            Integer dbId = (Integer) ptStat.get("dbId");
-            DataBaseModel db = dbMap.get(dbId);
-            int count = ((Long)ptStat.get("count")).intValue();
-            db.setPartitions(db.getPartitions() + count);
-
-            switch ((String) ptStat.get("status")) {
-                case "INIT":
-                    break;
-                case "DOING":
-                    db.setPartitionsDoing(count);
-                    break;
-                case "DONE":
-                    db.setPartitionsDone(count);
-                    break;
-                case "FAILED":
-                    db.setPartitionsFailed(count);
-                    break;
-            }
-        }
-
-        List<Map<String, Object>> tableStatList = tbService.tableStatOfDbs(dbIds);
-
-        for (Map<String, Object> tableStat: tableStatList) {
-            Integer dbId = (Integer) tableStat.get("dbId");
-            DataBaseModel db = dbMap.get(dbId);
-            int count = ((Long)tableStat.get("count")).intValue();
-            db.setTables(db.getTables() + count);
-
-            switch ((String) tableStat.get("status")) {
-                case "INIT":
-                    break;
-                case "DOING":
-                    db.setTablesDoing(count);
-                    break;
-                case "DONE":
-                    db.setTablesDone(count);
-                    break;
-                case "FAILED":
-                    db.setTablesFailed(count);
-                    break;
-                case "PART_DONE":
-                    db.setTablesPartDone(count);
-                    break;
-            }
         }
 
         ApiRes apiRes = ApiRes.ok();
@@ -123,8 +71,11 @@ public class DbApi {
     }
 
     @GetMapping("/{dbId}")
-    public DataBaseModel getDbById(@PathVariable("dbId") int dbId) {
-        Optional<DataBaseModel> dmOpt = dbService.getDbById(dbId);
+    public  DataBaseModel getDbById(
+            @PathVariable("sourceId") int sourceId,
+            @PathVariable("dbId") int dbId
+    ) {
+        Optional<DataBaseModel> dmOpt = dbService.getDbById(sourceId, dbId);
 
         if (! dmOpt.isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
@@ -135,10 +86,11 @@ public class DbApi {
 
     @PutMapping("/{dbId}/job")
     public ApiRes submitDbJob(
+            @PathVariable("sourceId") int sourceId,
             @PathVariable("dbId") int dbId,
             @ValidateJob @RequestBody JobModel jobModel
     ) throws JobSubmittingException {
-        DataBaseModel db = this.getDbById(dbId);
+        DataBaseModel db = this.getDbById(sourceId, dbId);
         JobProxy job = ormFactory.newJobProxy(jobModel);
 
         // 补全job信息，这里的信息只用来做记录

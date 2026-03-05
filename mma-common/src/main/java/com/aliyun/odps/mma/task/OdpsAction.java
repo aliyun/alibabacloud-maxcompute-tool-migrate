@@ -7,6 +7,7 @@ import com.aliyun.odps.data.Record;
 import com.aliyun.odps.mma.config.OdpsConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
+import com.aliyun.odps.mma.model.PartitionModel;
 import com.aliyun.odps.mma.orm.TableProxy;
 import com.aliyun.odps.mma.orm.TaskProxy;
 import com.aliyun.odps.mma.sql.OdpsSqlUtils;
@@ -16,13 +17,11 @@ import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
 import com.aliyun.odps.task.SQLTask;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * 对 task 对应的某一个 table 进行操作的辅助类
@@ -45,6 +44,7 @@ public class OdpsAction {
     // 这里单独指定projectName, tableName, tableFullName是为了在源odps端执行sql，这时projectName等都需要指定为源project的
     public OdpsAction(OdpsUtils odpsUtils, TaskProxy task, String projectName, String tableName, String tableFullName) {
         this.odpsUtils = odpsUtils;
+        this.odpsUtils.setRetry(task);
         this.task = task;
     }
 
@@ -58,8 +58,24 @@ public class OdpsAction {
         );
     }
 
-    public void createTableIfNotExists(List<String> blackList) throws MMATaskInterruptException {
-        createTableIfNotExists(new HashMap<>(), null, blackList);
+    public String getddl() throws OdpsException {
+        Instance i = odpsUtils.executeSql("show create table " + task.getOdpsTableFullName() + ";", new HashMap<>());
+        i.waitForSuccess();
+        return i.getRawTaskResults().get(0).getResult().getString();
+    }
+
+    public void createSchema(String projectName, String schemaName) throws MMATaskInterruptException {
+        String sql = "create schema if not exists " + projectName + "." + schemaName + ";";
+
+        task.log(sql, projectName + "." + schemaName);
+
+        wrapWithTryCatch(sql, () -> {
+            executeSql(sql);
+        });
+    }
+
+    public void createTable(Map<String, String> hints) throws MMATaskInterruptException {
+        createTableIfNotExists(hints);
     }
 
     public void createTableIfNotExists() throws MMATaskInterruptException {
@@ -78,25 +94,13 @@ public class OdpsAction {
             }
         }
 
-        createTableIfNotExists(hints, null, null);
+        createTableIfNotExists(hints);
+        disableTableLifeCycle();
     }
 
-    public void createRangeClusteredTable(RangeClusterInfo rangeClusterInfo) throws MMATaskInterruptException {
-        createTableIfNotExists(null, rangeClusterInfo, null);
-    }
+    public void createTableIfNotExists(Map<String, String> hints) throws MMATaskInterruptException {
 
-    public void createTableIfNotExists(Map<String, String> hints, RangeClusterInfo rangeClusterInfo, List<String> blackList) throws MMATaskInterruptException {
-        String sql = OdpsSqlUtils.createTableSql(
-                task.getOdpsProjectName(),
-                task.getOdpsSchemaName(),
-                task.getOdpsTableName(),
-                task.getOdpsTableSchema(),
-                null,
-                task.getTable().getLifeCycle(),
-                rangeClusterInfo,
-                blackList
-        );
-
+        String sql = task.getDstOdpsTableSchema().getCreateTableSql();
         task.log(sql, "try to create table: " + task.getOdpsTableFullName());
 
         wrapWithTryCatch(sql, ()-> {
@@ -104,12 +108,32 @@ public class OdpsAction {
         });
     }
 
+    public void disableTableLifeCycle() throws MMATaskInterruptException {
+        if (task.getDstOdpsTableSchema().isDisableLifeCycle()) {
+            String sql = "alter table " + task.getOdpsTableFullName() + " disable lifecycle;";
+
+            task.log(sql, "disable table lifecycle: " + task.getOdpsTableFullName());
+
+            wrapWithTryCatch(sql, () -> {
+                executeSql(sql);
+            });
+        }
+    }
+
     public void addPartitions() throws MMATaskInterruptException {
+        addPartitions(new HashMap<>());
+    }
+
+    public void addPartitions(Map<String, String> hints) throws MMATaskInterruptException {
+        List<PartitionValue> ptValues = task.getDstOdpsPartitionValues();
+        addPartitions(ptValues, hints);
+    }
+
+    public void addPartitions(List<PartitionValue> ptValues, Map<String, String> hints) throws MMATaskInterruptException {
         if (! task.getTable().isPartitionedTable()) {
             return;
         }
 
-        List<PartitionValue> ptValues = task.getDstOdpsPartitionValues();
         if (ptValues.isEmpty()) {
             return;
         }
@@ -124,23 +148,31 @@ public class OdpsAction {
         wrapWithTryCatch(sql, () -> {
             try (KeyLock keyLock = new KeyLock(odpsTableFullName)) {
                 keyLock.lock();
-                executeSql(sql);
+                executeSql(sql, hints);
             }
         });
     }
 
     public void truncate() throws MMATaskInterruptException {
+        truncate(new HashMap<>());
+    }
+
+    public void truncate(Map<String, String> hints) throws MMATaskInterruptException {
+        truncate(task.getDstOdpsPartitionValues(), hints);
+    }
+
+    public void truncate(List<PartitionValue> ptValues, Map<String, String> hints) throws MMATaskInterruptException {
         String odpsTableFullName = task.getOdpsTableFullName();
 
         String sql = OdpsSqlUtils.truncateTableOrPartitionsSql(
                 odpsTableFullName,
-                task.getDstOdpsPartitionValues()
+                ptValues
         );
 
         wrapWithTryCatch(sql, () -> {
             try (KeyLock keyLock = new KeyLock(odpsTableFullName)) {
                 keyLock.lock();
-                executeSql(sql);
+                executeSql(sql, hints);
             }
         });
     }
@@ -149,7 +181,7 @@ public class OdpsAction {
      * @throws MMATaskInterruptException
      */
     public void insertOverwrite(Map<String, String> hints, Consumer<Instance> insGetter) throws MMATaskInterruptException {
-        TableSchema schema = task.getOdpsTableSchema();
+        TableSchema schema = task.getDstOdpsTableSchema();
 
         // 源和目的 name 固定
         String sql = OdpsSqlUtils.insertOverwriteSql(
@@ -189,6 +221,11 @@ public class OdpsAction {
 
     public CompletableFuture<Long> selectDstCount(String tableFullName, Consumer<Instance> insGetter, Map<String, String> hints) {
         String sql = OdpsSqlUtils.selectCountSql(tableFullName, task.getDstOdpsPartitionValues());
+        return getCountFuture(sql, insGetter, hints);
+    }
+
+    public CompletableFuture<Long> selectDstCount(String tableFullName, Consumer<Instance> insGetter, List<PartitionValue> ptValues, Map<String, String> hints) {
+        String sql = OdpsSqlUtils.selectCountSql(tableFullName, ptValues);
         return getCountFuture(sql, insGetter, hints);
     }
 
@@ -347,6 +384,31 @@ public class OdpsAction {
             task.error(action, e);
             throw new MMATaskInterruptException();
         }
+    }
+
+    public void disableLifeCycle() throws MMATaskInterruptException {
+        for (PartitionModel pm: task.getPartitions()) {
+            if (pm.getExtraJson().containsKey("disableLifeCycle") && Boolean.parseBoolean(pm.getExtraJson().get("disableLifeCycle"))) {
+                String sql = "ALTER TABLE " + task.getOdpsTableFullName() + " partition(" + getSqlValue(pm) + ") disable lifecycle;";
+                wrapWithTryCatch(sql, () -> {
+                    executeSql(sql);
+                });
+
+            }
+
+            if (pm.getExtraJson().get("storageTierInfo") != null) {
+                String sql = "ALTER TABLE " + task.getOdpsTableFullName() + " partition(" + getSqlValue(pm) + ") set PARTITIONPROPERTIES ('storagetier' = '" + pm.getExtraJson().get("storageTierInfo").toLowerCase() + "');";
+                wrapWithTryCatch(sql, () -> {
+                    executeSql(sql);
+                });
+            }
+        }
+    }
+
+    private String getSqlValue(PartitionModel pm) {
+        List<String> values = new ArrayList<>(Arrays.asList(pm.getValue().split("/")));
+        return values.stream().map(v -> v.split("=")[0] + "='" + v.split("=")[1] + "'"
+        ).collect(Collectors.joining("/"));
     }
 
     @FunctionalInterface

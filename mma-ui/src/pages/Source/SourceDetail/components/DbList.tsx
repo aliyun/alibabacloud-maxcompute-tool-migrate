@@ -1,12 +1,13 @@
 import {ProColumns, ProTable, ProDescriptions} from "@ant-design/pro-components";
 import {Card, Descriptions, Drawer, Switch} from "antd";
-import {getDbs, getPts} from "@/services/source";
+import {getDbs, getPts, getSource} from "@/services/source";
 import {formatSize} from "@/utils/format";
 import {Link, useIntl} from "umi";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {NewJobForm} from "@/components/Job/NewJobForm";
 import {SOURCES_ROUTE} from "@/constant";
 import {FMSpan, fm, FM} from "@/components/i18n";
+import source from "@/pages/Source";
 
 export default (props?: { source?: API.DataSource }) => {
     const ds = props?.source;
@@ -84,10 +85,10 @@ export default (props?: { source?: API.DataSource }) => {
                 }
             },
             search: false,
-            sorter: {
-                compare: (a, b) => 0,
-                multiple: 1
-            }
+            // sorter: {
+            //     compare: (a, b) => a.size ?? 0 - b.size ?? 0,
+            //     multiple: 1
+            // }
         },
         {
             title: fm(intl, "pages.Source.SourceDetail.components.DbList.rows", "行数"),
@@ -173,7 +174,7 @@ export default (props?: { source?: API.DataSource }) => {
                 }}
             />
 
-            <NewJobForm sourceName={currentDb?.sourceName ?? ""} dbName={currentDb?.name ?? ""} jobType="database" open={newJobFormOpen} setOpen={setNewJobFormOpen} />
+            <NewJobForm sourceName={ds.name}  dbName={currentDb?.name ?? ""} jobType="database" open={newJobFormOpen} setOpen={setNewJobFormOpen} />
         </>
     );
 }

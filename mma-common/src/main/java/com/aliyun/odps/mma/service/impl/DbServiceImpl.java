@@ -43,8 +43,8 @@ public class DbServiceImpl implements DbService {
     }
 
     @Override
-    public Optional<DataBaseModel> getDbById(int id) {
-        DataBaseModel db = this.mapper.getDbById(id);
+    public Optional<DataBaseModel> getDbById(int sourceId, int id) {
+        DataBaseModel db = this.mapper.getDbById(sourceId, id);
         return Optional.ofNullable(db);
     }
 

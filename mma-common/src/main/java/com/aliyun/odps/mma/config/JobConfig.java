@@ -53,6 +53,8 @@ public class JobConfig {
     String tableMappingPattern;
     @JsonProperty("column_mapping")
     Map<String, String> columnMapping;
+    @JsonProperty("table_type")
+    String tableType;
 
     @JsonIgnore
     MMAConfig mmaConfig;
@@ -145,6 +147,16 @@ public class JobConfig {
         if (!StringUtils.isBlank(tableMappingPattern)) {
             String dstTable = tableMappingPattern.replace("${table}", srcTable);
             return new TableName(dstOdpsProject, dstOdpsSchema, dstTable);
+        }
+
+        Map<String, String> tableNameCharMapping = sourceConfig.getMap(SourceConfig.TABLE_NAME_CHAR_MAPPING);
+        for (Map.Entry<String, String> entry: tableNameCharMapping.entrySet()) {
+            String srcChar = entry.getKey();
+            String dstChar = entry.getValue();
+            if (srcTable.contains(srcChar)) {
+                String dstTable = srcTable.replace(srcChar, dstChar);
+                return new TableName(dstOdpsProject, dstOdpsSchema, dstTable);
+            }
         }
 
         return new TableName(dstOdpsProject, dstOdpsSchema, srcTable);

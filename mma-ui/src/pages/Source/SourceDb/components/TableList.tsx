@@ -19,18 +19,6 @@ export default (props: {db: API.DbModel}) => {
 
     const columns: ProColumns<API.TableModel>[] = [
         {
-            title: "Schema",
-            dataIndex: "schemaName",
-            // formItemProps: {
-            //     rules: [
-            //         {
-            //             required: true,
-            //             message: '表名为必填项',
-            //         },
-            //     ],
-            // }
-        },
-        {
             title: fm(intl, "pages.Source.SourceDb.components.TableList.name", "表名"),
             dataIndex: "name",
             // formItemProps: {
@@ -257,6 +245,7 @@ export default (props: {db: API.DbModel}) => {
             <ProTable<API.TableModel>
                 columns={columns}
                 request={async (params, sort, filter) => {
+                    params["sourceId"] = props.db.sourceId;
                     params["dbId"] = props.db.id;
                     let res = await getTables(params, sort, filter);
                     setTotal(res?.total || 0);

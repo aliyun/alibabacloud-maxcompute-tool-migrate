@@ -105,7 +105,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                 task.resetRestart();
             }
 
-            publishTaskEvent();
+            //publishTaskEvent();
             task.setTaskStart();
             updateMigrationTargetStatus(MigrationStatus.DOING);
             while (task.getStatus() != TaskStatus.DONE && !stopped) {
@@ -113,7 +113,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                     TableProxy table = task.getTable();
                     // 分区表无分区的情况建完task后直接结束任务
                     if (table.isPartitionedTable() && partitionNumOfTask == 0) {
-                        publishTaskEvent();
+                        //publishTaskEvent();
                         updateMigrationTargetStatus(MigrationStatus.DONE);
                         task.setTaskEnd();
                         return;
@@ -130,7 +130,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                         }
                         if (jobConfig.getSchemaOnly()) {
                             logger.info("{} is wanted to create schema only", task.getTaskName());
-                            publishTaskEvent();
+                            //publishTaskEvent();
                             updateMigrationTargetStatus(MigrationStatus.DONE);
                             task.setTaskEnd();
                         }
@@ -172,7 +172,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
 
                         break;
                     case VERIFICATION_DONE:
-                        publishTaskEvent();
+                        //publishTaskEvent();
                         updateMigrationTargetStatus(MigrationStatus.DONE);
                         logger.info("task {} is done", task.getTaskName());
                         task.setTaskEnd();
@@ -184,13 +184,13 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
                 }
             }
         } catch (Exception e) {
-            publishTaskEvent();
+            //publishTaskEvent();
 
             task.error("unexpected error", ExceptionUtils.getStackTrace(e));
             logger.error("unexpected error", e);
         }
 
-        publishTaskEvent();
+        //publishTaskEvent();
     }
 
     protected void withStatus(TaskStatus startStatus, TaskStatus endStatus, TaskStatus errStatus, ActionFunc func) {
@@ -211,7 +211,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
             task.setStatus(errStatus);
 
             updateMigrationTargetStatus(MigrationStatus.FAILED);
-            publishTaskEvent();
+            //publishTaskEvent();
 
             if (e instanceof InterruptedException) {
                 logger.info("task {} is stopped by interruption", task.getTaskName());
@@ -275,13 +275,17 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
             this::_setUpSchema
         );
 
+        if (task.getStatus() == TaskStatus.SCHEMA_FAILED) {
+            return;
+        }
+
         //task.log(String.format("create table %s if not exist", task.getOdpsTableFullName()), "");
 
         TableProxy table = task.getTable();
         if (table.isPartitionedTable() && task.getPartitions().isEmpty()) {
             logger.info("{} has no partitions, only table creation is needed", task.getTaskName());
             task.setTaskEnd();
-            publishTaskEvent();
+//            publishTaskEvent();
             updateMigrationTargetStatus(MigrationStatus.DONE);
         }
     }

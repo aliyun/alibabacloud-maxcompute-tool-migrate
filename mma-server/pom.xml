@@ -167,40 +167,6 @@
         </profile>
 
         <profile>
-            <id>bigquery</id>
-            <activation>
-                <property>
-                    <name>sourceType</name>
-                    <value>bigquery</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.aliyun.odps</groupId>
-                    <artifactId>bigquery-source</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
-            <id>databricks</id>
-            <activation>
-                <property>
-                    <name>sourceType</name>
-                    <value>databricks</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.aliyun.odps</groupId>
-                    <artifactId>databricks</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
             <id>all</id>
             <activation>
                 <property>
@@ -249,18 +215,6 @@
                 <dependency>
                     <groupId>com.aliyun.odps</groupId>
                     <artifactId>odps</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-
-                <dependency>
-                    <groupId>com.aliyun.odps</groupId>
-                    <artifactId>databricks</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-
-                <dependency>
-                    <groupId>com.aliyun.odps</groupId>
-                    <artifactId>bigquery-source</artifactId>
                     <version>${project.version}</version>
                 </dependency>
             </dependencies>

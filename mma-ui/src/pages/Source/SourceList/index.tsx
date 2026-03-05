@@ -108,7 +108,7 @@ export default () => {
                     </Button>,
                 ];
 
-                if (entity.type == "DATABRICKS" || entity.type == "HIVE_GLUE" || entity.type == "HIVE") {
+                if (entity.type == "DATABRICKS" || entity.type == "HIVE_GLUE" || entity.type == "HIVE" || entity.type == 'BIGQUERY') {
                     buttons.push(
                         <Button
                             key="init"

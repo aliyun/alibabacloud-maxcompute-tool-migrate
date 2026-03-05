@@ -1,5 +1,6 @@
 package com.aliyun.odps.mma.meta.schema;
 
+import com.aliyun.odps.mma.task.ClusterInfo;
 import com.aliyun.odps.mma.util.ListUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.gson.Gson;
@@ -7,9 +8,7 @@ import com.google.gson.GsonBuilder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 @Setter
@@ -20,9 +19,19 @@ public class MMATableSchema {
     private List<MMAColumnSchema> partitions;
     private List<MMATableConstraint> tableConstraints;
     private Boolean enableTransaction;
+    private ClusterInfo clusterInfo;
+    private Map<String, String> tblProperties = new HashMap<>();
+    private boolean disableLifeCycle;
+
+    public MMATableSchema() {
+        this.columns = new ArrayList<>();
+        this.partitions = new ArrayList<>();
+    }
 
     public MMATableSchema(String name) {
         this.name = name;
+        this.columns = new ArrayList<>();
+        this.partitions = new ArrayList<>();
     }
 
     public MMATableSchema(String name, List<MMAColumnSchema> cols, List<MMAColumnSchema> partitions) {
@@ -50,6 +59,14 @@ public class MMATableSchema {
         Gson gson = new GsonBuilder().create();
 
         return gson.fromJson(json, MMATableSchema.class);
+    }
+
+    public void addPartitionColumns(MMAColumnSchema column) {
+        if (Objects.isNull(this.partitions)) {
+            this.partitions = new ArrayList<>();
+        }
+
+        this.partitions.add(column);
     }
 
     @JsonIgnore

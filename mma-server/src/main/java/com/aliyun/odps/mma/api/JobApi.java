@@ -1,12 +1,11 @@
 package com.aliyun.odps.mma.api;
 
+import com.aliyun.odps.Job;
 import com.aliyun.odps.mma.config.MMAConfig;
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.constant.TaskTypeName;
-import com.aliyun.odps.mma.model.DataBaseModel;
-import com.aliyun.odps.mma.model.DataSourceModel;
-import com.aliyun.odps.mma.model.JobBatchModel;
-import com.aliyun.odps.mma.model.JobModel;
+import com.aliyun.odps.mma.execption.JobSubmittingException;
+import com.aliyun.odps.mma.model.*;
 import com.aliyun.odps.mma.orm.JobProxy;
 import com.aliyun.odps.mma.orm.OrmFactory;
 import com.aliyun.odps.mma.query.JobFilter;
@@ -14,11 +13,13 @@ import com.aliyun.odps.mma.service.*;
 import com.aliyun.odps.mma.service.JobService;
 import com.aliyun.odps.mma.service.Service;
 import com.aliyun.odps.mma.service.TaskService;
+import com.aliyun.odps.mma.task.TaskEvent;
 import com.aliyun.odps.mma.task.TaskManager;
 import com.aliyun.odps.mma.util.I18nUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
 import com.aliyun.odps.mma.validator.ValidateJob;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,14 +36,19 @@ public class JobApi {
     private final TaskManager taskManager;
     private final MMAConfig mmaConfig;
     private final TaskTypeName taskTypeName;
+    private ApplicationEventPublisher publisher;
+
 
     @Autowired
-    public JobApi(Service service, OrmFactory proxyFactory, TaskManager taskManager, MMAConfig mmaConfig, TaskTypeName taskTypeName) {
+    public JobApi(
+            Service service, OrmFactory proxyFactory, TaskManager taskManager,
+            MMAConfig mmaConfig, TaskTypeName taskTypeName, ApplicationEventPublisher publisher) {
         this.service = service;
         this.proxyFactory = proxyFactory;
         this.taskManager = taskManager;
         this.mmaConfig = mmaConfig;
         this.taskTypeName = taskTypeName;
+        this.publisher = publisher;
     }
 
     @GetMapping("")
@@ -98,6 +104,10 @@ public class JobApi {
                 // set job.stopped = 0
                 // set task.restart = 1 where task.status in ('SCHEMA_DOING', 'DATA_DOING', 'VERIFICATION_DOING', 'SCHEMA_DONE', 'DATA_DONE', 'VERIFICATION_DONE')
                 service.getJobService().startJob(jobId);
+                TaskModel task = new TaskModel();
+                task.setJobId(jobId);
+                publisher.publishEvent(new TaskEvent(this, task));
+
                 break;
             case "retry":
                 // set job.stopped = 0, TODO 好像不用
@@ -106,6 +116,16 @@ public class JobApi {
                 break;
             case "delete":
                 taskManager.deleteJob(jobId);
+                break;
+            case "rerun":
+                JobModel job = service.getJobService().getJobById(jobId);
+                JobProxy jobProxy = proxyFactory.newJobProxy(job);
+                try {
+                    jobProxy.submit();
+                } catch (Exception e) {
+                    return ApiRes.error("failed to rerun job ", "", e.getMessage());
+
+                }
                 break;
             default:
                 return ApiRes.error("unknown action " + action, null);
@@ -152,25 +172,14 @@ public class JobApi {
                 taskTypes.put(TaskType.HIVE, taskTypeName.getName(TaskType.HIVE, lang));
                 defaultTaskType = TaskType.HIVE_OSS;
                 break;
-            case HIVE_GLUE:
-                taskTypes.put(TaskType.HIVE, taskTypeName.getName(TaskType.HIVE, lang));
-                taskTypes.put(TaskType.HIVE_OSS, taskTypeName.getName(TaskType.HIVE_OSS, lang));
-                defaultTaskType = TaskType.HIVE_OSS;
-            case OSS:
-                break;
             case ODPS:
                 taskTypes.put(TaskType.ODPS_INSERT_OVERWRITE, taskTypeName.getName(TaskType.ODPS_INSERT_OVERWRITE, lang));
-//                taskTypes.put(TaskType.ODPS_MERGED_TRANS, taskTypeName.getName(TaskType.ODPS_MERGED_TRANS, lang));
+                taskTypes.put(TaskType.ODPS_MERGED_TRANS, taskTypeName.getName(TaskType.ODPS_MERGED_TRANS, lang));
                 taskTypes.put(TaskType.ODPS_OSS_TRANSFER, taskTypeName.getName(TaskType.ODPS_OSS_TRANSFER, lang));
+                taskTypes.put(TaskType.ODPS, taskTypeName.getName(TaskType.ODPS, lang));
                 defaultTaskType = TaskType.ODPS_INSERT_OVERWRITE;
                 break;
-            case DATABRICKS:
-                taskTypes.put(TaskType.DATABRICKS, taskTypeName.getName(TaskType.DATABRICKS, lang));
-                taskTypes.put(TaskType.DATABRICKS_UDTF, taskTypeName.getName(TaskType.DATABRICKS_UDTF, lang));
-                defaultTaskType = TaskType.DATABRICKS;
-            case BIGQUERY:
-                taskTypes.put(TaskType.BIGQUERY, taskTypeName.getName(TaskType.BIGQUERY, lang));
-            default:
+             default:
                 break;
         }
 
@@ -182,6 +191,7 @@ public class JobApi {
         options.put("taskTypes", taskTypes);
         options.put("defaultTaskType", defaultTaskType);
         options.put("tables", tableNames);
+        options.put("sourceType", dsm.getType());
 
         return ApiRes.ok("data", options);
     }

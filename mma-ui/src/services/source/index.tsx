@@ -19,8 +19,9 @@ export async function getSourceByName(sourceName: string, withConfig: boolean) {
     })
 }
 
-export async function getSource(sourceId: string) {
-    return request<API.MMARes<API.DataSource>>("/api/sources/" + sourceId, {
+
+export async function getSource(sourceId: number) {
+    return request<API.MMARes<API.DataSource>>(`/api/sources/${sourceId}`, {
         method: 'GET'
     })
 }
@@ -97,19 +98,29 @@ export async function getLoadingMetaProgress(sourceId: number): Promise<{progres
 }
 
 export async function getDbs(
-    params: {id?: number, page?: number, pageSize?: number, sourceId?: number, status?: string,  name?: string},
+    params: {id?: number, page?: number, pageSize?: number, sourceId: number, status?: string,  name?: string},
     sort?: Record<string, SortOrder>,
     filter?: Record<string, (string | number)[]|null>
 ) {
     let {...data}: any = params;
     data["sorter"] = sort;
 
-    return request<API.MMARes<API.DbModel[]>>("/api/dbs", {
+    return request<API.MMARes<API.DbModel[]>>(`/api/sources/${data.sourceId}/dbs`, {
         method: "PUT",
         headers: {
             'Content-Type': 'application/json',
         },
         data: data
+    })
+}
+
+export async function getDb(sourceId: number, id: number) {
+
+    return request<API.DbModel>(`/api/sources/${sourceId}/dbs/${id}`, {
+        method: "GET",
+        headers: {
+            'Content-Type': 'application/json',
+        }
     })
 }
 

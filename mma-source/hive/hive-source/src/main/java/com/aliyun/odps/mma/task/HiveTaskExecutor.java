@@ -140,7 +140,7 @@ public class HiveTaskExecutor extends TaskExecutor {
 
     public String getUDTFSql() throws MMATaskInterruptException {
         // get hive & odps column name list
-        TableSchema odpsTableSchema = task.getOdpsTableSchema();
+        TableSchema odpsTableSchema = task.getDstOdpsTableSchema();
         List<String> odpsColumnNames = ListUtils.map(odpsTableSchema.getColumns(), Column::getName);
         List<String> odpsPartitionColumns = ListUtils.map(odpsTableSchema.getPartitionColumns(), Column::getName);
 

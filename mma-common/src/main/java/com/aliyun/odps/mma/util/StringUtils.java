@@ -5,6 +5,10 @@ public class StringUtils {
         return s == null || s.trim().isEmpty();
     }
 
+    public static boolean isNotBlank(String s) {
+        return !isBlank(s);
+    }
+
     public static String trim(String origin, String pattern) {
         if (origin.startsWith(pattern)) {
             origin = origin.substring(pattern.length());

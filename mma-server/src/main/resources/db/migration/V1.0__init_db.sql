@@ -15,15 +15,15 @@ create table if not exists `datasource` (
     `partition_num` integer comment '分区数量',
     `init_status` char(50) default 'NOT_YET' comment '数据源初始化工作的状态',
     `create_time` datetime ,
-    `update_time` datetime 
+    `update_time` datetime
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `db_model` (
     `id` integer not null primary key,
     `source_id` integer not null comment '数据源id',
-    `name` varchar (255) not null comment '数据库名',
+    `name` varchar (512) not null comment '数据库名',
     `status` char(50) comment '迁移状态',
-    `description` varchar(255) comment '描述信息或备注',
+    `description` text comment '描述信息或备注',
     `owner` varchar (255) comment 'owner信息',
     `last_ddl_time` datetime comment '库最后修改时间',
     `size` bigint comment 'size in bytes',
@@ -32,16 +32,16 @@ create table if not exists `db_model` (
     `updated` boolean default false comment '元数据是否有更新',
     `extra` text comment '其他信息，以json格式保存',
     `create_time` datetime ,
-    `update_time` datetime 
+    `update_time` datetime
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `table_model` (
     `id` integer not null primary key,
     `source_id` integer not null comment '数据源id',
     `db_id` integer not null comment '所属数据库的id',
-    `db_name` varchar (255) not null comment '所属数据库的名字',
-    `schema_name` varchar (255) comment 'odps的三层模型中的schema',
-    `name` varchar (255) not null comment '表名',
+    `db_name` varchar (512) not null comment '所属数据库的名字',
+    `schema_name` varchar (512) comment 'odps的三层模型中的schema',
+    `name` varchar (512) not null comment '表名',
     `type` varchar(255) comment '表类型, 如managed, external',
     `lifecycle` integer comment '表声明周期',
     `has_partitions` boolean not null comment '是否有分区',
@@ -56,9 +56,9 @@ create table if not exists `table_model` (
     `output_format` varchar(1024),
     `serde` varchar(255),
     `updated` boolean default false comment '元数据是否有更新',
-    `extra` text comment '其他信息，以json格式保存',
+    `extra` mediumtext comment '其他信息，以json格式保存',
     `create_time` datetime ,
-    `update_time` datetime 
+    `update_time` datetime
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `partition_model` (
@@ -66,16 +66,16 @@ create table if not exists `partition_model` (
     `source_id` integer not null comment '数据源id',
     `db_id` integer not null comment '所属数据库的id',
     `table_id` integer not null comment '所属table的id',
-    `db_name` varchar(255) not null comment '所属数据库的名字',
-    `schema_name` varchar (255) comment 'odps的三层模型中的schema',
-    `table_name` varchar(255) not null comment '所属table的名字',
+    `db_name` varchar(512) not null comment '所属数据库的名字',
+    `schema_name` varchar (512) comment 'odps的三层模型中的schema',
+    `table_name` varchar(512) not null comment '所属table的名字',
     `value` varchar(1024) not null comment '分区值，格式为p1=v1/p2=v2',
     `status` char(50) comment '迁移状态',
     `size` bigint comment 'size in bytes',
     `num_rows` bigint comment '行数',
     `last_ddl_time` datetime comment '分区最后修改时间',
     `serde` varchar(255),
-    `extra` text comment '其他信息，以json格式保存',
+    `extra` mediumtext comment '其他信息，以json格式保存',
     `updated` boolean default false comment '元数据是否有更新',
     `create_time` datetime ,
     `update_time` datetime ,
@@ -85,7 +85,10 @@ create table if not exists `partition_model` (
     index (`table_id`),
     index (`db_name`),
     index (`schema_name`),
-    index (`table_name`)
+    index (`table_name`),
+
+    index idx_partition_source(`source_id`, `db_id`, `table_id`, `status`)
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `task` (
@@ -95,9 +98,9 @@ create table if not exists `task` (
     `source_id` integer not null,
     `db_id` integer not null,
     `table_id` integer not null,
-    `db_name` varchar(255) not null,
-    `schema_name` varchar (255),
-    `table_name` varchar(255) not null,
+    `db_name` varchar(512) not null,
+    `schema_name` varchar (512),
+    `table_name` varchar(512) not null,
     `odps_project` varchar(255) not null,
     `odps_schema` varchar(255),
     `odps_table` varchar(255) not null,
@@ -129,6 +132,7 @@ create table if not exists `job` (
     `source_name` varchar (255) not null,
     `db_name` varchar (255) not null,
     `odps_project` varchar(255),
+    `odps_schema` varchar(255),
     `status` char(50) not null,
     `type` char(50) not null,
     `stopped` boolean default false,
@@ -138,7 +142,7 @@ create table if not exists `job` (
     `config` text,
     `deleted` boolean default false,
     `create_time` datetime ,
-    `update_time` datetime 
+    `update_time` datetime
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 create table if not exists `task_partition` (

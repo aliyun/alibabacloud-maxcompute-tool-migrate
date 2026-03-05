@@ -8,6 +8,7 @@ import java.util.List;
 public class PartitionValue {
     @Getter
     private final List<MMAColumnSchema> columns;
+    @Getter
     private final String[] values;
 
     /**

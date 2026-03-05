@@ -2,7 +2,6 @@ package com.aliyun.odps.mma.task;
 
 import com.aliyun.odps.Instance;
 import com.aliyun.odps.mma.config.HiveConfig;
-import com.aliyun.odps.mma.config.HiveGlueConfig;
 import com.aliyun.odps.mma.config.HiveOssConfig;
 import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.execption.MMATaskInterruptException;
@@ -59,20 +58,9 @@ public class HiveOssTaskExecutor extends TaskExecutor {
     @Override
     protected void _setUpSchema() throws Exception {
         odpsAction.createTableIfNotExists();
-        switch (sourceConfig.getSourceType()) {
-            case HIVE_OSS:
-                HiveOssConfig hiveOssConfig = (HiveOssConfig) sourceConfig;
-                String location = hiveOssConfig.getTableDataPath(task.getDbName(), task.getTableName());
-                odpsAction.createExternalTable(location);
-                break;
-            case HIVE_GLUE:
-                String s3Location = task.getTable().getTableModel().getLocation();
-                HiveGlueConfig hiveGlueConfig = (HiveGlueConfig) sourceConfig;
-                String ossLocation = hiveGlueConfig.getTableDataPathFromS3(s3Location);
-                odpsAction.createExternalTable(ossLocation);
-                break;
-        }
-
+        HiveOssConfig hiveOssConfig = (HiveOssConfig) sourceConfig;
+        String location = hiveOssConfig.getTableDataPath(task.getDbName(), task.getTableName());
+        odpsAction.createExternalTable(location);
         odpsAction.addPartitionsToExternalTable();
     }
 

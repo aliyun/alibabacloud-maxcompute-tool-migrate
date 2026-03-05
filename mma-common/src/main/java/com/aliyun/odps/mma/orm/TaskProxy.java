@@ -13,8 +13,8 @@ import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.mma.config.JobConfig;
 import com.aliyun.odps.mma.constant.SourceType;
 import com.aliyun.odps.mma.constant.TaskStatus;
-import com.aliyun.odps.mma.constant.TaskType;
 import com.aliyun.odps.mma.meta.schema.MMAColumnSchema;
+import com.aliyun.odps.mma.meta.schema.DstOdpsTableSchema;
 import com.aliyun.odps.mma.meta.schema.OdpsSchemaAdapter;
 import com.aliyun.odps.mma.meta.schema.SchemaUtils;
 import com.aliyun.odps.mma.model.JobModel;
@@ -25,6 +25,7 @@ import com.aliyun.odps.mma.service.PartitionService;
 import com.aliyun.odps.mma.service.TaskService;
 import com.aliyun.odps.mma.sql.PartitionValue;
 import com.aliyun.odps.mma.util.ExceptionUtils;
+import com.aliyun.odps.mma.util.StringUtils;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -100,12 +101,18 @@ public class TaskProxy {
         TaskLog taskLog = new TaskLog();
         taskLog.setTaskId(this.taskModel.getId());
         taskLog.setStatus(this.taskModel.getStatus());
+
+        if (Objects.nonNull(action) && action.length() > 65535) {
+            action = action.substring(0, 65535);
+        }
         taskLog.setAction(action);
-        if (msg.length() > 65535) {
+
+        if (Objects.nonNull(msg) && msg.length() > 65535) {
             msg = msg.substring(0, 65535);
         }
 
         taskLog.setMsg(msg);
+
         this.taskService.addTaskLog(taskLog);
     }
 
@@ -196,19 +203,16 @@ public class TaskProxy {
 
     public String getOdpsTableFullName() {
         String schema = this.taskModel.getOdpsSchema();
-        if (Objects.nonNull(schema)) {
+        if (! StringUtils.isBlank(schema)) {
             return String.format("%s.%s.`%s`", getOdpsProjectName(), schema, getOdpsTableName());
         }
 
         return String.format("%s.`%s`", getOdpsProjectName(), getOdpsTableName());
     }
 
-    public TableSchema getOdpsTableSchema() {
+    public DstOdpsTableSchema getDstOdpsTableSchema() {
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(jobConfig.getSourceConfig().getSourceType());
-
-        boolean enableTS2 = taskModel.getType().equals(TaskType.DATABRICKS_UDTF);
-
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), jobConfig.getMaxPartitionLevel(), jobConfig.getColumnMapping(), jobConfig);
+        return schemaAdapter.toOdpsSchema(this.getTable().getTableModel(), this);
     }
 
     /**
@@ -217,7 +221,7 @@ public class TaskProxy {
     public TableSchema getTableSchemaOfOdpsSrc() {
         OdpsSchemaAdapter schemaAdapter = schemaUtils.getSchemaAdapter(SourceType.ODPS);
 
-        return schemaAdapter.toOdpsSchema(this.table.getTableSchema(), -1, null, false, jobConfig);
+        return schemaAdapter.toOdpsSchema(this.getTable().getTableModel(), this);
     }
 
     public int getPartitionNum() {
@@ -267,7 +271,7 @@ public class TaskProxy {
     }
 
     public List<PartitionValue> getDstOdpsPartitionValues() {
-        List<Column> partitionColumns = getOdpsTableSchema().getPartitionColumns();
+        List<Column> partitionColumns = getDstOdpsTableSchema().getPartitionColumns();
         List<MMAColumnSchema> mmaColumns = partitionColumns
                 .stream()
                 .map(MMAColumnSchema::fromOdpsColumn)

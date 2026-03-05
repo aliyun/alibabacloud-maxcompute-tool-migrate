@@ -17,13 +17,13 @@ import java.util.List;
 public class OdpsConfig extends SourceConfig {
     @ConfigItem(desc = "maxcompute endpoint", required = true)
     public static String MC_ENDPOINT = "mc.endpoint";
-    //@ConfigItem(desc = "vpc endpoint")
+    @ConfigItem(desc = "vpc endpoint")
     public static String MC_DATA_ENDPOINT = "mc.data.endpoint";
-    //@ConfigItem(desc = "tunnel endpoint")
+    @ConfigItem(desc = "tunnel endpoint")
     public static String MC_TUNNEL_ENDPOINT = "mc.tunnel.endpoint";
     @ConfigItem(desc = "maxcompute access id", required = true)
     public static String MC_AUTH_ACCESS_ID = "mc.auth.access.id";
-    @ConfigItem(desc = "maxcompute access key", required = true, type = "password")
+    @ConfigItem(desc = "maxcompute access key", required = true, type = "password", isPassword = true)
     public static String MC_AUTH_ACCESS_KEY = "mc.auth.access.key";
     @ConfigItem(desc = "maxcompute default project(用于执行sql的project)", required = true)
     public static String MC_DEFAULT_PROJECT = "mc.default.project";
@@ -35,9 +35,11 @@ public class OdpsConfig extends SourceConfig {
     public static String MC_REST_READ_TIMEOUT = "mc.rest.read.timeout";
     @ConfigItem(desc = "maxcompute endpoint http try times", type = "int", defaultValue = "1")
     public static String MC_REST_TRY_TIMES = "mc.rest.try.times";
-//    @ConfigItem(desc = "instance number of one copyTask", type = "int", defaultValue = "100")
+    @ConfigItem(desc = "instance number of one copyTask", type = "int")
     public static String COPYTASK_INS_NUM = "copytask.ins.num";
-//    @ConfigItem(desc = "coppytask direction", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
+    @ConfigItem(desc = "控制copytask的block size", type = "int")
+    public static String COPYTASK_BLOCK_SIZE = "odps.copy.block.size";
+    @ConfigItem(desc = "coppytask direction", defaultValue = "EXPORT", enums = {"EXPORT", "IMPORT"})
     public static String COPYTASK_DIRECTION = "copytask.direction";
     @ConfigItem(desc = "oss internal endpoint")
     public static final String OSS_ENDPOINT_INTERNAL = "oss.endpoint.internal";
@@ -47,14 +49,22 @@ public class OdpsConfig extends SourceConfig {
     public static final String OSS_BUCKET = "oss.bucket";
     @ConfigItem(desc = "oss access id")
     public static final String OSS_AUTH_ACCESS_ID = "oss.auth.access.id";
-    @ConfigItem(desc = "oss access key", type = "password")
+    @ConfigItem(desc = "oss access key", type = "password", isPassword = true)
     public static final String OSS_AUTH_ACCESS_KEY = "oss.auth.access.key";
     @ConfigItem(desc = "maxcompute 迁移任务sql参数", type = "map", defaultValue = "{\n    " +
             "\"odps.sql.hive.compatible\": \"true\"" +
             "\n}")
     public static String MC_SQL_HINTS = "mc.sql.hints";
+    @ConfigItem(desc = "maxcompute 迁移分层存储信息（默认不迁移，迁移会增加元数据扫描时间）", type = "boolean", defaultValue = "false")
+    public static final String MC_MIGRATE_STORAGE_TIER = "mc.migrate.storage.tier";
+    @ConfigItem(desc = "maxcompute 迁移生命周期状态（默认不迁移，迁移会增加元数据扫描时间）", type = "boolean", defaultValue = "false")
+    public static final String MC_MIGRATE_LIFECYCLE_STATUS = "mc.migrate.lifecycle.status";
     @ConfigItem(desc = "单个任务处理的最多分区数量", type = "int", defaultValue = "50")
     public static final String MC_TASK_PARTITION_MAX_NUM = "mc.task.partition.max.num";
+    @ConfigItem(desc = "表最大生命周期", type = "int", defaultValue = "37231")
+    public static final String MC_TABLE_MAX_LIFECYCLE = "mc.table.max.lifecycle";
+    @ConfigItem(desc = "mc logview host(默认不用配置)", defaultValue = "")
+    public static String LOG_VIEW_HOST = "mc.logview.host";
 
 
     public OdpsConfig() {
@@ -101,6 +111,11 @@ public class OdpsConfig extends SourceConfig {
 
         return ub.build().toString();
     }
+
+    public int getTableMaxLifeCycle() {
+        return getInteger(MC_TABLE_MAX_LIFECYCLE);
+    }
+
     @Override
     public List<String> itemMasks() {
         return Arrays.asList(new String[]{

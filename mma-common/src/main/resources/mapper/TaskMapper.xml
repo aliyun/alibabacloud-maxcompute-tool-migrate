@@ -325,6 +325,16 @@
         </where>
     </select>
 
+    <select id="getDoneTasksByTableIds" resultMap="taskMap" parameterType="com.aliyun.odps.mma.util.TableName">
+        select id, job_id, db_id, db_name, schema_name, table_id, table_name, odps_project, odps_schema, odps_table from task
+        <where>
+            odps_project = #{dbName}
+            and odps_schema = #{schemaName}
+            and odps_table = #{name}
+            and deleted = 0
+        </where>
+    </select>
+
     <select id="getRunningTasksByPtIds" resultMap="taskMap">
         select a.id, a.job_id, a.db_id, a.db_name, a.schema_name, a.table_id, a.table_name
         from task a join task_partition b

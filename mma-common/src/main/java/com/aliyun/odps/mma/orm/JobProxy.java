@@ -156,12 +156,12 @@ public class JobProxy {
             }
         }
 
-        logger.info("start to get running task for {} partitions and {} tables", partitionIds.size(), tableIds.size());
-        List<TaskModel> existedTasks = taskService.getRunningTasks(partitionIds, tableIds);
-        logger.info("success to get running task for {} partitions and {} tables", partitionIds.size(), tableIds.size());
-        if (!existedTasks.isEmpty()) {
-            throw newException(existedTasks);
-        }
+        //logger.info("start to get running task for {} partitions and {} tables", partitionIds.size(), tableIds.size());
+        //List<TaskModel> existedTasks = taskService.getRunningTasks(partitionIds, tableIds);
+        //logger.info("success to get running task for {} partitions and {} tables", partitionIds.size(), tableIds.size());
+        //if (!existedTasks.isEmpty()) {
+        //    throw newException(existedTasks);
+        //}
 
         jobService.submit(jobModel, tasks);
         return  jobModel.getId();
@@ -172,6 +172,14 @@ public class JobProxy {
 
         logger.info("start to generate tasks for {} tables", tables.size());
         List<Integer> tableIds = tables.stream().map(TableModel::getId).collect(Collectors.toList());
+
+        logger.info("start to get task by dest odps info for {} tables", tableIds.size());
+        List<TableName> names = tables.stream()
+            .map(t -> jobConfig.getDstOdpsTable(t.getName(),
+                                                jobModel.getDstOdpsSchema(),
+                                                jobModel.getDstOdpsProject()))
+            .collect(Collectors.toList());
+
         List<PartitionModel> partitions = partitionService.getPartitionsOfTablesBasic(tableIds);
         Map<Integer, List<PartitionModel>> partitionsOfTable = new HashMap<>();
 
@@ -216,8 +224,8 @@ public class JobProxy {
                 .type(jobConfig.getTaskType())
                 .status(TaskStatus.INIT);
 
-        // 处理非分区表
-        if (!table.isHasPartitions()) {
+        // 处理非分区表 和 只迁schema的情况
+        if (!table.isHasPartitions() || jobConfig.getSchemaOnly()) {
             // 有”定时任务 + 增量更新“时，如果已经迁移成功的非分区表有变动，则重新迁移
             if (jobModel.isOldJob() && jobConfig.isIncrement() && MigrationStatus.DONE == table.getStatus()) {
                 if (table.isUpdated()) {
@@ -249,7 +257,7 @@ public class JobProxy {
                     jobConfig.getSourceConfig()));
                 Optional<String> errOpt = partitionFilter.getTypeError();
                 if (errOpt.isPresent()) {
-                    throw new JobConfigException("partition_filter", errOpt.get());
+                    throw new JobConfigException("invalid partition filter for table " + table.getName(), errOpt.get());
                 }
 
                 if (isWanted) {
@@ -257,12 +265,12 @@ public class JobProxy {
                 }
             }
 
-            if (partitions.isEmpty()) {
-                throw new JobConfigException(
-                        "partition_filter",
-                        "there are no partitions filter out by " + partitionFilter.getFilterExpr()
-                );
-            }
+//            if (partitions.isEmpty()) {
+//                throw new JobConfigException(
+//                        "partition_filter",
+//                        String.format("there are no partitions for table %s filter out by %s", table.getName(), partitionFilter.getFilterExpr())
+//                );
+//            }
         }
 
         if (jobConfig.isIncrement()) {
@@ -318,11 +326,11 @@ public class JobProxy {
 
     public int submitPartitions(List<PartitionModel> ps) throws JobSubmittingException {
         // 校验是否已经有task在操作或准备操作partition
-        List<Integer> partitionIds = ps.stream().map(PartitionModel::getId).collect(Collectors.toList());
-        List<TaskModel> existedTasks = taskService.getRunningTasks(partitionIds);
-        if (!existedTasks.isEmpty()) {
-            throw newException(existedTasks);
-        }
+//        List<Integer> partitionIds = ps.stream().map(PartitionModel::getId).collect(Collectors.toList());
+//        List<TaskModel> existedTasks = taskService.getRunningTasks(partitionIds);
+//        if (!existedTasks.isEmpty()) {
+//            throw newException(existedTasks);
+//        }
 
         // 按照table对分区进行分组
         Map<TableHasher, List<PartitionModel>> groupsByTable = new HashMap<>();
@@ -345,7 +353,6 @@ public class JobProxy {
         // 以table为单位，对一个table内的分区进行分组，每个分区分组组成一个tasks
         for (TableHasher th : groupsByTable.keySet()) {
             List<PartitionModel> groupOfTable = groupsByTable.get(th);
-            List<List<PartitionModel>> ptGroups = this.jobConfig.getPartitionGrouping().group(groupOfTable);
 
             String dbName = th.getDbName();
             String schemName = th.getSchemName();
@@ -356,6 +363,7 @@ public class JobProxy {
             TaskType taskType = jobConfig.getTaskType();
             TableName odpsTable = jobConfig.getDstOdpsTable(tableName, jobModel.getDstOdpsSchema(), jobModel.getDstOdpsProject());
 
+            List<List<PartitionModel>> ptGroups = this.jobConfig.getPartitionGrouping().group(groupOfTable);
             ptGroups
                     .stream()
                     .map(ptGroup -> ptGroup.stream().map(PartitionModel::getId).collect(Collectors.toList()))

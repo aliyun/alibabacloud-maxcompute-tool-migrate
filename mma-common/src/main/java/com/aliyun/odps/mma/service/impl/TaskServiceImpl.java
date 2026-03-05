@@ -10,6 +10,8 @@ import com.aliyun.odps.mma.query.JobFilter;
 import com.aliyun.odps.mma.query.TaskFilter;
 import com.aliyun.odps.mma.service.TaskService;
 import com.aliyun.odps.mma.util.StepIter;
+import com.aliyun.odps.mma.util.TableName;
+
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -155,6 +157,22 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
+        return tasks;
+    }
+
+    @Override
+    public List<TaskModel> getDoneTasks(List<TableName> tableIds) {
+        if (tableIds == null || tableIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<TaskModel> tasks = new ArrayList<>();
+        for (TableName tableName: tableIds) {
+            List<TaskModel> taskSubList = taskMapper.getDoneTasksByTableIds(tableName);
+            if (Objects.nonNull(taskSubList)) {
+                tasks.addAll(taskSubList);
+            }
+        }
         return tasks;
     }
 

@@ -60,32 +60,7 @@ public class ConfigInitializer {
         return odpsConfig;
     }
 
-    @Bean(name="BIGQUERY")
-    @Primary
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public BigQueryConfig getBigQueryConfig() {
-        BigQueryConfig bigQueryConfig = new BigQueryConfig();
-        initConfig(bigQueryConfig);
-        return bigQueryConfig;
-    }
 
-    @Bean(name="DATABRICKS")
-    @Primary
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public DatabricksConfig getDatabricksConfig() {
-        DatabricksConfig config = new DatabricksConfig();
-        initConfig(config);
-        return config;
-    }
-
-
-    @Bean(name="HIVE_GLUE")
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public HiveGlueConfig getHiveGlueConfig() {
-        HiveGlueConfig config = new HiveGlueConfig();
-        initConfig(config);
-        return config;
-    }
 
 //    @Bean(name="ODPS_OSS")
 //    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)

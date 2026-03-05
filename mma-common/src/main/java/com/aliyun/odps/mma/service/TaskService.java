@@ -6,6 +6,8 @@ import com.aliyun.odps.mma.model.TaskModel;
 import com.aliyun.odps.mma.model.TaskLog;
 import com.aliyun.odps.mma.query.JobFilter;
 import com.aliyun.odps.mma.query.TaskFilter;
+import com.aliyun.odps.mma.util.TableName;
+
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collections;
@@ -32,6 +34,7 @@ public interface TaskService {
     TableModel getTableOfTask(int tableId);
     List<TaskModel> getTasksAvailable(int limit);
     List<TaskModel> getRunningTasks(List<Integer> partitionIds, List<Integer> tableIds);
+    List<TaskModel> getDoneTasks(List<TableName> tableIds);
     List<TaskModel> getRunningTasksByJobId(@Param("jobId") int jobId);
     default List<TaskModel> getRunningTasks(List<Integer> partitionIds) {
         return getRunningTasks(partitionIds, Collections.emptyList());

@@ -19,7 +19,81 @@
     </select>
 
     <select id="getDbById"  resultMap="dbMap">
-        select * from db_model where id=#{id}
+        with p as (
+            select
+                #{id} as db_id,
+                table_id,
+                sum(if(status='INIT', 1, 0)) as init,
+                sum(if(status='DOING', 1, 0)) as doing,
+                sum(if(status='DONE', 1, 0)) as done,
+                sum(if(status='FAILED', 1, 0)) as failed,
+                count(*) as partitions
+            from partition_model
+            where source_id=#{sourceId} and db_id=#{id}
+            group by table_id
+        ),
+        t as (
+        select
+            table_model.db_id as db_id,
+            (
+                case
+                when has_partitions = 0 or p.partitions = 0 then status
+                when p.doing > 0 then 'DOING'
+                when p.failed > 0 then 'FAILED'
+                when p.done = p.partitions then 'DONE'
+                when p.done &gt; 0 and p.done &lt; p.partitions then 'PART_DONE'
+                else 'INIT'
+                end
+            ) as status
+            from table_model left join p on table_model.id = p.table_id
+            where source_id=#{sourceId} and table_model.db_id=#{id}
+        ),
+        dp as (
+           select
+               db_id,
+               sum(init) as init,
+               sum(doing) as doing,
+               sum(done) as done,
+               sum(failed) as failed,
+               sum(partitions) as partitions
+           from p
+           group by db_id
+        ),
+        dt as (
+           select
+               db_id,
+               sum(if(status='INIT', 1, 0)) as init,
+               sum(if(status='DOING', 1, 0)) as doing,
+               sum(if(status='DONE', 1, 0)) as done,
+               sum(if(status='FAILED', 1, 0)) as failed,
+               sum(if(status='PART_DONE', 1, 0)) as part_done,
+               count(*) as tables
+           from t
+           group by db_id
+        ),
+        ddp as (
+           select
+               id, name, source_id,
+               db_model.num_rows as num_rows,
+               db_model.size as size,
+               dp.partitions as partitions,
+               dp.done as partitionsDone,
+               dp.doing as partitionsDoing,
+               dp.failed as partitionsFailed
+           from db_model
+           left join dp
+           on db_model.id = dp.db_id
+           where source_id = #{sourceId} and db_model.id = #{id}
+        )
+        select
+        ddp.*,
+        dt.tables as tables,
+        dt.done as tablesDone,
+        dt.part_done as tablesPartDone,
+        dt.doing as tablesDoing,
+        dt.failed as tablesFailed
+        from ddp left join dt
+        on ddp.id = dt.db_id
     </select>
 
     <select id="getDbByName"  resultMap="dbMap">
@@ -32,7 +106,7 @@
     </insert>
 
     <update id="updateDb" parameterType="com.aliyun.odps.mma.model.DataBaseModel">
-        update db_model set size=#{size}, num_rows=#{numRows}, updated=true, update_time=now() where id=#{id}
+        update db_model set size=#{size}, num_rows=#{numRows}, last_ddl_time=#{lastDdlTime}, updated=true, update_time=now() where id=#{id}
     </update>
 
     <update id="batchUpdateDbsStatus">
@@ -45,30 +119,95 @@
         </where>
     </update>
 
+
     <select id="getDbs" resultMap="dbMap" parameterType="com.aliyun.odps.mma.query.DbFilter">
-        select db_model.*, datasource.name as sourceName from db_model join datasource on db_model.source_id =  datasource.id
+        with p as (
+            select
+               db_id,
+               table_id,
+               sum(if(status='INIT', 1, 0)) as init,
+               sum(if(status='DOING', 1, 0)) as doing,
+               sum(if(status='DONE', 1, 0)) as done,
+               sum(if(status='FAILED', 1, 0)) as failed,
+               count(*) as partitions
+            from partition_model
+            where source_id=#{sourceId}
+            group by db_id, table_id
+        ),
+        t as (
+            select
+               table_model.db_id as db_id,
+               (
+                 case
+                   when has_partitions = 0 or p.partitions = 0 then status
+                   when p.doing > 0 then 'DOING'
+                   when p.failed > 0 then 'FAILED'
+                   when p.done = p.partitions then 'DONE'
+                   when p.done &gt; 0 and p.done &lt; p.partitions then 'PART_DONE'
+                   else 'INIT'
+                 end
+               ) as status
+           from table_model left join p on table_model.id = p.table_id
+           where source_id=#{sourceId}
+        ),
+        dp as (
+           select
+              db_id,
+              sum(init) as init,
+              sum(doing) as doing,
+              sum(done) as done,
+              sum(failed) as failed,
+              sum(partitions) as partitions
+           from p
+           group by db_id
+        ),
+        dt as (
+           select
+              db_id,
+              sum(if(status='INIT', 1, 0)) as init,
+              sum(if(status='DOING', 1, 0)) as doing,
+              sum(if(status='DONE', 1, 0)) as done,
+              sum(if(status='FAILED', 1, 0)) as failed,
+              sum(if(status='PART_DONE', 1, 0)) as part_done,
+              count(*) as tables
+           from t
+           group by db_id
+        ),
+        ddp as (
+           select
+              id, name, source_id,
+              db_model.num_rows as num_rows,
+              db_model.size as size,
+              dp.partitions as partitions,
+              dp.done as partitionsDone,
+              dp.doing as partitionsDoing,
+              dp.failed as partitionsFailed
+           from db_model
+           left join dp
+           on db_model.id = dp.db_id
+           where source_id = #{sourceId}
 
-        <where>
-            <if test="sourceId > 0">
-                datasource.id=#{sourceId}
-            </if>
+           <if test="id > 0">
+               and db_model.id = #{id}
+           </if>
 
-            <if test="id > 0">
-                and db_model.id = #{id}
-            </if>
-
-            <if test="name != null">
-                and db_model.name like CONCAT('%', #{name}, '%')
-            </if>
-
-            <if test="status != null">
-                and db_model.status = #{status}
-            </if>
-        </where>
+           <if test="name != null and name != ''">
+               and `name` like CONCAT('%', #{name}, '%')
+           </if>
+        )
+        select
+           ddp.*,
+           dt.tables as tables,
+           dt.done as tablesDone,
+           dt.part_done as tablesPartDone,
+           dt.doing as tablesDoing,
+           dt.failed as tablesFailed
+           from ddp left join dt
+           on ddp.id = dt.db_id
 
         <if test="orders.size() > 0">
             <foreach item="p" index="index" collection="orders" open="order by" separator="," close="">
-                db_model.${p.name} ${p.order}
+                ${p.name} ${p.order}
             </foreach>
         </if>
 
@@ -91,10 +230,6 @@
 
             <if test="name != null">
                 and `name` like CONCAT('%', #{name}, '%')
-            </if>
-
-            <if test="status != null">
-                and status = #{status}
             </if>
         </where>
     </select>
