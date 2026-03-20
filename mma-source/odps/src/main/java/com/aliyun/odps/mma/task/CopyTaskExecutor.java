@@ -97,7 +97,7 @@ public class CopyTaskExecutor extends TaskExecutor {
             task.log("execute copytask", odpsUtils.getLogView(dataTransInstance));
             dataTransInstance.waitForSuccess();
         } catch (OdpsException e) {
-            if (!this.stopped) {
+            if (!this.stopped.get()) {
                 task.error("copytask failed", e);
                 logger.warn("copytask failed for {}", task.getTaskName(), e);
             }

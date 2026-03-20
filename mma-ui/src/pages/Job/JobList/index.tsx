@@ -176,10 +176,27 @@ export default () => {
              render: (row, entity) => {
                  let options = [];
 
-                 if (entity.status == "DOING") {
+                 if (entity.stopped) {
                      options.push(
                          <Popconfirm
                              key="1"
+                             title={fm(intl, "pages.Job.operation.start", "开始任务")}
+                             onConfirm={async () => {
+                                 await jobAction(entity.id, "start");
+                                 message.success(fm(intl, "pages.Job.operation.startOk", "启动成功"));
+
+                                 actionRef.current?.reload();
+                             }}
+                         >
+                             <a type="primary">
+                                 { fm(intl, "pages.Job.operation.start", "启动") }
+                             </a>
+                         </Popconfirm>
+                     );
+                 } else if (entity.status == "DOING") {
+                     options.push(
+                         <Popconfirm
+                             key="2"
                              title={
                                  entity.stopped ?
                                      fm(intl, "pages.Job.operation.start", "开始任务") :
@@ -208,26 +225,7 @@ export default () => {
                              </a>
                          </Popconfirm>
                      )
-                 }
-
-                 options.push([
-                     <Popconfirm
-                         key="2"
-                         title={fm(intl, "pages.Job.deletionConfirm", "确定删除任务?")}
-                         onConfirm={async () => {
-                             let hide = message.loading(fm(intl, "pages.Job.deletingMsg", "停止并删除任务中..."))
-                             await jobAction(entity.id, "delete");
-                             hide();
-                             actionRef.current?.reload();
-                         }}
-                         okText="Yes"
-                         cancelText="No"
-                     >
-                         <a href="#"><FMSpan id="pages.Job.delete" defaultMessage="删除" /></a>
-                     </Popconfirm>
-                 ]);
-
-                 if (entity.status == "FAILED") {
+                 } else if (entity.status == "FAILED") {
                      options.push(
                          <Popconfirm
                              key={"3"}
@@ -245,12 +243,10 @@ export default () => {
                              <a href="#"><FMSpan id="pages.Job.retry" defaultMessage="重试" /></a>
                          </Popconfirm>
                      )
-                 }
-
-                 if (entity.status == "DONE") {
+                 } else if (entity.status == "DONE") {
                      options.push(
                          <Popconfirm
-                             key={"3"}
+                             key={"4"}
                              title={fm(intl, "pages.Job.rerun.confirm", "确定重新运行任务?")}
                              onConfirm={async () => {
                                  await jobAction(entity.id, "rerun");
@@ -267,6 +263,22 @@ export default () => {
                      )
                  }
 
+                 options.push([
+                     <Popconfirm
+                         key="5"
+                         title={fm(intl, "pages.Job.deletionConfirm", "确定删除任务?")}
+                         onConfirm={async () => {
+                             let hide = message.loading(fm(intl, "pages.Job.deletingMsg", "停止并删除任务中..."))
+                             await jobAction(entity.id, "delete");
+                             hide();
+                             actionRef.current?.reload();
+                         }}
+                         okText="Yes"
+                         cancelText="No"
+                     >
+                         <a href="#"><FMSpan id="pages.Job.delete" defaultMessage="删除" /></a>
+                     </Popconfirm>
+                 ]);
 
                  return options;
              },

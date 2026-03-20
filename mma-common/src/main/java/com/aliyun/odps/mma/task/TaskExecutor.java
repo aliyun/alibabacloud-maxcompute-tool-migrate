@@ -6,6 +6,7 @@ import com.aliyun.odps.mma.model.JobModel;
 import com.aliyun.odps.mma.orm.TableProxy;
 import com.aliyun.odps.mma.util.ExceptionUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,9 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.AllArgsConstructor;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 @AllArgsConstructor
 public class TaskExecutor implements Runnable, TaskExecutorInter {
@@ -53,7 +57,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
     protected Table odpsTable;
     protected ApplicationEventPublisher publisher;
 
-    protected boolean stopped = false;
+    protected AtomicBoolean stopped = new AtomicBoolean(false);
     protected int partitionNumOfTask;
 
     public TaskExecutor() {}
@@ -108,7 +112,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
             //publishTaskEvent();
             task.setTaskStart();
             updateMigrationTargetStatus(MigrationStatus.DOING);
-            while (task.getStatus() != TaskStatus.DONE && !stopped) {
+            while (task.getStatus() != TaskStatus.DONE && !stopped.get()) {
                 if (task.getStatus() == TaskStatus.SCHEMA_DONE) {
                     TableProxy table = task.getTable();
                     // 分区表无分区的情况建完task后直接结束任务
@@ -202,27 +206,33 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
 //                throw new MMATaskInterruptException();
 //            }
         } catch (Exception e) {
-            if (this.stopped) {
+            if (this.stopped.get()) {
                 logger.info("task {} is stopped by kill self", task.getTaskName());
                 task.log("stop", "be stopped");
                 return;
             }
-
-            task.setStatus(errStatus);
-
-            updateMigrationTargetStatus(MigrationStatus.FAILED);
             //publishTaskEvent();
 
             if (e instanceof InterruptedException) {
                 logger.info("task {} is stopped by interruption", task.getTaskName());
                 task.log("stop", "be stopped");
-                stopped = true;
+                stopped.set(true);
                 return;
             }
 
             if (! (e instanceof MMATaskInterruptException)) {
-                task.error("unexpected error", ExceptionUtils.getStackTrace(e));
-                logger.error("unexpected error", e);
+                if (! this.stopped.get()) {
+                    task.setStatus(errStatus);
+
+                    updateMigrationTargetStatus(MigrationStatus.FAILED);
+                    if (Objects.nonNull(e.getCause())) {
+                        task.error("unexpected error", ExceptionUtils.getStackTrace(e.getCause()));
+                        logger.error("unexpected error", e);
+                    }
+                } else {
+                    logger.info("task {} is stopped by kill self 1", task.getTaskName());
+                    task.log("stop", "be stopped");
+                }
             }
 
             // 发生数据校验错误（不是异常错误), 再重新进行数据校验没有意义，重试任务时，需要重新传输数据
@@ -330,7 +340,7 @@ public class TaskExecutor implements Runnable, TaskExecutorInter {
     }
 
     public void killSelf() {
-        stopped = true;
+        stopped.set(true);
     }
 
     protected void publishTaskEvent() {

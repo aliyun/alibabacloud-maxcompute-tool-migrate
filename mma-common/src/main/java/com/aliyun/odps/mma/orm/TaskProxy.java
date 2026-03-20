@@ -66,6 +66,9 @@ public class TaskProxy {
     }
 
     public void setStatus(TaskStatus status) {
+        if (status.toString().endsWith("FAILED")) {
+            System.out.println("Task failed: " + taskModel.getId());
+        }
         this.taskModel.setStatus(status);
         this.taskService.updateTaskStatus(this.taskModel);
     }

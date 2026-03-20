@@ -158,13 +158,13 @@ public class TaskManager implements InitializingBean, DisposableBean {
 
         taskFutures.remove(taskId);
         taskExecutors.remove(taskId);
+        taskService.setTaskStop(taskId);
+
         if (!future.isDone()) {
             logger.info("try to stop task with id={}", taskId);
             te.killSelf();
             future.cancel(true);
         }
-
-        taskService.setTaskStop(taskId);
     }
 
     public void cancelJob(int jobId) {

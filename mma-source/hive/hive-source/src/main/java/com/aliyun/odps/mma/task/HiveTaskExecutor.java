@@ -130,7 +130,7 @@ public class HiveTaskExecutor extends TaskExecutor {
             );
             task.log(sql,  Long.toString(hiveCnt.get()));
         } catch (SQLException e) {
-            if (!this.stopped) {
+            if (!this.stopped.get()) {
                 task.error(sql, e);
                 logger.warn("execute sql error for table " + task.getTaskName() , e);
             }

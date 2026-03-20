@@ -24,7 +24,7 @@ public class MergedTransportTaskExecutor extends TaskExecutor {
 
     @Override
     protected void _dataTrans() throws Exception {
-        outer: while (!this.stopped) {
+        outer: while (!this.stopped.get()) {
             switch (task.getSubStatus()) {
                 case "":
                 case "DATA_INIT":

@@ -12,6 +12,7 @@ import com.aliyun.odps.mma.orm.TableProxy;
 import com.aliyun.odps.mma.orm.TaskProxy;
 import com.aliyun.odps.mma.sql.OdpsSqlUtils;
 import com.aliyun.odps.mma.sql.PartitionValue;
+import com.aliyun.odps.mma.util.ExceptionUtils;
 import com.aliyun.odps.mma.util.KeyLock;
 import com.aliyun.odps.mma.util.ListUtils;
 import com.aliyun.odps.mma.util.OdpsUtils;
@@ -192,8 +193,9 @@ public class OdpsAction {
         );
 
         wrapWithTryCatch(sql, () -> {
-            Instance instance = executeSql(sql, hints);
+            Instance instance = executeSqlNoWait(sql, hints);
             insGetter.accept(instance);
+            instance.waitForSuccess();
         });
     }
 
@@ -257,10 +259,12 @@ public class OdpsAction {
                 AtomicLong recordCount = new AtomicLong();
 
                 wrapWithTryCatch(sql, () -> {
-                    Instance instance = executeSql(sql, hints);
+                    Instance instance = executeSqlNoWait(sql, hints);
                     if (Objects.nonNull(insGetter)) {
                         insGetter.accept(instance);
                     }
+
+                    instance.waitForSuccess();
 
                     List<Record> records = SQLTask.getResult(instance, "MMAv3");
 
@@ -297,10 +301,11 @@ public class OdpsAction {
                 Map<String, Long> countMap = new HashMap<>();
 
                 wrapWithTryCatch(sql, () -> {
-                    Instance instance = executeSql(sql, hints);
+                    Instance instance = executeSqlNoWait(sql, hints);
                     if (Objects.nonNull(insGetter)) {
                         insGetter.accept(instance);
                     }
+                    instance.waitForSuccess();
 
                     List<Record> records = SQLTask.getResult(instance, "MMAv3");
 
@@ -368,11 +373,16 @@ public class OdpsAction {
         return executeSql(sql, null);
     }
 
-    public Instance executeSql(String sql, Map<String, String> hints) throws OdpsException {
+    public Instance executeSqlNoWait(String sql, Map<String, String> hints) throws OdpsException {
         task.log(sql, "start executing");
         Instance instance = odpsUtils.executeSql(sql, hints);
         String logView = odpsUtils.getLogView(instance);
         task.log(sql, logView);
+        return instance;
+    }
+
+    public Instance executeSql(String sql, Map<String, String> hints) throws OdpsException {
+        Instance instance = executeSqlNoWait(sql, hints);
         instance.waitForSuccess();
         return instance;
     }
@@ -381,8 +391,7 @@ public class OdpsAction {
         try {
             actionFunc.call();
         } catch (Exception e) {
-            task.error(action, e);
-            throw new MMATaskInterruptException();
+            throw new MMATaskInterruptException(action, e);
         }
     }
 
