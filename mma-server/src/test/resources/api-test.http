@@ -1,0 +1,184 @@
+### single partition job
+PUT http://localhost:6060/api/partition/25123/job
+Content-Type: application/json
+
+{
+   "odps_project": "mma_test1",
+   "description": "hello mma",
+   "table_mapping": {
+      "test_orc_partitioned_nx1000k": "test_orc_partitioned_nx1000k"
+   }
+}
+
+
+### batch partitions job
+PUT http://localhost:6060/api/job/partitions
+Content-Type: application/json
+
+{
+  "odps_project": "mma_test",
+  "description": "hello mma",
+  "task_type": "MOCK",
+  "table_mapping": {
+    "test_orc_partitioned_nx1000k": "test_orc_partitioned_nx1000k"
+  },
+  "partitions": [1,2,3]
+}
+
+### single table job
+PUT http://localhost:6060/api/table/10/job
+Content-Type: application/json
+
+{
+  "odps_project": "mma_test",
+  "partition_filter": "p2 >= 6751365152984271782",
+  "description": "test_partitioned_25000x1k"
+}
+
+### "task_type": "MOCK",
+
+### batch tables job
+PUT http://localhost:6060/api/job/tables
+Content-Type: application/json
+
+{
+  "odps_project": "mma_test",
+  "description": "batch tables",
+  "table_mapping": {
+    "poke": "pokes",
+    "test_partitioned_25000x1k": "test_partitioned_25000x1k"
+  },
+  "db_name": "mma_test",
+  "tables": ["pokes", "test_partitioned_25000x1k"],
+  "task_type": "MOCK"
+}
+
+### stop job
+POST http://localhost:6060/api/job/1/stop
+
+### stop task
+POST http://localhost:6060/api/task/1/stop
+
+### batch tables job fail
+POST http://localhost:6060/api/jobs
+Content-Type: application/json
+
+{
+  "description": "batch tables",
+  "type": "tables",
+  "datasource": "hive2",
+  "db_name": "mma_test",
+  "tables": ["test_partitioned_100x10k"],
+  "partition_filters": {
+    "test_partitioned_100x10k": "p2 > 6930"
+  }
+}
+
+### single database job fail
+POST http://localhost:6060/api/jobs
+Content-Type: application/json
+
+{
+  "description": "batch tables",
+  "type": "database",
+  "datasource": "hive2",
+  "db_name": "mma_test"
+}
+
+
+### single db job
+PUT http://localhost:6060/api/db/1/job
+Content-Type: application/json
+
+{
+  "odps_project": "mma_test1",
+  "description": "all db job",
+  "task_type": "MOCK"
+}
+
+### single db job by name
+PUT http://localhost:6060/api/job/db
+Content-Type: application/json
+
+{
+  "db_name": "mma_test2",
+  "a": "b",
+  "table_white_list": ["z_t2"]
+}
+
+### get job by id
+GET http://localhost:6060/api/jobs/1
+
+### retry Job
+PUT http://localhost:6060/api/jobs/3?action=retry
+
+### get table by id
+GET http://localhost:6060/api/table/4
+
+### get db by id
+GET http://localhost:6060/api/db/1
+
+
+### get confifg
+GET http://localhost:6060/api/config
+
+### add confifg
+POST http://localhost:6060/api/config
+Content-Type: application/json
+
+{
+  "task.max.num": 50,
+  "meta.api.batch": "5",
+  "source.database.blacklist": ["default","empty","emr_presto_init__", "mma_test2"],
+  "source.table.blacklist": [],
+  "mc.data.endpoint": "http://service.cn.maxcompute.aliyun.com/api",
+  "mc.endpoint": "http://service.cn.maxcompute.aliyun.com/api"
+}
+
+### get confifg
+GET http://localhost:6060/api/config/source
+
+### add source confifg
+POST http://localhost:6060/api/config/source
+Content-Type: application/json
+
+{
+  "hive.metastore.urls": "thrift://192.168.0.216:9083",
+  "hive.task.partition.max.size": 2
+}
+
+### update meta
+POST http://localhost:6060/api/meta/update
+
+
+### get meta loading status
+GET http://localhost:6060/api/meta/status
+
+
+### add hive data source
+POST http://localhost:6060/api/sources
+Content-Type: application/json
+
+{
+  "name": "hive2",
+  "type": "Hive",
+  "hive.metastore.urls": "thrift://192.168.0.212:9083",
+  "hive.jdbc.url": "jdbc:hive2://192.168.0.212:10000/default;principal=hive/emr-header-1.cluster-48497@EMR.48497.COM",
+  "hive.jdbc.username": "Hive",
+  "hive.jdbc.password": "",
+  "hive.metastore.sasl.enabled": "true",
+  "hive.metastore.kerberos.principal": "hive/emr-header-1.cluster-48497@EMR.48497.COM",
+  "hive.metastore.kerberos.keytab.file": "/Users/apple/Desktop/krb_config/hive2/hive.keytab",
+  "java.security.auth.login.config": "/Users/apple/Desktop/krb_config/hive2/gss-jaas.conf",
+  "java.security.krb5.conf": "/Users/apple/Desktop/krb_config/hive2/krb5.conf"
+}
+
+### run datasource init
+PUT http://localhost:6060/api/sources/48/init
+
+### get datasource init
+GET http://localhost:6060/api/sources/48/init_logs
+
+
+### listSchemas
+GET http://localhost:6060/api/jobs/listProjectSchemas?project=mma_test

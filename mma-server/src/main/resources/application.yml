@@ -57,4 +57,4 @@ logging:
   file:
     name: ./logs/com.aliyun.odps.mma.log
 
-mma-version: 2026031315
+mma-version: 2026040813
